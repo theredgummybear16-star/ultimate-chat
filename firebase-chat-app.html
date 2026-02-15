@@ -899,185 +899,9 @@
             background: rgba(255,255,255,0.3);
             transform: scale(1.05);
         }
-
-        /* URL Popup Modal */
-        .url-popup-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 3000;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .url-popup {
-            background: var(--surface);
-            padding: 2.5rem;
-            border-radius: 1.5rem;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            text-align: center;
-        }
-
-        @keyframes popIn {
-            from {
-                transform: scale(0.7);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .url-popup-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-            animation: bounce 1s infinite;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .url-popup-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            color: var(--text);
-        }
-
-        .url-popup-message {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            margin-bottom: 1.5rem;
-        }
-
-        .url-popup-link {
-            display: block;
-            padding: 0.75rem;
-            background: var(--background);
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            word-break: break-all;
-            font-family: monospace;
-            font-size: 0.875rem;
-            color: var(--primary);
-        }
-
-        .url-popup-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
-
-        .url-popup-btn {
-            padding: 0.875rem 1.5rem;
-            border: none;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        .url-popup-btn-primary {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-        }
-
-        .url-popup-btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-        }
-
-        .url-popup-btn-secondary {
-            background: var(--background);
-            color: var(--text);
-            border: 2px solid var(--border);
-        }
-
-        .url-popup-btn-secondary:hover {
-            background: var(--border);
-        }
-
-        /* Modern Button Styles */
-        .btn {
-            width: 100%;
-            padding: 0.75rem;
-            border: none;
-            border-radius: 0.75rem;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
     </style>
 </head>
 <body class="theme-dark">
-    <!-- URL Popup -->
-    <div id="urlPopup" class="url-popup-overlay hidden">
-        <div class="url-popup">
-            <div class="url-popup-icon">🌐</div>
-            <div class="url-popup-title" id="urlPopupTitle">Admin sent you a link!</div>
-            <div class="url-popup-message" id="urlPopupMessage"></div>
-            <div class="url-popup-link" id="urlPopupLink"></div>
-            <div class="url-popup-buttons">
-                <button class="url-popup-btn url-popup-btn-primary" onclick="openPopupUrl()">
-                    Open Link 🚀
-                </button>
-                <button class="url-popup-btn url-popup-btn-secondary" onclick="closeUrlPopup()">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Broadcast Banner -->
     <div id="broadcastBanner" class="broadcast-banner hidden">
@@ -1480,8 +1304,6 @@
 
         async function getClientIP() {
             try {
-                // In production, you'd use a service to get the real IP
-                // For demo purposes, we'll generate a mock IP
                 return localStorage.getItem('mockIP') || generateMockIP();
             } catch (e) {
                 return generateMockIP();
@@ -1513,7 +1335,6 @@
                     throw new Error('Your IP address has been blocked');
                 }
 
-                // Check if username exists
                 const usersSnapshot = await db.collection('users').where('username', '==', username).get();
                 if (!usersSnapshot.empty) {
                     throw new Error('Username already exists');
@@ -1522,7 +1343,6 @@
                 const salt = generateSalt();
                 const hashedPassword = await hashPassword(password, salt);
                 
-                // Create user document
                 const userRef = db.collection('users').doc();
                 await userRef.set({
                     username: username,
@@ -1534,7 +1354,6 @@
                     lastIP: ip
                 });
 
-                // Auto login
                 await login(username, password);
             } catch (error) {
                 hideLoading();
@@ -1551,7 +1370,6 @@
                     throw new Error('Your IP address has been blocked');
                 }
 
-                // Find user by username
                 const usersSnapshot = await db.collection('users').where('username', '==', username).get();
                 
                 if (usersSnapshot.empty) {
@@ -1566,7 +1384,6 @@
                     throw new Error('Invalid username or password');
                 }
 
-                // Store session
                 currentUser = {
                     id: userDoc.id,
                     ...userData
@@ -1575,13 +1392,11 @@
                 localStorage.setItem('sessionToken', userDoc.id);
                 localStorage.setItem('sessionUser', JSON.stringify(currentUser));
 
-                // Update last IP and online status
                 await userDoc.ref.update({
                     lastIP: ip,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                // Check maintenance mode AFTER authentication
                 const maintenanceDoc = await db.collection('admin').doc('settings').get();
                 if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !userData.isAdmin) {
                     showMaintenanceMode();
@@ -1622,7 +1437,6 @@
                     ...userDoc.data()
                 };
 
-                // Check maintenance mode
                 const maintenanceDoc = await db.collection('admin').doc('settings').get();
                 if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !currentUser.isAdmin) {
                     showMaintenanceMode();
@@ -1645,7 +1459,6 @@
             if (currentUser) {
                 setUserOnline(currentUser.id, false);
                 
-                // Detach all listeners
                 Object.values(messageListeners).forEach(unsubscribe => unsubscribe());
                 messageListeners = {};
             }
@@ -1676,13 +1489,11 @@
             try {
                 showLoading();
 
-                // Verify current password
                 const hashedCurrent = await hashPassword(current, currentUser.salt);
                 if (hashedCurrent !== currentUser.passwordHash) {
                     throw new Error('Current password is incorrect');
                 }
 
-                // Update password
                 const newSalt = generateSalt();
                 const newHash = await hashPassword(newPass, newSalt);
 
@@ -1713,7 +1524,6 @@
                 lastSeen: firebase.database.ServerValue.TIMESTAMP
             });
 
-            // Set up disconnect handler
             if (online) {
                 rtdb.ref('status/' + userId).onDisconnect().set({
                     online: false,
@@ -1736,11 +1546,9 @@
             document.getElementById('maintenancePage').classList.add('hidden');
             document.getElementById('chatApp').classList.remove('hidden');
 
-            // Update UI with user info
             document.getElementById('currentUsername').textContent = currentUser.username;
             document.getElementById('userAvatar').textContent = currentUser.avatar;
 
-            // Show admin button ONLY if user is admin
             const adminButton = document.getElementById('adminButton');
             if (currentUser && currentUser.isAdmin === true) {
                 adminButton.classList.remove('hidden');
@@ -1748,14 +1556,11 @@
                 adminButton.classList.add('hidden');
             }
 
-            // Load chats
             loadChatList();
             selectChat('global');
             
-            // Initialize broadcast listener
             initBroadcastListener();
             
-            // Apply saved theme (default to dark)
             const savedTheme = localStorage.getItem('theme') || 'dark';
             applyTheme(savedTheme);
         }
@@ -1763,7 +1568,6 @@
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
             
-            // Clear existing (keep global)
             chatList.innerHTML = `
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
@@ -1775,7 +1579,6 @@
             `;
 
             try {
-                // Load all users to show available chats
                 const usersSnapshot = await db.collection('users').get();
                 const users = [];
                 
@@ -1788,7 +1591,6 @@
                     }
                 });
 
-                // Check which users have active chats
                 const chatsRef = rtdb.ref('privateChats');
                 const chatsSnapshot = await chatsRef.once('value');
                 const existingChats = new Set();
@@ -1802,7 +1604,6 @@
                     });
                 }
 
-                // Display users with existing chats first
                 const sortedUsers = users.sort((a, b) => {
                     const chatIdA = [currentUser.id, a.id].sort().join('_');
                     const chatIdB = [currentUser.id, b.id].sort().join('_');
@@ -1832,7 +1633,6 @@
                     `;
                     chatList.appendChild(chatItem);
 
-                    // Listen to status
                     listenToUserStatus(userData.id, status => {
                         const indicator = document.getElementById(`status-${userData.id}`);
                         if (indicator) {
@@ -1849,12 +1649,10 @@
         function selectChat(chatId) {
             currentChat = chatId;
             
-            // Update active state in sidebar
             document.querySelectorAll('.chat-item').forEach(item => {
                 item.classList.remove('active');
             });
             
-            // Find and activate the correct chat item
             const chatItems = document.querySelectorAll('.chat-item');
             chatItems.forEach(item => {
                 const itemOnClick = item.getAttribute('onclick');
@@ -1863,7 +1661,6 @@
                 }
             });
 
-            // Update header
             const chatTitle = document.getElementById('chatTitle');
             if (chatId === 'global') {
                 chatTitle.innerHTML = '<span class="avatar">🌍</span><span>Global Chat</span>';
@@ -1888,10 +1685,8 @@
                 });
             }
 
-            // Load messages
             loadMessages(chatId);
 
-            // Close sidebar on mobile
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('open');
             }
@@ -1901,31 +1696,26 @@
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
 
-            // Detach previous listener
             if (messageListeners[currentChat]) {
                 messageListeners[currentChat]();
             }
 
             if (chatId === 'global') {
-                // Load from Firestore - get all messages and sort client-side
                 const unsubscribe = db.collection('messages')
                     .onSnapshot(snapshot => {
                         container.innerHTML = '';
                         const messages = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
-                            // Only add messages that have a timestamp
                             if (data.timestamp) {
                                 messages.push({ id: doc.id, ...data });
                             }
                         });
-                        // Sort by timestamp client-side
                         messages.sort((a, b) => {
                             const aTime = a.timestamp?.toMillis() || 0;
                             const bTime = b.timestamp?.toMillis() || 0;
                             return aTime - bTime;
                         });
-                        // Keep only last 100 messages
                         const lastMessages = messages.slice(-100);
                         lastMessages.forEach(message => displayMessage(message, container));
                         scrollToBottom();
@@ -1935,7 +1725,6 @@
                     });
                 messageListeners[chatId] = unsubscribe;
             } else {
-                // Load from Realtime Database
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
                 messagesRef.on('value', snapshot => {
                     container.innerHTML = '';
@@ -1980,7 +1769,12 @@
                 `;
             }
 
-            content += `<div class="message-content">${sanitizeHTML(message.content)}</div>`;
+            // Make URLs clickable
+            let messageContent = sanitizeHTML(message.content);
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            messageContent = messageContent.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">$1</a>');
+            
+            content += `<div class="message-content">${messageContent}</div>`;
 
             if (!isSystem) {
                 const canEdit = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
@@ -2008,7 +1802,7 @@
             const messageTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
             const now = new Date();
             const diff = now - messageTime;
-            return diff < 7200000; // 2 hours in milliseconds
+            return diff < 7200000;
         }
 
         async function sendMessage() {
@@ -2028,7 +1822,6 @@
                 };
 
                 if (editingMessageId) {
-                    // Update existing message
                     if (currentChat === 'global') {
                         await db.collection('messages').doc(editingMessageId).update({
                             content: content,
@@ -2044,7 +1837,6 @@
                     }
                     editingMessageId = null;
                 } else {
-                    // Send new message
                     if (currentChat === 'global') {
                         messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                         await db.collection('messages').add(messageData);
@@ -2065,7 +1857,6 @@
         function editMessage(messageId, chatId, isPrivate) {
             editingMessageId = messageId;
             
-            // Get message content
             if (isPrivate) {
                 rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).once('value', snapshot => {
                     const message = snapshot.val();
@@ -2120,7 +1911,6 @@
             const usersSnapshot = await db.collection('users').get();
             const chatList = document.getElementById('chatList');
             
-            // Keep global chat
             chatList.innerHTML = `
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
@@ -2155,7 +1945,6 @@
         async function startPrivateChat(otherUserId) {
             const chatId = [currentUser.id, otherUserId].sort().join('_');
             
-            // Create chat if it doesn't exist
             const chatRef = rtdb.ref(`privateChats/${chatId}`);
             const snapshot = await chatRef.once('value');
             
@@ -2165,7 +1954,6 @@
                     createdAt: firebase.database.ServerValue.TIMESTAMP
                 });
 
-                // Send system message
                 await rtdb.ref(`privateChats/${chatId}/messages`).push({
                     type: 'system',
                     content: 'Private chat started',
@@ -2199,7 +1987,6 @@
                     });
                 });
 
-                // Sort by last seen
                 users.sort((a, b) => {
                     const aTime = a.lastSeen ? a.lastSeen.toMillis() : 0;
                     const bTime = b.lastSeen ? b.lastSeen.toMillis() : 0;
@@ -2245,7 +2032,6 @@
                     listDiv.appendChild(div);
                 });
 
-                // Add search functionality
                 document.getElementById('ipSearchInput').oninput = function() {
                     const searchTerm = this.value.toLowerCase();
                     Array.from(listDiv.children).forEach(item => {
@@ -2281,12 +2067,10 @@
                 const isCurrentlyBlocked = ips.includes(ip);
                 
                 if (isCurrentlyBlocked) {
-                    // Unban
                     ips = ips.filter(i => i !== ip);
                     await blockedRef.set({ ips }, { merge: true });
                     showToast(`IP ${ip} unbanned (${username})`, 'success');
                 } else {
-                    // Ban
                     if (!ips.includes(ip)) {
                         ips.push(ip);
                         await blockedRef.set({ ips }, { merge: true });
@@ -2425,11 +2209,9 @@
 
         async function loadAdminStats() {
             try {
-                // Count users
                 const usersSnapshot = await db.collection('users').get();
                 document.getElementById('totalUsers').textContent = usersSnapshot.size;
 
-                // Count online users
                 const statusSnapshot = await rtdb.ref('status').once('value');
                 let onlineCount = 0;
                 statusSnapshot.forEach(child => {
@@ -2437,7 +2219,6 @@
                 });
                 document.getElementById('onlineUsers').textContent = onlineCount;
 
-                // Count messages
                 const messagesSnapshot = await db.collection('messages').get();
                 document.getElementById('totalMessages').textContent = messagesSnapshot.size;
             } catch (error) {
@@ -2518,7 +2299,6 @@
             try {
                 showLoading();
 
-                // Save ONLY to broadcasts collection (not to messages)
                 await db.collection('broadcasts').add({
                     type: 'message',
                     message: content,
@@ -2540,7 +2320,6 @@
             try {
                 showLoading();
 
-                // Cleanup global messages
                 const messagesSnapshot = await db.collection('messages')
                     .orderBy('timestamp', 'desc')
                     .get();
@@ -2567,13 +2346,11 @@
             try {
                 showLoading();
 
-                // Delete all messages
                 const messagesSnapshot = await db.collection('messages').get();
                 const deletions = [];
                 messagesSnapshot.forEach(doc => deletions.push(doc.ref.delete()));
                 await Promise.all(deletions);
 
-                // Clear private chats
                 await rtdb.ref('privateChats').remove();
 
                 hideLoading();
@@ -2710,13 +2487,12 @@
             let difficulty = 1;
             let backgroundX = 0;
 
-            // Colors
             const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
             skyGradient.addColorStop(0, '#87CEEB');
             skyGradient.addColorStop(1, '#E0F6FF');
 
             function createPipe() {
-                const gap = Math.max(120, 180 - difficulty * 10); // Gap gets smaller
+                const gap = Math.max(120, 180 - difficulty * 10);
                 const minHeight = 50;
                 const maxHeight = canvas.height - gap - minHeight;
                 const height = Math.random() * (maxHeight - minHeight) + minHeight;
@@ -2732,11 +2508,9 @@
             }
 
             function drawBackground() {
-                // Animated sky
                 ctx.fillStyle = skyGradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Moving clouds
                 backgroundX -= 0.5;
                 if (backgroundX <= -100) backgroundX = 0;
 
@@ -2750,7 +2524,6 @@
                     ctx.fill();
                 }
 
-                // Ground
                 ctx.fillStyle = '#8B7355';
                 ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
                 ctx.fillStyle = '#6B5940';
@@ -2764,19 +2537,16 @@
                 ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
                 ctx.rotate(bird.rotation);
 
-                // Bird body
                 ctx.fillStyle = '#FFD700';
                 ctx.beginPath();
                 ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Wing
                 ctx.fillStyle = '#FFA500';
                 ctx.beginPath();
                 ctx.ellipse(-5, 5, 8, 6, Math.sin(frame * 0.2) * 0.3, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Eye
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
                 ctx.arc(8, -3, 5, 0, Math.PI * 2);
@@ -2786,7 +2556,6 @@
                 ctx.arc(9, -3, 2, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Beak
                 ctx.fillStyle = '#FF6347';
                 ctx.beginPath();
                 ctx.moveTo(12, 0);
@@ -2800,26 +2569,21 @@
 
             function drawPipes() {
                 pipes.forEach(pipe => {
-                    // Top pipe
                     const topGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipe.width, 0);
                     topGradient.addColorStop(0, '#2ECC71');
                     topGradient.addColorStop(1, '#27AE60');
                     ctx.fillStyle = topGradient;
                     ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
                     
-                    // Top pipe cap
                     ctx.fillStyle = '#229954';
                     ctx.fillRect(pipe.x - 5, pipe.top - 20, pipe.width + 10, 20);
 
-                    // Bottom pipe
                     ctx.fillStyle = topGradient;
                     ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
                     
-                    // Bottom pipe cap
                     ctx.fillStyle = '#229954';
                     ctx.fillRect(pipe.x - 5, pipe.bottom, pipe.width + 10, 20);
 
-                    // Score indicator
                     if (!pipe.scored && pipe.x + pipe.width < bird.x) {
                         pipe.scored = true;
                         ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
@@ -2829,7 +2593,6 @@
             }
 
             function drawScore() {
-                // Current score
                 ctx.fillStyle = 'white';
                 ctx.strokeStyle = 'black';
                 ctx.lineWidth = 3;
@@ -2838,7 +2601,6 @@
                 ctx.strokeText(score, canvas.width / 2, 60);
                 ctx.fillText(score, canvas.width / 2, 60);
 
-                // High score
                 ctx.font = 'bold 20px Arial';
                 ctx.strokeText(`Best: ${highScore}`, canvas.width / 2, 90);
                 ctx.fillText(`Best: ${highScore}`, canvas.width / 2, 90);
@@ -2847,41 +2609,34 @@
             function update() {
                 if (gameOver) return;
 
-                // Update bird
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
                 bird.rotation = Math.min(Math.max(bird.velocity * 0.05, -0.5), 0.5);
 
-                // Create pipes with increasing speed
                 const pipeSpeed = 2 + difficulty * 0.3;
                 if (frame % Math.max(60, 90 - difficulty * 5) === 0) {
                     createPipe();
                 }
 
-                // Update pipes
                 pipes.forEach((pipe, index) => {
                     pipe.x -= pipeSpeed;
 
-                    // Check score
                     if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                         pipe.passed = true;
                         score++;
                         scoreDisplay.textContent = score;
                         
-                        // Update high score
                         if (score > highScore) {
                             highScore = score;
                             localStorage.setItem('flappyHighScore', highScore);
                         }
 
-                        // Increase difficulty every 5 points
                         if (score % 5 === 0) {
                             difficulty++;
                             showToast(`Level ${difficulty}! 🎮`, 'success');
                         }
                     }
 
-                    // Check collision
                     if (
                         bird.x < pipe.x + pipe.width &&
                         bird.x + bird.width > pipe.x &&
@@ -2890,13 +2645,11 @@
                         endGame();
                     }
 
-                    // Remove off-screen pipes
                     if (pipe.x + pipe.width < 0) {
                         pipes.splice(index, 1);
                     }
                 });
 
-                // Check bounds
                 if (bird.y + bird.height > canvas.height - 50 || bird.y < 0) {
                     endGame();
                 }
@@ -2948,7 +2701,6 @@
                 }
             });
 
-            // Keyboard support
             document.addEventListener('keydown', (e) => {
                 if (e.code === 'Space' && !gameOver) {
                     e.preventDefault();
@@ -3010,40 +2762,61 @@
             }
         });
 
-        // ==================== BROADCAST BANNER ====================
+        // ==================== BROADCAST BANNER & URL HANDLING ====================
         let broadcastListener = null;
-        let currentPopupUrl = null;
+
+        // Helper to send a private message to a user (used for targeted URL sends)
+        async function sendPrivateMessageToUser(targetUserId, content, senderName = 'Admin') {
+            const chatId = [currentUser.id, targetUserId].sort().join('_');
+            
+            // Ensure private chat exists
+            const chatRef = rtdb.ref(`privateChats/${chatId}`);
+            const snapshot = await chatRef.once('value');
+            if (!snapshot.exists()) {
+                await chatRef.set({
+                    participants: [currentUser.id, targetUserId],
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+
+            // Send message
+            await rtdb.ref(`privateChats/${chatId}/messages`).push({
+                userId: currentUser.id,
+                username: senderName,
+                userAvatar: currentUser.avatar,
+                isAdmin: true,
+                content: content,
+                type: 'broadcast',
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
 
         function initBroadcastListener() {
             if (broadcastListener) return;
             
-            // Listen for broadcasts (messages and URLs)
             broadcastListener = db.collection('broadcasts')
                 .orderBy('timestamp', 'desc')
-                .limit(10) // Get last 10 to check for targeted broadcasts
+                .limit(10)
                 .onSnapshot(snapshot => {
                     snapshot.forEach(doc => {
                         const broadcast = doc.data();
                         const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                         
-                        // Skip if already dismissed
                         if (dismissedBroadcasts.includes(doc.id)) {
                             return;
                         }
 
-                        // Check if this is a targeted broadcast
                         if (broadcast.targetUsers) {
-                            // Only show if current user is in the target list
                             if (!broadcast.targetUsers.includes(currentUser.id)) {
                                 return;
                             }
                         }
                         
                         if (broadcast.type === 'url_redirect') {
-                            // Show URL popup instead of banner
-                            showUrlPopup(broadcast.url, broadcast.message, doc.id);
+                            // URL redirects are now delivered as messages (handled in sendUrlToAll/Selected)
+                            // We ignore them here to avoid popups.
+                            return;
                         } else {
-                            // Show regular message banner
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
                     });
@@ -3072,45 +2845,7 @@
             banner.classList.add('hidden');
         }
 
-        // ==================== URL POPUP ====================
-        function showUrlPopup(url, message, broadcastId) {
-            currentPopupUrl = url;
-            
-            document.getElementById('urlPopupMessage').textContent = message || 'Admin sent you a link!';
-            document.getElementById('urlPopupLink').textContent = url;
-            document.getElementById('urlPopup').classList.remove('hidden');
-            document.getElementById('urlPopup').dataset.broadcastId = broadcastId;
-            
-            // Play a notification sound if possible
-            try {
-                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzSM0fPTgjMGHm7A7+OZWQ0LTKXh8bllHAY2jdT0zoU5BiFz');
-                audio.volume = 0.3;
-                audio.play().catch(() => {});
-            } catch (e) {}
-        }
-
-        function openPopupUrl() {
-            if (currentPopupUrl) {
-                window.open(currentPopupUrl, '_blank');
-                closeUrlPopup();
-            }
-        }
-
-        function closeUrlPopup() {
-            const popup = document.getElementById('urlPopup');
-            const broadcastId = popup.dataset.broadcastId;
-            
-            if (broadcastId) {
-                const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
-                dismissed.push(broadcastId);
-                localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
-            }
-            
-            popup.classList.add('hidden');
-            currentPopupUrl = null;
-        }
-
-        // ==================== URL REDIRECT FUNCTIONS ====================
+        // ==================== URL REDIRECT FUNCTIONS (Modified) ====================
         function showUrlRedirect() {
             document.getElementById('urlRedirectModal').classList.remove('hidden');
             document.getElementById('redirectUrl').value = '';
@@ -3122,9 +2857,10 @@
             document.getElementById('urlRedirectModal').classList.add('hidden');
         }
 
+        // Updated: send URL as a message in global chat (no popup)
         async function sendUrlToAll() {
             const url = document.getElementById('redirectUrl').value.trim();
-            const message = document.getElementById('redirectMessage').value.trim() || 'Admin sent you a link!';
+            const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link:';
             
             if (!url) {
                 showToast('Please enter a URL', 'warning');
@@ -3139,7 +2875,7 @@
             try {
                 showLoading();
                 
-                // Save ONLY to broadcasts collection (creates popup for all users)
+                // Store broadcast record (optional, but keep for consistency)
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
                     url: url,
@@ -3149,9 +2885,20 @@
                     sentByName: currentUser.username
                 });
 
+                // Also send as a global message (so it appears in chat)
+                await db.collection('messages').add({
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    userAvatar: currentUser.avatar,
+                    isAdmin: true,
+                    content: `${message} ${url}`,
+                    type: 'broadcast',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
                 hideLoading();
                 closeUrlRedirect();
-                showToast('URL popup sent to all users!', 'success');
+                showToast('URL sent to global chat!', 'success');
             } catch (error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
@@ -3192,9 +2939,10 @@
             }
         }
 
+        // Updated: send URL as private messages to selected users
         async function sendUrlToSelected() {
             const url = document.getElementById('redirectUrl').value.trim();
-            const message = document.getElementById('redirectMessage').value.trim() || 'Admin sent you a link!';
+            const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link:';
             
             if (!url) {
                 showToast('Please enter a URL', 'warning');
@@ -3211,7 +2959,7 @@
                 showLoading();
                 const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
 
-                // Create a targeted broadcast for selected users
+                // Store broadcast record (targeted)
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
                     url: url,
@@ -3219,16 +2967,34 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     sentBy: currentUser.id,
                     sentByName: currentUser.username,
-                    targetUsers: selectedUsers // Only these users will see it
+                    targetUsers: selectedUsers
                 });
+
+                // Send private message to each selected user
+                for (const userId of selectedUsers) {
+                    await sendPrivateMessageToUser(userId, `${message} ${url}`, currentUser.username);
+                }
 
                 hideLoading();
                 closeUrlRedirect();
-                showToast(`URL popup sent to ${selectedUsers.length} user(s)!`, 'success');
+                showToast(`URL sent to ${selectedUsers.length} user(s) via private chat!`, 'success');
             } catch (error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
+        }
+
+        // Keep the old popup functions (not used, but not removed)
+        let currentPopupUrl = null;
+        function showUrlPopup(url, message, broadcastId) {
+            // No longer used – kept to avoid removing function
+            console.log('Popup suppressed, URL delivered as message:', url);
+        }
+        function openPopupUrl() {
+            // No longer used
+        }
+        function closeUrlPopup() {
+            // No longer used
         }
 
         // ==================== INITIALIZATION ====================
@@ -3239,7 +3005,6 @@
             }
         });
 
-        // Handle page unload
         window.addEventListener('beforeunload', () => {
             if (currentUser) {
                 setUserOnline(currentUser.id, false);
