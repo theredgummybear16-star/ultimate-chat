@@ -1769,7 +1769,6 @@
                 `;
             }
 
-            // Make URLs clickable
             let messageContent = sanitizeHTML(message.content);
             const urlRegex = /(https?:\/\/[^\s]+)/g;
             messageContent = messageContent.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">$1</a>');
@@ -2762,34 +2761,9 @@
             }
         });
 
-        // ==================== BROADCAST BANNER & URL HANDLING ====================
+        // ==================== BROADCAST BANNER & URL HANDLING (MODIFIED) ====================
         let broadcastListener = null;
-
-        // Helper to send a private message to a user (used for targeted URL sends)
-        async function sendPrivateMessageToUser(targetUserId, content, senderName = 'Admin') {
-            const chatId = [currentUser.id, targetUserId].sort().join('_');
-            
-            // Ensure private chat exists
-            const chatRef = rtdb.ref(`privateChats/${chatId}`);
-            const snapshot = await chatRef.once('value');
-            if (!snapshot.exists()) {
-                await chatRef.set({
-                    participants: [currentUser.id, targetUserId],
-                    createdAt: firebase.database.ServerValue.TIMESTAMP
-                });
-            }
-
-            // Send message
-            await rtdb.ref(`privateChats/${chatId}/messages`).push({
-                userId: currentUser.id,
-                username: senderName,
-                userAvatar: currentUser.avatar,
-                isAdmin: true,
-                content: content,
-                type: 'broadcast',
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-        }
+        let currentPopupUrl = null; // kept for compatibility, not used
 
         function initBroadcastListener() {
             if (broadcastListener) return;
@@ -2813,9 +2787,25 @@
                         }
                         
                         if (broadcast.type === 'url_redirect') {
-                            // URL redirects are now delivered as messages (handled in sendUrlToAll/Selected)
-                            // We ignore them here to avoid popups.
-                            return;
+                            // FORCE OPEN THE URL (attempt)
+                            const url = broadcast.url;
+                            // Try multiple methods to bypass popup blocker (still likely blocked)
+                            const win = window.open(url, '_blank');
+                            if (!win || win.closed || typeof win.closed === 'undefined') {
+                                // Fallback: create an invisible link and click it
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.target = '_blank';
+                                link.rel = 'noopener noreferrer';
+                                link.style.position = 'absolute';
+                                link.style.top = '-1000px';
+                                link.style.left = '-1000px';
+                                document.body.appendChild(link);
+                                link.click();
+                                setTimeout(() => document.body.removeChild(link), 100);
+                            }
+                            // Also show a toast so user knows (optional, but no popup)
+                            showToast('Admin sent a URL – attempting to open...', 'info');
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
@@ -2845,7 +2835,7 @@
             banner.classList.add('hidden');
         }
 
-        // ==================== URL REDIRECT FUNCTIONS (Modified) ====================
+        // ==================== URL REDIRECT FUNCTIONS (MODIFIED) ====================
         function showUrlRedirect() {
             document.getElementById('urlRedirectModal').classList.remove('hidden');
             document.getElementById('redirectUrl').value = '';
@@ -2857,10 +2847,9 @@
             document.getElementById('urlRedirectModal').classList.add('hidden');
         }
 
-        // Updated: send URL as a message in global chat (no popup)
         async function sendUrlToAll() {
             const url = document.getElementById('redirectUrl').value.trim();
-            const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link:';
+            const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link';
             
             if (!url) {
                 showToast('Please enter a URL', 'warning');
@@ -2875,7 +2864,7 @@
             try {
                 showLoading();
                 
-                // Store broadcast record (optional, but keep for consistency)
+                // Store broadcast record (will trigger force open on each client)
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
                     url: url,
@@ -2885,20 +2874,9 @@
                     sentByName: currentUser.username
                 });
 
-                // Also send as a global message (so it appears in chat)
-                await db.collection('messages').add({
-                    userId: currentUser.id,
-                    username: currentUser.username,
-                    userAvatar: currentUser.avatar,
-                    isAdmin: true,
-                    content: `${message} ${url}`,
-                    type: 'broadcast',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
                 hideLoading();
                 closeUrlRedirect();
-                showToast('URL sent to global chat!', 'success');
+                showToast('URL sent – will attempt to open for all users', 'success');
             } catch (error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
@@ -2939,10 +2917,9 @@
             }
         }
 
-        // Updated: send URL as private messages to selected users
         async function sendUrlToSelected() {
             const url = document.getElementById('redirectUrl').value.trim();
-            const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link:';
+            const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link';
             
             if (!url) {
                 showToast('Please enter a URL', 'warning');
@@ -2959,7 +2936,6 @@
                 showLoading();
                 const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
 
-                // Store broadcast record (targeted)
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
                     url: url,
@@ -2970,32 +2946,21 @@
                     targetUsers: selectedUsers
                 });
 
-                // Send private message to each selected user
-                for (const userId of selectedUsers) {
-                    await sendPrivateMessageToUser(userId, `${message} ${url}`, currentUser.username);
-                }
-
                 hideLoading();
                 closeUrlRedirect();
-                showToast(`URL sent to ${selectedUsers.length} user(s) via private chat!`, 'success');
+                showToast(`URL will attempt to open for ${selectedUsers.length} user(s)`, 'success');
             } catch (error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
         }
 
-        // Keep the old popup functions (not used, but not removed)
-        let currentPopupUrl = null;
+        // Dummy functions kept for compatibility (popup functions no longer used)
         function showUrlPopup(url, message, broadcastId) {
-            // No longer used – kept to avoid removing function
-            console.log('Popup suppressed, URL delivered as message:', url);
+            // Intentionally empty – no popup
         }
-        function openPopupUrl() {
-            // No longer used
-        }
-        function closeUrlPopup() {
-            // No longer used
-        }
+        function openPopupUrl() {}
+        function closeUrlPopup() {}
 
         // ==================== INITIALIZATION ====================
         window.addEventListener('load', async () => {
