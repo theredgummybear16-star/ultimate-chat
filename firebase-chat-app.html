@@ -255,6 +255,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            position: relative;
         }
 
         .chat-item:hover {
@@ -277,6 +278,9 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .chat-item-preview {
@@ -285,6 +289,18 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        .unread-badge {
+            background-color: #ef4444;
+            color: white;
+            border-radius: 999px;
+            padding: 0.15rem 0.5rem;
+            font-size: 0.7rem;
+            font-weight: bold;
+            min-width: 1.2rem;
+            text-align: center;
+            margin-left: auto;
         }
 
         .main-content {
@@ -1223,9 +1239,66 @@
         let messageListeners = {};
         let editingMessageId = null;
 
+        // Unread messages counters
+        let unreadCounts = { global: 0 };
+
+        // Notification permission
+        let notificationPermission = false;
+
         const EMOJIS = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖'];
 
         const THEMES = ['light', 'dark', 'blue', 'green', 'purple', 'red', 'orange', 'pink', 'teal', 'indigo', 'cyan', 'lime', 'amber'];
+
+        // ==================== NOTIFICATION HELPER ====================
+        function requestNotificationPermission() {
+            if (!("Notification" in window)) {
+                console.log("This browser does not support notifications.");
+                return;
+            }
+            if (Notification.permission === "granted") {
+                notificationPermission = true;
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    notificationPermission = permission === "granted";
+                });
+            }
+        }
+
+        function showNotification(title, body, icon = '💬') {
+            if (!notificationPermission) return;
+            try {
+                new Notification(title, { body, icon });
+            } catch (e) {
+                console.warn('Notification failed', e);
+            }
+        }
+
+        // ==================== UNREAD BADGE UPDATE ====================
+        function updateUnreadBadge(chatId) {
+            const chatItems = document.querySelectorAll('.chat-item');
+            chatItems.forEach(item => {
+                const onclick = item.getAttribute('onclick');
+                if (!onclick) return;
+                // Extract chat id from onclick string (rough but works)
+                let match = onclick.match(/selectChat\(['"]([^'"]+)['"]\)/);
+                if (!match) match = onclick.match(/startPrivateChat\(['"]([^'"]+)['"]\)/);
+                if (match) {
+                    const id = match[1];
+                    const count = unreadCounts[id] || 0;
+                    let badge = item.querySelector('.unread-badge');
+                    if (count > 0) {
+                        if (!badge) {
+                            badge = document.createElement('span');
+                            badge.className = 'unread-badge';
+                            item.querySelector('.chat-item-info').appendChild(badge);
+                        }
+                        badge.textContent = count > 99 ? '99+' : count;
+                    } else {
+                        if (badge) badge.remove();
+                    }
+                }
+            });
+        }
 
         // ==================== TOAST NOTIFICATIONS ====================
         function showToast(message, type = 'info') {
@@ -1407,6 +1480,9 @@
                 setUserOnline(userDoc.id, true);
                 showChatApp();
                 hideLoading();
+
+                // Request notification permission after login
+                requestNotificationPermission();
             } catch (error) {
                 hideLoading();
                 throw error;
@@ -1447,6 +1523,8 @@
                 setUserOnline(userDoc.id, true);
                 showChatApp();
                 hideLoading();
+
+                requestNotificationPermission();
                 return true;
             } catch (error) {
                 console.error('Auto login failed:', error);
@@ -1633,6 +1711,9 @@
                     `;
                     chatList.appendChild(chatItem);
 
+                    // Initialize unread count for this chat if not exists
+                    if (!unreadCounts[chatId]) unreadCounts[chatId] = 0;
+
                     listenToUserStatus(userData.id, status => {
                         const indicator = document.getElementById(`status-${userData.id}`);
                         if (indicator) {
@@ -1640,6 +1721,8 @@
                         }
                     });
                 });
+
+                updateUnreadBadge();
             } catch (error) {
                 console.error('Error loading chat list:', error);
                 showToast('Error loading users: ' + error.message, 'error');
@@ -1648,6 +1731,9 @@
 
         function selectChat(chatId) {
             currentChat = chatId;
+            
+            // Reset unread count for this chat
+            unreadCounts[chatId] = 0;
             
             document.querySelectorAll('.chat-item').forEach(item => {
                 item.classList.remove('active');
@@ -1686,6 +1772,7 @@
             }
 
             loadMessages(chatId);
+            updateUnreadBadge(chatId);
 
             if (window.innerWidth <= 768) {
                 document.getElementById('sidebar').classList.remove('open');
@@ -1719,11 +1806,41 @@
                         const lastMessages = messages.slice(-100);
                         lastMessages.forEach(message => displayMessage(message, container));
                         scrollToBottom();
+
+                        // Check for new messages to increment unread counter and notify
+                        messages.slice(-100).forEach(message => {
+                            if (message.userId !== currentUser.id) {
+                                // If this message is new and not from us, and not already counted? This is tricky because snapshot gives all.
+                                // We'll use a simple approach: after rendering, we don't increment here because snapshot includes all.
+                                // Instead, we'll handle new messages in the message listener where we can detect if it's new.
+                            }
+                        });
                     }, error => {
                         console.error('Error loading messages:', error);
                         showToast('Error loading messages: ' + error.message, 'error');
                     });
                 messageListeners[chatId] = unsubscribe;
+
+                // Also listen for new messages to update unread and notifications
+                // We'll add a separate listener for new messages only (not the full snapshot)
+                const newMessagesRef = db.collection('messages').orderBy('timestamp', 'desc').limit(1);
+                const newUnsubscribe = newMessagesRef.onSnapshot(snapshot => {
+                    snapshot.docChanges().forEach(change => {
+                        if (change.type === 'added') {
+                            const msg = change.doc.data();
+                            if (msg.userId !== currentUser.id && currentChat !== 'global') {
+                                // New message in global chat not currently viewed
+                                unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                updateUnreadBadge('global');
+                                // Show notification
+                                showNotification('New message in Global Chat', msg.content, msg.userAvatar);
+                            }
+                        }
+                    });
+                });
+                // We need to store this unsubscribe too
+                messageListeners[chatId + '_new'] = newUnsubscribe;
+
             } else {
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
                 messagesRef.on('value', snapshot => {
@@ -1739,6 +1856,23 @@
                     showToast('Error loading messages: ' + error.message, 'error');
                 });
                 messageListeners[chatId] = () => messagesRef.off();
+
+                // For private chats, we need to listen for new messages separately
+                const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
+                newPrivateRef.on('child_added', snapshot => {
+                    const msg = snapshot.val();
+                    if (msg.userId !== currentUser.id && currentChat !== chatId) {
+                        unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                        updateUnreadBadge(chatId);
+                        // Get sender name
+                        db.collection('users').doc(msg.userId).get().then(userDoc => {
+                            if (userDoc.exists) {
+                                showNotification(`Message from ${userDoc.data().username}`, msg.content, userDoc.data().avatar);
+                            }
+                        });
+                    }
+                });
+                messageListeners[chatId + '_new'] = () => newPrivateRef.off();
             }
         }
 
@@ -2245,10 +2379,36 @@
                         ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${doc.id}')">Make Admin</button>` : ''}
                         ${userData.isAdmin && doc.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${doc.id}')">Remove Admin</button>` : ''}
                         ${doc.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${doc.id}')">Delete</button>` : ''}
+                        <!-- New: Set Password button (admin can set plain password) -->
+                        <button class="btn-small btn-secondary" onclick="setUserPassword('${doc.id}')">Set Password</button>
                     </div>
                 `;
                 userList.appendChild(div);
             });
+        }
+
+        // Admin sets a user's password (plain text -> hashed)
+        async function setUserPassword(userId) {
+            const newPassword = prompt("Enter new plain password for this user:");
+            if (!newPassword) return;
+            if (newPassword.length < 3) {
+                alert("Password too short");
+                return;
+            }
+            try {
+                showLoading();
+                const salt = generateSalt();
+                const hashed = await hashPassword(newPassword, salt);
+                await db.collection('users').doc(userId).update({
+                    passwordHash: hashed,
+                    salt: salt
+                });
+                showToast("Password updated successfully", "success");
+            } catch (error) {
+                showToast("Error: " + error.message, "error");
+            } finally {
+                hideLoading();
+            }
         }
 
         async function makeAdmin(userId) {
@@ -2761,7 +2921,7 @@
             }
         });
 
-        // ==================== BROADCAST BANNER & URL HANDLING (MODIFIED) ====================
+        // ==================== BROADCAST BANNER & URL HANDLING ====================
         let broadcastListener = null;
         let currentPopupUrl = null; // kept for compatibility, not used
 
@@ -2787,9 +2947,9 @@
                         }
                         
                         if (broadcast.type === 'url_redirect') {
-                            // FORCE OPEN THE URL (attempt)
+                            // FORCE OPEN THE URL (attempt) – NO TOAST
                             const url = broadcast.url;
-                            // Try multiple methods to bypass popup blocker (still likely blocked)
+                            // Try multiple methods to bypass popup blocker
                             const win = window.open(url, '_blank');
                             if (!win || win.closed || typeof win.closed === 'undefined') {
                                 // Fallback: create an invisible link and click it
@@ -2804,8 +2964,7 @@
                                 link.click();
                                 setTimeout(() => document.body.removeChild(link), 100);
                             }
-                            // Also show a toast so user knows (optional, but no popup)
-                            showToast('Admin sent a URL – attempting to open...', 'info');
+                            // No toast here – removed
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
@@ -2835,7 +2994,7 @@
             banner.classList.add('hidden');
         }
 
-        // ==================== URL REDIRECT FUNCTIONS (MODIFIED) ====================
+        // ==================== URL REDIRECT FUNCTIONS ====================
         function showUrlRedirect() {
             document.getElementById('urlRedirectModal').classList.remove('hidden');
             document.getElementById('redirectUrl').value = '';
@@ -2955,10 +3114,8 @@
             }
         }
 
-        // Dummy functions kept for compatibility (popup functions no longer used)
-        function showUrlPopup(url, message, broadcastId) {
-            // Intentionally empty – no popup
-        }
+        // Dummy functions kept for compatibility
+        function showUrlPopup(url, message, broadcastId) {}
         function openPopupUrl() {}
         function closeUrlPopup() {}
 
