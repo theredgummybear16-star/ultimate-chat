@@ -744,9 +744,98 @@
         .badge.admin {
             background: var(--danger);
         }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: var(--surface);
+            color: var(--text);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 300px;
+            max-width: 500px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+        }
+
+        .toast.error {
+            border-left-color: var(--danger);
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning);
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+        }
+
+        .toast-message {
+            flex: 1;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0;
+            opacity: 0.7;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease forwards;
+        }
     </style>
 </head>
-<body class="theme-light">
+<body class="theme-dark">
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
@@ -798,11 +887,21 @@
 
     <!-- Maintenance Mode -->
     <div id="maintenancePage" class="maintenance-container hidden">
-        <h1>🚧 Under Maintenance</h1>
-        <p>We're currently performing maintenance. Play a game while you wait!</p>
-        <canvas id="gameCanvas" width="400" height="600"></canvas>
-        <div class="game-info">Score: <span id="gameScore">0</span></div>
-        <p style="margin-top: 1rem; font-size: 0.875rem;">Click/Tap to make the bird fly!</p>
+        <div style="max-width: 600px; text-align: center;">
+            <div style="font-size: 5rem; margin-bottom: 1rem;">🔧</div>
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;">System Maintenance</h1>
+            <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 2rem;">We're currently upgrading our systems to serve you better. Play a game while you wait!</p>
+            <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 1rem; backdrop-filter: blur(10px);">
+                <canvas id="gameCanvas" width="400" height="600"></canvas>
+                <div class="game-info" style="margin-top: 1.5rem; font-size: 1.75rem; font-weight: 600;">
+                    Score: <span id="gameScore" style="color: #ffd700;">0</span>
+                </div>
+                <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">Click or tap to make the bird fly</p>
+            </div>
+            <button onclick="checkMaintenanceStatus()" class="btn" style="margin-top: 2rem; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3);">
+                Check Status
+            </button>
+        </div>
     </div>
 
     <!-- Main Chat Application -->
@@ -964,6 +1063,15 @@
                     <div class="user-list" id="adminUserList"></div>
                 </div>
 
+                <!-- IP Tracking & Banning -->
+                <div class="admin-section">
+                    <h3>🌐 IP Address Tracking</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="ipSearchInput" placeholder="Search by username or IP..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--background); color: var(--text);">
+                    </div>
+                    <div id="ipTrackingList" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
                 <!-- IP Management -->
                 <div class="admin-section">
                     <h3>🚫 IP Management</h3>
@@ -1011,6 +1119,34 @@
         const EMOJIS = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖'];
 
         const THEMES = ['light', 'dark', 'blue', 'green', 'purple', 'red', 'orange', 'pink', 'teal', 'indigo', 'cyan', 'lime', 'amber'];
+
+        // ==================== TOAST NOTIFICATIONS ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || icons.info}</span>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add('removing');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
 
         // ==================== UTILITY FUNCTIONS ====================
         async function hashPassword(password, salt) {
@@ -1147,14 +1283,6 @@
                     throw new Error('Invalid username or password');
                 }
 
-                // Check maintenance mode
-                const maintenanceDoc = await db.collection('admin').doc('settings').get();
-                if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !userData.isAdmin) {
-                    showMaintenanceMode();
-                    hideLoading();
-                    return;
-                }
-
                 // Store session
                 currentUser = {
                     id: userDoc.id,
@@ -1169,6 +1297,14 @@
                     lastIP: ip,
                     lastSeen: firebase.firestore.FieldValue.serverTimestamp()
                 });
+
+                // Check maintenance mode AFTER authentication
+                const maintenanceDoc = await db.collection('admin').doc('settings').get();
+                if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !userData.isAdmin) {
+                    showMaintenanceMode();
+                    hideLoading();
+                    return;
+                }
 
                 setUserOnline(userDoc.id, true);
                 showChatApp();
@@ -1245,12 +1381,12 @@
             const confirm = document.getElementById('confirmNewPassword').value;
 
             if (!current || !newPass || !confirm) {
-                alert('Please fill all fields');
+                showToast('Please fill all fields', 'warning');
                 return;
             }
 
             if (newPass !== confirm) {
-                alert('New passwords do not match');
+                showToast('New passwords do not match', 'error');
                 return;
             }
 
@@ -1275,7 +1411,7 @@
                 currentUser.passwordHash = newHash;
                 currentUser.salt = newSalt;
 
-                alert('Password changed successfully!');
+                showToast('Password changed successfully!', 'success');
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmNewPassword').value = '';
@@ -1283,7 +1419,7 @@
                 hideLoading();
             } catch (error) {
                 hideLoading();
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
@@ -1330,8 +1466,8 @@
             loadChatList();
             selectChat('global');
             
-            // Apply saved theme
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            // Apply saved theme (default to dark)
+            const savedTheme = localStorage.getItem('theme') || 'dark';
             applyTheme(savedTheme);
         }
 
@@ -1447,10 +1583,10 @@
             }
 
             if (chatId === 'global') {
-                // Load from Firestore
+                // Load from Firestore - order by timestamp
                 const unsubscribe = db.collection('messages')
                     .orderBy('timestamp', 'asc')
-                    .limit(100)
+                    .limitToLast(100)
                     .onSnapshot(snapshot => {
                         container.innerHTML = '';
                         snapshot.forEach(doc => {
@@ -1458,6 +1594,9 @@
                             displayMessage(message, container);
                         });
                         scrollToBottom();
+                    }, error => {
+                        console.error('Error loading messages:', error);
+                        showToast('Error loading messages: ' + error.message, 'error');
                     });
                 messageListeners[chatId] = unsubscribe;
             } else {
@@ -1471,6 +1610,9 @@
                     });
                     messages.forEach(message => displayMessage(message, container, true));
                     scrollToBottom();
+                }, error => {
+                    console.error('Error loading messages:', error);
+                    showToast('Error loading messages: ' + error.message, 'error');
                 });
                 messageListeners[chatId] = () => messagesRef.off();
             }
@@ -1607,17 +1749,16 @@
         }
 
         async function deleteMessage(messageId, chatId, isPrivate) {
-            if (!confirm('Are you sure you want to delete this message?')) return;
-
             try {
                 if (isPrivate) {
                     await rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).remove();
                 } else {
                     await db.collection('messages').doc(messageId).delete();
                 }
+                showToast('Message deleted', 'success');
             } catch (error) {
                 console.error('Error deleting message:', error);
-                alert('Failed to delete message');
+                showToast('Failed to delete message', 'error');
             }
         }
 
@@ -1698,6 +1839,133 @@
 
             selectChat(chatId);
             loadChatList();
+        }
+
+        // ==================== ADMIN FUNCTIONS ====================
+        
+        async function loadIPTracking() {
+            const listDiv = document.getElementById('ipTrackingList');
+            listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Loading...</p>';
+
+            try {
+                const usersSnapshot = await db.collection('users').get();
+                const users = [];
+
+                usersSnapshot.forEach(doc => {
+                    const userData = doc.data();
+                    users.push({
+                        id: doc.id,
+                        username: userData.username,
+                        ip: userData.lastIP || 'Unknown',
+                        avatar: userData.avatar,
+                        isAdmin: userData.isAdmin,
+                        lastSeen: userData.lastSeen
+                    });
+                });
+
+                // Sort by last seen
+                users.sort((a, b) => {
+                    const aTime = a.lastSeen ? a.lastSeen.toMillis() : 0;
+                    const bTime = b.lastSeen ? b.lastSeen.toMillis() : 0;
+                    return bTime - aTime;
+                });
+
+                listDiv.innerHTML = '';
+
+                if (users.length === 0) {
+                    listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No users found</p>';
+                    return;
+                }
+
+                users.forEach(user => {
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.5rem;';
+                    
+                    const isBlocked = checkIfIPBlocked(user.ip);
+                    
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                            <span class="avatar">${user.avatar}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">
+                                    ${sanitizeHTML(user.username)}
+                                    ${user.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                    IP: <code style="background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace;">${user.ip}</code>
+                                </div>
+                                ${user.lastSeen ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Last seen: ${formatTimestamp(user.lastSeen)}</div>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            ${user.ip !== 'Unknown' ? `
+                                <button class="btn-small ${isBlocked ? '' : 'btn-danger'}" onclick="toggleIPBan('${user.ip}', '${user.username}')">
+                                    ${isBlocked ? '🔓 Unban IP' : '🚫 Ban IP'}
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                    listDiv.appendChild(div);
+                });
+
+                // Add search functionality
+                document.getElementById('ipSearchInput').oninput = function() {
+                    const searchTerm = this.value.toLowerCase();
+                    Array.from(listDiv.children).forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        item.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                };
+
+            } catch (error) {
+                console.error('Error loading IP tracking:', error);
+                listDiv.innerHTML = '<p style="text-align: center; color: var(--danger);">Error loading IP data</p>';
+            }
+        }
+
+        let cachedBlockedIPs = [];
+
+        async function loadBlockedIPsCache() {
+            const doc = await db.collection('admin').doc('blockedIPs').get();
+            cachedBlockedIPs = doc.exists ? (doc.data().ips || []) : [];
+        }
+
+        function checkIfIPBlocked(ip) {
+            return cachedBlockedIPs.includes(ip);
+        }
+
+        async function toggleIPBan(ip, username) {
+            try {
+                showLoading();
+                const blockedRef = db.collection('admin').doc('blockedIPs');
+                const doc = await blockedRef.get();
+                
+                let ips = doc.exists ? (doc.data().ips || []) : [];
+                const isCurrentlyBlocked = ips.includes(ip);
+                
+                if (isCurrentlyBlocked) {
+                    // Unban
+                    ips = ips.filter(i => i !== ip);
+                    await blockedRef.set({ ips }, { merge: true });
+                    showToast(`IP ${ip} unbanned (${username})`, 'success');
+                } else {
+                    // Ban
+                    if (!ips.includes(ip)) {
+                        ips.push(ip);
+                        await blockedRef.set({ ips }, { merge: true });
+                        showToast(`IP ${ip} banned (${username})`, 'warning');
+                    }
+                }
+
+                await loadBlockedIPsCache();
+                await loadIPTracking();
+                await loadBlockedIPs();
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
         }
 
         // ==================== SETTINGS ====================
@@ -1788,19 +2056,35 @@
         // ==================== ADMIN PANEL ====================
         async function showAdminPanel() {
             if (!currentUser.isAdmin) {
-                alert('Access denied');
+                showToast('Access denied', 'error');
                 return;
             }
 
             document.getElementById('adminModal').classList.remove('hidden');
             await loadAdminStats();
             await loadAdminUsers();
+            await loadBlockedIPsCache();
+            await loadIPTracking();
             await loadBlockedIPs();
             await loadMaintenanceStatus();
         }
 
         function closeAdminPanel() {
             document.getElementById('adminModal').classList.add('hidden');
+        }
+
+        async function checkMaintenanceStatus() {
+            showLoading();
+            const settingsDoc = await db.collection('admin').doc('settings').get();
+            const maintenanceMode = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
+            
+            if (!maintenanceMode) {
+                hideLoading();
+                location.reload();
+            } else {
+                hideLoading();
+                showToast('Still under maintenance, please wait...', 'info');
+            }
         }
 
         async function loadAdminStats() {
@@ -1852,41 +2136,38 @@
         }
 
         async function makeAdmin(userId) {
-            if (!confirm('Grant admin rights to this user?')) return;
-
             try {
                 await db.collection('users').doc(userId).update({
                     isAdmin: true
                 });
+                showToast('Admin rights granted', 'success');
                 loadAdminUsers();
             } catch (error) {
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
         async function removeAdmin(userId) {
-            if (!confirm('Remove admin rights from this user?')) return;
-
             try {
                 await db.collection('users').doc(userId).update({
                     isAdmin: false
                 });
+                showToast('Admin rights revoked', 'success');
                 loadAdminUsers();
             } catch (error) {
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
         async function deleteUser(userId) {
-            if (!confirm('Delete this user permanently?')) return;
-
             try {
                 await db.collection('users').doc(userId).delete();
                 await rtdb.ref('status/' + userId).remove();
+                showToast('User deleted', 'success');
                 loadAdminUsers();
                 loadAdminStats();
             } catch (error) {
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
@@ -1894,7 +2175,7 @@
             const content = document.getElementById('broadcastMessage').value.trim();
             
             if (!content) {
-                alert('Please enter a message');
+                showToast('Please enter a message', 'warning');
                 return;
             }
 
@@ -1910,15 +2191,13 @@
                 });
 
                 document.getElementById('broadcastMessage').value = '';
-                alert('Broadcast sent!');
+                showToast('Broadcast sent!', 'success');
             } catch (error) {
-                alert('Error sending broadcast: ' + error.message);
+                showToast('Error sending broadcast: ' + error.message, 'error');
             }
         }
 
         async function cleanupOldMessages() {
-            if (!confirm('Delete old messages? (Keeps last 100 in each chat)')) return;
-
             try {
                 showLoading();
 
@@ -1937,18 +2216,15 @@
                 await Promise.all(toDelete);
 
                 hideLoading();
-                alert('Cleanup completed!');
+                showToast('Cleanup completed!', 'success');
                 loadAdminStats();
             } catch (error) {
                 hideLoading();
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
         async function wipeAllData() {
-            if (!confirm('⚠️ DELETE ALL DATA? This cannot be undone!')) return;
-            if (!confirm('Are you ABSOLUTELY sure?')) return;
-
             try {
                 showLoading();
 
@@ -1962,11 +2238,11 @@
                 await rtdb.ref('privateChats').remove();
 
                 hideLoading();
-                alert('All data wiped!');
+                showToast('All data wiped!', 'warning');
                 loadAdminStats();
             } catch (error) {
                 hideLoading();
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
@@ -1984,7 +2260,7 @@
             document.getElementById('maintenanceText').textContent = 
                 newState ? 'Disable Maintenance' : 'Enable Maintenance';
 
-            alert(newState ? 'Maintenance mode enabled' : 'Maintenance mode disabled');
+            showToast(newState ? 'Maintenance mode enabled' : 'Maintenance mode disabled', 'info');
         }
 
         async function loadMaintenanceStatus() {
@@ -1999,7 +2275,7 @@
             const ip = document.getElementById('blockIpInput').value.trim();
             
             if (!ip) {
-                alert('Please enter an IP address');
+                showToast('Please enter an IP address', 'warning');
                 return;
             }
 
@@ -2014,10 +2290,12 @@
                 }
 
                 document.getElementById('blockIpInput').value = '';
+                await loadBlockedIPsCache();
                 loadBlockedIPs();
-                alert('IP blocked successfully');
+                loadIPTracking();
+                showToast('IP blocked successfully', 'success');
             } catch (error) {
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
@@ -2153,8 +2431,10 @@
                         (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
                     ) {
                         gameOver = true;
-                        alert('Game Over! Score: ' + score);
-                        resetGame();
+                        setTimeout(() => {
+                            showToast('Game Over! Score: ' + score, 'info');
+                            resetGame();
+                        }, 100);
                     }
 
                     // Remove off-screen pipes
@@ -2166,8 +2446,10 @@
                 // Check bounds
                 if (bird.y + bird.height > canvas.height || bird.y < 0) {
                     gameOver = true;
-                    alert('Game Over! Score: ' + score);
-                    resetGame();
+                    setTimeout(() => {
+                        showToast('Game Over! Score: ' + score, 'info');
+                        resetGame();
+                    }, 100);
                 }
 
                 frame++;
