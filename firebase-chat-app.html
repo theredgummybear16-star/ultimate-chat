@@ -139,17 +139,22 @@
         }
 
         .btn-secondary {
-            background: var(--secondary);
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--text-secondary) 100%);
         }
 
         .btn-danger {
-            background: var(--danger);
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         }
 
         .btn-small {
             width: auto;
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
+            border-radius: 0.5rem;
         }
 
         .link {
@@ -830,9 +835,126 @@
         .toast.removing {
             animation: slideOut 0.3s ease forwards;
         }
+
+        /* Broadcast Banner */
+        .broadcast-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 2500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideDown 0.4s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .broadcast-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .broadcast-icon {
+            font-size: 2rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .broadcast-message {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .broadcast-close {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .broadcast-close:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+
+        /* Modern Button Styles */
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="theme-dark">
+    <!-- Broadcast Banner -->
+    <div id="broadcastBanner" class="broadcast-banner hidden">
+        <div class="broadcast-content">
+            <span class="broadcast-icon">📢</span>
+            <div class="broadcast-message" id="broadcastText"></div>
+        </div>
+        <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
+    </div>
+
     <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -1044,6 +1166,7 @@
                             <span id="maintenanceText">Enable Maintenance</span>
                         </button>
                         <button class="btn btn-secondary" onclick="cleanupOldMessages()">Cleanup Old Messages</button>
+                        <button class="btn btn-success" onclick="showUrlRedirect()">🌐 Send URL to Users</button>
                         <button class="btn btn-danger" onclick="wipeAllData()">⚠️ Wipe All Data</button>
                     </div>
                 </div>
@@ -1083,6 +1206,33 @@
                     <div id="blockedIpList" style="margin-top: 1rem;"></div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- URL Redirect Modal -->
+    <div id="urlRedirectModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌐 Send Users to Website</h3>
+                <button class="close-btn" onclick="closeUrlRedirect()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label>Enter URL</label>
+                <input type="url" id="redirectUrl" placeholder="https://example.com">
+            </div>
+
+            <div class="form-group">
+                <label>Custom Message (Optional)</label>
+                <input type="text" id="redirectMessage" placeholder="Check out this awesome site!">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <button class="btn" onclick="sendUrlToAll()">Send to All Users</button>
+                <button class="btn btn-secondary" onclick="showUrlUserSelect()">Select Users</button>
+            </div>
+
+            <div id="urlUserList" class="hidden" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;"></div>
         </div>
     </div>
 
@@ -1469,6 +1619,9 @@
             loadChatList();
             selectChat('global');
             
+            // Initialize broadcast listener
+            initBroadcastListener();
+            
             // Apply saved theme (default to dark)
             const savedTheme = localStorage.getItem('theme') || 'dark';
             applyTheme(savedTheme);
@@ -1567,7 +1720,15 @@
             document.querySelectorAll('.chat-item').forEach(item => {
                 item.classList.remove('active');
             });
-            event.target.closest('.chat-item')?.classList.add('active');
+            
+            // Find and activate the correct chat item
+            const chatItems = document.querySelectorAll('.chat-item');
+            chatItems.forEach(item => {
+                const itemOnClick = item.getAttribute('onclick');
+                if (itemOnClick && itemOnClick.includes(chatId)) {
+                    item.classList.add('active');
+                }
+            });
 
             // Update header
             const chatTitle = document.getElementById('chatTitle');
@@ -2401,16 +2562,25 @@
                 height: 24,
                 gravity: 0.5,
                 velocity: 0,
-                jump: -8
+                jump: -8,
+                rotation: 0
             };
 
             let pipes = [];
             let frame = 0;
             let score = 0;
             let gameOver = false;
+            let highScore = localStorage.getItem('flappyHighScore') || 0;
+            let difficulty = 1;
+            let backgroundX = 0;
+
+            // Colors
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(1, '#E0F6FF');
 
             function createPipe() {
-                const gap = 150;
+                const gap = Math.max(120, 180 - difficulty * 10); // Gap gets smaller
                 const minHeight = 50;
                 const maxHeight = canvas.height - gap - minHeight;
                 const height = Math.random() * (maxHeight - minHeight) + minHeight;
@@ -2419,28 +2589,123 @@
                     x: canvas.width,
                     top: height,
                     bottom: height + gap,
-                    width: 50,
-                    passed: false
+                    width: 60,
+                    passed: false,
+                    scored: false
                 });
+            }
+
+            function drawBackground() {
+                // Animated sky
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Moving clouds
+                backgroundX -= 0.5;
+                if (backgroundX <= -100) backgroundX = 0;
+
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                for (let i = 0; i < 5; i++) {
+                    const x = (backgroundX + i * 150) % canvas.width;
+                    ctx.beginPath();
+                    ctx.arc(x, 50 + i * 30, 20, 0, Math.PI * 2);
+                    ctx.arc(x + 20, 50 + i * 30, 25, 0, Math.PI * 2);
+                    ctx.arc(x + 40, 50 + i * 30, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Ground
+                ctx.fillStyle = '#8B7355';
+                ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+                ctx.fillStyle = '#6B5940';
+                for (let i = 0; i < canvas.width; i += 20) {
+                    ctx.fillRect(i, canvas.height - 45, 15, 5);
+                }
             }
 
             function drawBird() {
+                ctx.save();
+                ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
+                ctx.rotate(bird.rotation);
+
+                // Bird body
                 ctx.fillStyle = '#FFD700';
-                ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
-                
+                ctx.beginPath();
+                ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wing
+                ctx.fillStyle = '#FFA500';
+                ctx.beginPath();
+                ctx.ellipse(-5, 5, 8, 6, Math.sin(frame * 0.2) * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
                 // Eye
-                ctx.fillStyle = '#000';
-                ctx.fillRect(bird.x + 20, bird.y + 5, 5, 5);
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(8, -3, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(9, -3, 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Beak
+                ctx.fillStyle = '#FF6347';
+                ctx.beginPath();
+                ctx.moveTo(12, 0);
+                ctx.lineTo(18, -2);
+                ctx.lineTo(18, 2);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore();
             }
 
             function drawPipes() {
-                ctx.fillStyle = '#228B22';
                 pipes.forEach(pipe => {
                     // Top pipe
+                    const topGradient = ctx.createLinearGradient(pipe.x, 0, pipe.x + pipe.width, 0);
+                    topGradient.addColorStop(0, '#2ECC71');
+                    topGradient.addColorStop(1, '#27AE60');
+                    ctx.fillStyle = topGradient;
                     ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+                    
+                    // Top pipe cap
+                    ctx.fillStyle = '#229954';
+                    ctx.fillRect(pipe.x - 5, pipe.top - 20, pipe.width + 10, 20);
+
                     // Bottom pipe
+                    ctx.fillStyle = topGradient;
                     ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
+                    
+                    // Bottom pipe cap
+                    ctx.fillStyle = '#229954';
+                    ctx.fillRect(pipe.x - 5, pipe.bottom, pipe.width + 10, 20);
+
+                    // Score indicator
+                    if (!pipe.scored && pipe.x + pipe.width < bird.x) {
+                        pipe.scored = true;
+                        ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+                        ctx.fillRect(pipe.x, 0, pipe.width, canvas.height);
+                    }
                 });
+            }
+
+            function drawScore() {
+                // Current score
+                ctx.fillStyle = 'white';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 3;
+                ctx.font = 'bold 48px Arial';
+                ctx.textAlign = 'center';
+                ctx.strokeText(score, canvas.width / 2, 60);
+                ctx.fillText(score, canvas.width / 2, 60);
+
+                // High score
+                ctx.font = 'bold 20px Arial';
+                ctx.strokeText(`Best: ${highScore}`, canvas.width / 2, 90);
+                ctx.fillText(`Best: ${highScore}`, canvas.width / 2, 90);
             }
 
             function update() {
@@ -2449,21 +2714,35 @@
                 // Update bird
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
+                bird.rotation = Math.min(Math.max(bird.velocity * 0.05, -0.5), 0.5);
 
-                // Create pipes
-                if (frame % 90 === 0) {
+                // Create pipes with increasing speed
+                const pipeSpeed = 2 + difficulty * 0.3;
+                if (frame % Math.max(60, 90 - difficulty * 5) === 0) {
                     createPipe();
                 }
 
                 // Update pipes
                 pipes.forEach((pipe, index) => {
-                    pipe.x -= 2;
+                    pipe.x -= pipeSpeed;
 
                     // Check score
                     if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                         pipe.passed = true;
                         score++;
                         scoreDisplay.textContent = score;
+                        
+                        // Update high score
+                        if (score > highScore) {
+                            highScore = score;
+                            localStorage.setItem('flappyHighScore', highScore);
+                        }
+
+                        // Increase difficulty every 5 points
+                        if (score % 5 === 0) {
+                            difficulty++;
+                            showToast(`Level ${difficulty}! 🎮`, 'success');
+                        }
                     }
 
                     // Check collision
@@ -2472,11 +2751,7 @@
                         bird.x + bird.width > pipe.x &&
                         (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
                     ) {
-                        gameOver = true;
-                        setTimeout(() => {
-                            showToast('Game Over! Score: ' + score, 'info');
-                            resetGame();
-                        }, 100);
+                        endGame();
                     }
 
                     // Remove off-screen pipes
@@ -2486,23 +2761,31 @@
                 });
 
                 // Check bounds
-                if (bird.y + bird.height > canvas.height || bird.y < 0) {
-                    gameOver = true;
-                    setTimeout(() => {
-                        showToast('Game Over! Score: ' + score, 'info');
-                        resetGame();
-                    }, 100);
+                if (bird.y + bird.height > canvas.height - 50 || bird.y < 0) {
+                    endGame();
                 }
 
                 frame++;
             }
 
-            function draw() {
-                ctx.fillStyle = '#70c5ce';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            function endGame() {
+                if (gameOver) return;
+                gameOver = true;
                 
+                setTimeout(() => {
+                    const message = score > highScore - 1 ? 
+                        `🏆 New High Score: ${score}!` : 
+                        `Game Over! Score: ${score}`;
+                    showToast(message, score > highScore - 1 ? 'success' : 'info');
+                    resetGame();
+                }, 100);
+            }
+
+            function draw() {
+                drawBackground();
                 drawPipes();
                 drawBird();
+                drawScore();
             }
 
             function gameLoop() {
@@ -2514,15 +2797,25 @@
             function resetGame() {
                 bird.y = 150;
                 bird.velocity = 0;
+                bird.rotation = 0;
                 pipes = [];
                 score = 0;
                 frame = 0;
                 gameOver = false;
+                difficulty = 1;
                 scoreDisplay.textContent = score;
             }
 
             canvas.addEventListener('click', () => {
                 if (!gameOver) {
+                    bird.velocity = bird.jump;
+                }
+            });
+
+            // Keyboard support
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' && !gameOver) {
+                    e.preventDefault();
                     bird.velocity = bird.jump;
                 }
             });
@@ -2580,6 +2873,197 @@
                 showError('registerError', error.message);
             }
         });
+
+        // ==================== BROADCAST BANNER ====================
+        let broadcastListener = null;
+
+        function initBroadcastListener() {
+            if (broadcastListener) return;
+            
+            broadcastListener = db.collection('broadcasts')
+                .orderBy('timestamp', 'desc')
+                .limit(1)
+                .onSnapshot(snapshot => {
+                    snapshot.forEach(doc => {
+                        const broadcast = doc.data();
+                        const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+                        
+                        if (!dismissedBroadcasts.includes(doc.id)) {
+                            showBroadcastBanner(broadcast.message, doc.id);
+                        }
+                    });
+                });
+        }
+
+        function showBroadcastBanner(message, id) {
+            const banner = document.getElementById('broadcastBanner');
+            const text = document.getElementById('broadcastText');
+            
+            text.textContent = message;
+            banner.classList.remove('hidden');
+            banner.dataset.broadcastId = id;
+        }
+
+        function dismissBroadcast() {
+            const banner = document.getElementById('broadcastBanner');
+            const broadcastId = banner.dataset.broadcastId;
+            
+            if (broadcastId) {
+                const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+                dismissed.push(broadcastId);
+                localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
+            }
+            
+            banner.classList.add('hidden');
+        }
+
+        // ==================== URL REDIRECT FUNCTIONS ====================
+        function showUrlRedirect() {
+            document.getElementById('urlRedirectModal').classList.remove('hidden');
+            document.getElementById('redirectUrl').value = '';
+            document.getElementById('redirectMessage').value = '';
+            document.getElementById('urlUserList').classList.add('hidden');
+        }
+
+        function closeUrlRedirect() {
+            document.getElementById('urlRedirectModal').classList.add('hidden');
+        }
+
+        async function sendUrlToAll() {
+            const url = document.getElementById('redirectUrl').value.trim();
+            const message = document.getElementById('redirectMessage').value.trim() || 'Admin sent you a link!';
+            
+            if (!url) {
+                showToast('Please enter a URL', 'warning');
+                return;
+            }
+
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                showToast('URL must start with http:// or https://', 'error');
+                return;
+            }
+
+            try {
+                showLoading();
+                
+                // Save to broadcasts collection
+                await db.collection('broadcasts').add({
+                    type: 'url_redirect',
+                    url: url,
+                    message: message,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentUser.id,
+                    sentByName: currentUser.username
+                });
+
+                // Also send as a message in global chat
+                await db.collection('messages').add({
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    userAvatar: currentUser.avatar,
+                    isAdmin: true,
+                    content: `🌐 ${message}\n${url}`,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'broadcast'
+                });
+
+                hideLoading();
+                closeUrlRedirect();
+                showToast('URL sent to all users!', 'success');
+            } catch (error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showUrlUserSelect() {
+            const userList = document.getElementById('urlUserList');
+            userList.classList.remove('hidden');
+            userList.innerHTML = '<p style="text-align: center;">Loading users...</p>';
+
+            try {
+                const usersSnapshot = await db.collection('users').get();
+                userList.innerHTML = '<h4 style="margin-bottom: 0.5rem;">Select Users:</h4>';
+
+                usersSnapshot.forEach(doc => {
+                    if (doc.id === currentUser.id) return;
+                    
+                    const userData = doc.data();
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.25rem;';
+                    div.innerHTML = `
+                        <input type="checkbox" id="urluser-${doc.id}" value="${doc.id}">
+                        <span class="avatar">${userData.avatar}</span>
+                        <label for="urluser-${doc.id}" style="flex: 1; cursor: pointer;">${sanitizeHTML(userData.username)}</label>
+                    `;
+                    userList.appendChild(div);
+                });
+
+                const sendBtn = document.createElement('button');
+                sendBtn.className = 'btn';
+                sendBtn.textContent = 'Send to Selected';
+                sendBtn.style.marginTop = '1rem';
+                sendBtn.onclick = sendUrlToSelected;
+                userList.appendChild(sendBtn);
+            } catch (error) {
+                userList.innerHTML = '<p style="color: var(--danger);">Error loading users</p>';
+            }
+        }
+
+        async function sendUrlToSelected() {
+            const url = document.getElementById('redirectUrl').value.trim();
+            const message = document.getElementById('redirectMessage').value.trim() || 'Admin sent you a link!';
+            
+            if (!url) {
+                showToast('Please enter a URL', 'warning');
+                return;
+            }
+
+            const checkboxes = document.querySelectorAll('#urlUserList input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                showToast('Please select at least one user', 'warning');
+                return;
+            }
+
+            try {
+                showLoading();
+                const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
+
+                // Send private message to each selected user
+                for (const userId of selectedUsers) {
+                    const chatId = [currentUser.id, userId].sort().join('_');
+                    
+                    // Ensure chat exists
+                    const chatRef = rtdb.ref(`privateChats/${chatId}`);
+                    const snapshot = await chatRef.once('value');
+                    
+                    if (!snapshot.exists()) {
+                        await chatRef.set({
+                            participants: [currentUser.id, userId],
+                            createdAt: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    }
+
+                    // Send message with URL
+                    await rtdb.ref(`privateChats/${chatId}/messages`).push({
+                        userId: currentUser.id,
+                        username: currentUser.username,
+                        userAvatar: currentUser.avatar,
+                        isAdmin: true,
+                        content: `🌐 ${message}\n${url}`,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP,
+                        type: 'normal'
+                    });
+                }
+
+                hideLoading();
+                closeUrlRedirect();
+                showToast(`URL sent to ${selectedUsers.length} user(s)!`, 'success');
+            } catch (error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
 
         // ==================== INITIALIZATION ====================
         window.addEventListener('load', async () => {
