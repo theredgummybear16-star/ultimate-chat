@@ -1457,9 +1457,12 @@
             document.getElementById('currentUsername').textContent = currentUser.username;
             document.getElementById('userAvatar').textContent = currentUser.avatar;
 
-            // Show admin button if admin
-            if (currentUser.isAdmin) {
-                document.getElementById('adminButton').classList.remove('hidden');
+            // Show admin button ONLY if user is admin
+            const adminButton = document.getElementById('adminButton');
+            if (currentUser && currentUser.isAdmin === true) {
+                adminButton.classList.remove('hidden');
+            } else {
+                adminButton.classList.add('hidden');
             }
 
             // Load chats
@@ -1485,49 +1488,76 @@
                 </div>
             `;
 
-            // Load private chats from Realtime Database
-            const chatsRef = rtdb.ref('privateChats');
-            chatsRef.on('value', snapshot => {
-                const chats = snapshot.val() || {};
-                const userChats = [];
-
-                Object.keys(chats).forEach(chatId => {
-                    if (chatId.includes(currentUser.id)) {
-                        const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
-                        userChats.push({ chatId, otherUserId });
-                    }
-                });
-
-                // Load user info for each chat
-                userChats.forEach(async ({ chatId, otherUserId }) => {
-                    const userDoc = await db.collection('users').doc(otherUserId).get();
-                    if (userDoc.exists) {
-                        const userData = userDoc.data();
-                        const chatItem = document.createElement('div');
-                        chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
-                        chatItem.onclick = () => selectChat(chatId);
-                        chatItem.innerHTML = `
-                            <div class="avatar">${userData.avatar}</div>
-                            <div class="chat-item-info">
-                                <div class="chat-item-name">
-                                    ${sanitizeHTML(userData.username)}
-                                    <span class="status-indicator ${userData.online ? '' : 'offline'}" id="status-${otherUserId}"></span>
-                                </div>
-                                <div class="chat-item-preview">Private chat</div>
-                            </div>
-                        `;
-                        chatList.appendChild(chatItem);
-
-                        // Listen to status
-                        listenToUserStatus(otherUserId, status => {
-                            const indicator = document.getElementById(`status-${otherUserId}`);
-                            if (indicator) {
-                                indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
-                            }
+            try {
+                // Load all users to show available chats
+                const usersSnapshot = await db.collection('users').get();
+                const users = [];
+                
+                usersSnapshot.forEach(doc => {
+                    if (doc.id !== currentUser.id) {
+                        users.push({
+                            id: doc.id,
+                            ...doc.data()
                         });
                     }
                 });
-            });
+
+                // Check which users have active chats
+                const chatsRef = rtdb.ref('privateChats');
+                const chatsSnapshot = await chatsRef.once('value');
+                const existingChats = new Set();
+                
+                if (chatsSnapshot.exists()) {
+                    const chats = chatsSnapshot.val();
+                    Object.keys(chats).forEach(chatId => {
+                        if (chatId.includes(currentUser.id)) {
+                            existingChats.add(chatId);
+                        }
+                    });
+                }
+
+                // Display users with existing chats first
+                const sortedUsers = users.sort((a, b) => {
+                    const chatIdA = [currentUser.id, a.id].sort().join('_');
+                    const chatIdB = [currentUser.id, b.id].sort().join('_');
+                    const hasA = existingChats.has(chatIdA);
+                    const hasB = existingChats.has(chatIdB);
+                    if (hasA && !hasB) return -1;
+                    if (!hasA && hasB) return 1;
+                    return a.username.localeCompare(b.username);
+                });
+
+                sortedUsers.forEach(userData => {
+                    const chatId = [currentUser.id, userData.id].sort().join('_');
+                    const hasChat = existingChats.has(chatId);
+                    
+                    const chatItem = document.createElement('div');
+                    chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
+                    chatItem.onclick = () => hasChat ? selectChat(chatId) : startPrivateChat(userData.id);
+                    chatItem.innerHTML = `
+                        <div class="avatar">${userData.avatar}</div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">
+                                ${sanitizeHTML(userData.username)}
+                                <span class="status-indicator ${userData.online ? '' : 'offline'}" id="status-${userData.id}"></span>
+                            </div>
+                            <div class="chat-item-preview">${hasChat ? 'Private chat' : 'Start chat'}</div>
+                        </div>
+                    `;
+                    chatList.appendChild(chatItem);
+
+                    // Listen to status
+                    listenToUserStatus(userData.id, status => {
+                        const indicator = document.getElementById(`status-${userData.id}`);
+                        if (indicator) {
+                            indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading chat list:', error);
+                showToast('Error loading users: ' + error.message, 'error');
+            }
         }
 
         function selectChat(chatId) {
@@ -1583,16 +1613,27 @@
             }
 
             if (chatId === 'global') {
-                // Load from Firestore - order by timestamp
+                // Load from Firestore - get all messages and sort client-side
                 const unsubscribe = db.collection('messages')
-                    .orderBy('timestamp', 'asc')
-                    .limitToLast(100)
                     .onSnapshot(snapshot => {
                         container.innerHTML = '';
+                        const messages = [];
                         snapshot.forEach(doc => {
-                            const message = { id: doc.id, ...doc.data() };
-                            displayMessage(message, container);
+                            const data = doc.data();
+                            // Only add messages that have a timestamp
+                            if (data.timestamp) {
+                                messages.push({ id: doc.id, ...data });
+                            }
                         });
+                        // Sort by timestamp client-side
+                        messages.sort((a, b) => {
+                            const aTime = a.timestamp?.toMillis() || 0;
+                            const bTime = b.timestamp?.toMillis() || 0;
+                            return aTime - bTime;
+                        });
+                        // Keep only last 100 messages
+                        const lastMessages = messages.slice(-100);
+                        lastMessages.forEach(message => displayMessage(message, container));
                         scrollToBottom();
                     }, error => {
                         console.error('Error loading messages:', error);
@@ -1687,9 +1728,8 @@
                     userId: currentUser.id,
                     username: currentUser.username,
                     userAvatar: currentUser.avatar,
-                    isAdmin: currentUser.isAdmin,
+                    isAdmin: currentUser.isAdmin || false,
                     content: content,
-                    timestamp: currentChat === 'global' ? firebase.firestore.FieldValue.serverTimestamp() : firebase.database.ServerValue.TIMESTAMP,
                     type: 'normal'
                 };
 
@@ -1712,8 +1752,10 @@
                 } else {
                     // Send new message
                     if (currentChat === 'global') {
+                        messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                         await db.collection('messages').add(messageData);
                     } else {
+                        messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
                         await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
                     }
                 }
@@ -1722,7 +1764,7 @@
                 scrollToBottom();
             } catch (error) {
                 console.error('Error sending message:', error);
-                alert('Failed to send message');
+                showToast('Failed to send message: ' + error.message, 'error');
             }
         }
 
