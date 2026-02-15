@@ -900,6 +900,121 @@
             transform: scale(1.05);
         }
 
+        /* URL Popup Modal */
+        .url-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .url-popup {
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: popIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            text-align: center;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .url-popup-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .url-popup-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .url-popup-message {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .url-popup-link {
+            display: block;
+            padding: 0.75rem;
+            background: var(--background);
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.875rem;
+            color: var(--primary);
+        }
+
+        .url-popup-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .url-popup-btn {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .url-popup-btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .url-popup-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .url-popup-btn-secondary {
+            background: var(--background);
+            color: var(--text);
+            border: 2px solid var(--border);
+        }
+
+        .url-popup-btn-secondary:hover {
+            background: var(--border);
+        }
+
         /* Modern Button Styles */
         .btn {
             width: 100%;
@@ -946,6 +1061,24 @@
     </style>
 </head>
 <body class="theme-dark">
+    <!-- URL Popup -->
+    <div id="urlPopup" class="url-popup-overlay hidden">
+        <div class="url-popup">
+            <div class="url-popup-icon">🌐</div>
+            <div class="url-popup-title" id="urlPopupTitle">Admin sent you a link!</div>
+            <div class="url-popup-message" id="urlPopupMessage"></div>
+            <div class="url-popup-link" id="urlPopupLink"></div>
+            <div class="url-popup-buttons">
+                <button class="url-popup-btn url-popup-btn-primary" onclick="openPopupUrl()">
+                    Open Link 🚀
+                </button>
+                <button class="url-popup-btn url-popup-btn-secondary" onclick="closeUrlPopup()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Broadcast Banner -->
     <div id="broadcastBanner" class="broadcast-banner hidden">
         <div class="broadcast-content">
@@ -2383,19 +2516,22 @@
             }
 
             try {
-                await db.collection('messages').add({
-                    userId: currentUser.id,
-                    username: currentUser.username,
-                    userAvatar: currentUser.avatar,
-                    isAdmin: true,
-                    content: content,
+                showLoading();
+
+                // Save ONLY to broadcasts collection (not to messages)
+                await db.collection('broadcasts').add({
+                    type: 'message',
+                    message: content,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'broadcast'
+                    sentBy: currentUser.id,
+                    sentByName: currentUser.username
                 });
 
                 document.getElementById('broadcastMessage').value = '';
+                hideLoading();
                 showToast('Broadcast sent!', 'success');
             } catch (error) {
+                hideLoading();
                 showToast('Error sending broadcast: ' + error.message, 'error');
             }
         }
@@ -2876,19 +3012,38 @@
 
         // ==================== BROADCAST BANNER ====================
         let broadcastListener = null;
+        let currentPopupUrl = null;
 
         function initBroadcastListener() {
             if (broadcastListener) return;
             
+            // Listen for broadcasts (messages and URLs)
             broadcastListener = db.collection('broadcasts')
                 .orderBy('timestamp', 'desc')
-                .limit(1)
+                .limit(10) // Get last 10 to check for targeted broadcasts
                 .onSnapshot(snapshot => {
                     snapshot.forEach(doc => {
                         const broadcast = doc.data();
                         const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                         
-                        if (!dismissedBroadcasts.includes(doc.id)) {
+                        // Skip if already dismissed
+                        if (dismissedBroadcasts.includes(doc.id)) {
+                            return;
+                        }
+
+                        // Check if this is a targeted broadcast
+                        if (broadcast.targetUsers) {
+                            // Only show if current user is in the target list
+                            if (!broadcast.targetUsers.includes(currentUser.id)) {
+                                return;
+                            }
+                        }
+                        
+                        if (broadcast.type === 'url_redirect') {
+                            // Show URL popup instead of banner
+                            showUrlPopup(broadcast.url, broadcast.message, doc.id);
+                        } else {
+                            // Show regular message banner
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
                     });
@@ -2915,6 +3070,44 @@
             }
             
             banner.classList.add('hidden');
+        }
+
+        // ==================== URL POPUP ====================
+        function showUrlPopup(url, message, broadcastId) {
+            currentPopupUrl = url;
+            
+            document.getElementById('urlPopupMessage').textContent = message || 'Admin sent you a link!';
+            document.getElementById('urlPopupLink').textContent = url;
+            document.getElementById('urlPopup').classList.remove('hidden');
+            document.getElementById('urlPopup').dataset.broadcastId = broadcastId;
+            
+            // Play a notification sound if possible
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBzSM0fPTgjMGHm7A7+OZWQ0LTKXh8bllHAY2jdT0zoU5BiFz');
+                audio.volume = 0.3;
+                audio.play().catch(() => {});
+            } catch (e) {}
+        }
+
+        function openPopupUrl() {
+            if (currentPopupUrl) {
+                window.open(currentPopupUrl, '_blank');
+                closeUrlPopup();
+            }
+        }
+
+        function closeUrlPopup() {
+            const popup = document.getElementById('urlPopup');
+            const broadcastId = popup.dataset.broadcastId;
+            
+            if (broadcastId) {
+                const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+                dismissed.push(broadcastId);
+                localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
+            }
+            
+            popup.classList.add('hidden');
+            currentPopupUrl = null;
         }
 
         // ==================== URL REDIRECT FUNCTIONS ====================
@@ -2946,7 +3139,7 @@
             try {
                 showLoading();
                 
-                // Save to broadcasts collection
+                // Save ONLY to broadcasts collection (creates popup for all users)
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
                     url: url,
@@ -2956,20 +3149,9 @@
                     sentByName: currentUser.username
                 });
 
-                // Also send as a message in global chat
-                await db.collection('messages').add({
-                    userId: currentUser.id,
-                    username: currentUser.username,
-                    userAvatar: currentUser.avatar,
-                    isAdmin: true,
-                    content: `🌐 ${message}\n${url}`,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    type: 'broadcast'
-                });
-
                 hideLoading();
                 closeUrlRedirect();
-                showToast('URL sent to all users!', 'success');
+                showToast('URL popup sent to all users!', 'success');
             } catch (error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
@@ -3029,36 +3211,20 @@
                 showLoading();
                 const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
 
-                // Send private message to each selected user
-                for (const userId of selectedUsers) {
-                    const chatId = [currentUser.id, userId].sort().join('_');
-                    
-                    // Ensure chat exists
-                    const chatRef = rtdb.ref(`privateChats/${chatId}`);
-                    const snapshot = await chatRef.once('value');
-                    
-                    if (!snapshot.exists()) {
-                        await chatRef.set({
-                            participants: [currentUser.id, userId],
-                            createdAt: firebase.database.ServerValue.TIMESTAMP
-                        });
-                    }
-
-                    // Send message with URL
-                    await rtdb.ref(`privateChats/${chatId}/messages`).push({
-                        userId: currentUser.id,
-                        username: currentUser.username,
-                        userAvatar: currentUser.avatar,
-                        isAdmin: true,
-                        content: `🌐 ${message}\n${url}`,
-                        timestamp: firebase.database.ServerValue.TIMESTAMP,
-                        type: 'normal'
-                    });
-                }
+                // Create a targeted broadcast for selected users
+                await db.collection('broadcasts').add({
+                    type: 'url_redirect',
+                    url: url,
+                    message: message,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentUser.id,
+                    sentByName: currentUser.username,
+                    targetUsers: selectedUsers // Only these users will see it
+                });
 
                 hideLoading();
                 closeUrlRedirect();
-                showToast(`URL sent to ${selectedUsers.length} user(s)!`, 'success');
+                showToast(`URL popup sent to ${selectedUsers.length} user(s)!`, 'success');
             } catch (error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
