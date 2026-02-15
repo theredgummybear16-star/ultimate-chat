@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Chat Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #3b82f6;
+            --secondary: #64748b;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --system-msg: #dcfce7;
+            --admin-msg: #fef3c7;
+            --private-msg: #dbeafe;
+        }
+
+        /* Theme Classes */
+        .theme-dark {
+            --primary: #60a5fa;
+            --secondary: #94a3b8;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --border: #334155;
+            --system-msg: #14532d;
+            --admin-msg: #451a03;
+            --private-msg: #1e3a8a;
+        }
+
+        .theme-blue { --primary: #3b82f6; --background: #eff6ff; --surface: #dbeafe; }
+        .theme-green { --primary: #10b981; --background: #f0fdf4; --surface: #dcfce7; }
+        .theme-purple { --primary: #a855f7; --background: #faf5ff; --surface: #f3e8ff; }
+        .theme-red { --primary: #ef4444; --background: #fef2f2; --surface: #fee2e2; }
+        .theme-orange { --primary: #f97316; --background: #fff7ed; --surface: #ffedd5; }
+        .theme-pink { --primary: #ec4899; --background: #fdf2f8; --surface: #fce7f3; }
+        .theme-teal { --primary: #14b8a6; --background: #f0fdfa; --surface: #ccfbf1; }
+        .theme-indigo { --primary: #6366f1; --background: #eef2ff; --surface: #e0e7ff; }
+        .theme-cyan { --primary: #06b6d4; --background: #ecfeff; --surface: #cffafe; }
+        .theme-lime { --primary: #84cc16; --background: #f7fee7; --surface: #ecfccb; }
+        .theme-amber { --primary: #f59e0b; --background: #fffbeb; --surface: #fef3c7; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Auth Pages */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        .auth-box {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            margin: 1rem;
+        }
+
+        .auth-box h2 {
+            margin-bottom: 1.5rem;
+            color: var(--text);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--background);
+            color: var(--text);
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-small {
+            width: auto;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Main Chat Layout */
+        .chat-container {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .avatar {
+            font-size: 1.5rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--background);
+            border-radius: 50%;
+        }
+
+        .status-indicator {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+            margin-left: 0.25rem;
+        }
+
+        .status-indicator.offline {
+            background: var(--secondary);
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .chat-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chat-item:hover {
+            background: var(--background);
+        }
+
+        .chat-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .chat-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-item-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-item-preview {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: var(--background);
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            background: var(--surface);
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+
+        .message.own {
+            margin-left: auto;
+            background: var(--primary);
+            color: white;
+        }
+
+        .message.system {
+            background: var(--system-msg);
+            max-width: 100%;
+            text-align: center;
+            font-style: italic;
+            font-size: 0.875rem;
+        }
+
+        .message.admin-broadcast {
+            background: var(--admin-msg);
+            max-width: 100%;
+            border-left: 4px solid var(--warning);
+        }
+
+        .message.private {
+            background: var(--private-msg);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        .message-content {
+            margin-bottom: 0.25rem;
+        }
+
+        .message-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 0.5rem;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .message-actions button {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+
+        .message-actions button:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .input-container {
+            padding: 1rem;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        .input-container button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            padding: 1rem;
+        }
+
+        .admin-section {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .admin-section h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-card {
+            background: var(--background);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .user-item-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Maintenance Mode / Game */
+        .maintenance-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .maintenance-container h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .maintenance-container p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        #gameCanvas {
+            border: 2px solid white;
+            border-radius: 0.5rem;
+            background: #70c5ce;
+            cursor: pointer;
+        }
+
+        .game-info {
+            margin-top: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            padding: 1rem;
+        }
+
+        .theme-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .theme-btn {
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--surface);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .theme-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 100;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .message {
+                max-width: 85%;
+            }
+
+            .menu-toggle {
+                display: block;
+                background: none;
+                border: none;
+                font-size: 1.5rem;
+                cursor: pointer;
+                color: var(--text);
+            }
+        }
+
+        @media (min-width: 769px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            background: var(--background);
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Emoji Picker */
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .emoji-btn {
+            font-size: 2rem;
+            padding: 0.5rem;
+            border: 2px solid transparent;
+            background: var(--background);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .emoji-btn:hover {
+            border-color: var(--primary);
+            transform: scale(1.1);
+        }
+
+        .emoji-btn.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+        }
+
+        /* Search */
+        .search-box {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--background);
+            color: var(--text);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: var(--primary);
+            color: white;
+        }
+
+        .badge.admin {
+            background: var(--danger);
+        }
+    </style>
+</head>
+<body class="theme-light">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container">
+        <div class="auth-box">
+            <h2>🔐 Login</h2>
+            <div id="loginError" class="error hidden"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+            <div class="link" onclick="showRegister()">Don't have an account? Register</div>
+        </div>
+    </div>
+
+    <!-- Register Page -->
+    <div id="registerPage" class="auth-container hidden">
+        <div class="auth-box">
+            <h2>📝 Register</h2>
+            <div id="registerError" class="error hidden"></div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="registerUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn">Register</button>
+            </form>
+            <div class="link" onclick="showLogin()">Already have an account? Login</div>
+        </div>
+    </div>
+
+    <!-- Maintenance Mode -->
+    <div id="maintenancePage" class="maintenance-container hidden">
+        <h1>🚧 Under Maintenance</h1>
+        <p>We're currently performing maintenance. Play a game while you wait!</p>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div class="game-info">Score: <span id="gameScore">0</span></div>
+        <p style="margin-top: 1rem; font-size: 0.875rem;">Click/Tap to make the bird fly!</p>
+    </div>
+
+    <!-- Main Chat Application -->
+    <div id="chatApp" class="chat-container hidden">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <div class="avatar" id="userAvatar">😀</div>
+                    <div>
+                        <div id="currentUsername" style="font-weight: 600;"></div>
+                        <span class="status-indicator" id="userStatus"></span>
+                    </div>
+                </div>
+                <button class="btn-small" onclick="showSettings()">⚙️</button>
+            </div>
+
+            <!-- Search Users -->
+            <div class="search-box">
+                <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
+            </div>
+
+            <!-- Chat List -->
+            <div class="chat-list" id="chatList">
+                <div class="chat-item active" onclick="selectChat('global')">
+                    <div class="avatar">🌍</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">Global Chat</div>
+                        <div class="chat-item-preview">Public chat room</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 1rem; border-top: 1px solid var(--border);">
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <div class="chat-title" id="chatTitle">
+                    <span class="avatar">🌍</span>
+                    <span>Global Chat</span>
+                </div>
+                <div id="adminButton" class="hidden">
+                    <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
+                </div>
+            </div>
+
+            <div id="messagesContainer" class="messages-container"></div>
+
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="handleMessageKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Settings</h3>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('profile')">Profile</div>
+                <div class="tab" onclick="switchTab('appearance')">Appearance</div>
+                <div class="tab" onclick="switchTab('security')">Security</div>
+            </div>
+
+            <div id="profileTab" class="tab-content active">
+                <div class="form-group">
+                    <label>Choose Your Avatar</label>
+                    <div class="emoji-grid" id="emojiGrid"></div>
+                </div>
+            </div>
+
+            <div id="appearanceTab" class="tab-content">
+                <div class="form-group">
+                    <label>Theme</label>
+                    <div class="theme-selector" id="themeSelector"></div>
+                </div>
+            </div>
+
+            <div id="securityTab" class="tab-content">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" id="currentPassword">
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPassword">
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword">
+                </div>
+                <button class="btn" onclick="changePassword()">Change Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>👑 Admin Panel</h3>
+                <button class="close-btn" onclick="closeAdminPanel()">×</button>
+            </div>
+
+            <div class="admin-panel">
+                <!-- Statistics -->
+                <div class="admin-section">
+                    <h3>📊 Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalUsers">0</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="onlineUsers">0</div>
+                            <div class="stat-label">Online Now</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalMessages">0</div>
+                            <div class="stat-label">Total Messages</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Controls -->
+                <div class="admin-section">
+                    <h3>🎮 System Controls</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <button class="btn" onclick="toggleMaintenance()">
+                            <span id="maintenanceText">Enable Maintenance</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="cleanupOldMessages()">Cleanup Old Messages</button>
+                        <button class="btn btn-danger" onclick="wipeAllData()">⚠️ Wipe All Data</button>
+                    </div>
+                </div>
+
+                <!-- Broadcast Message -->
+                <div class="admin-section">
+                    <h3>📢 Broadcast Message</h3>
+                    <div class="form-group">
+                        <textarea id="broadcastMessage" rows="3" placeholder="Enter your broadcast message..."></textarea>
+                    </div>
+                    <button class="btn" onclick="sendBroadcast()">Send Broadcast</button>
+                </div>
+
+                <!-- User Management -->
+                <div class="admin-section">
+                    <h3>👥 User Management</h3>
+                    <div class="user-list" id="adminUserList"></div>
+                </div>
+
+                <!-- IP Management -->
+                <div class="admin-section">
+                    <h3>🚫 IP Management</h3>
+                    <div class="form-group">
+                        <label>Block IP Address</label>
+                        <input type="text" id="blockIpInput" placeholder="Enter IP address">
+                    </div>
+                    <button class="btn btn-danger" onclick="blockIP()">Block IP</button>
+                    <div id="blockedIpList" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        // ==================== FIREBASE CONFIGURATION ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdPQzgTtMRoJdjgjnHhoX66JKyLSnY6ug",
+            authDomain: "ultimate-chat-b8c08.firebaseapp.com",
+            databaseURL: "https://ultimate-chat-b8c08-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ultimate-chat-b8c08",
+            storageBucket: "ultimate-chat-b8c08.firebasestorage.app",
+            messagingSenderId: "841161776812",
+            appId: "1:841161776812:web:a2431de726187bdb7ac909"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const rtdb = firebase.database();
+
+        // ==================== GLOBAL STATE ====================
+        let currentUser = null;
+        let currentChat = 'global';
+        let messageListeners = {};
+        let editingMessageId = null;
+
+        const EMOJIS = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖'];
+
+        const THEMES = ['light', 'dark', 'blue', 'green', 'purple', 'red', 'orange', 'pink', 'teal', 'indigo', 'cyan', 'lime', 'amber'];
+
+        // ==================== UTILITY FUNCTIONS ====================
+        async function hashPassword(password, salt) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password + salt);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function generateSalt() {
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+            setTimeout(() => errorEl.classList.add('hidden'), 5000);
+        }
+
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
+
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'Just now';
+            if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+            if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+            
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
+        async function getClientIP() {
+            try {
+                // In production, you'd use a service to get the real IP
+                // For demo purposes, we'll generate a mock IP
+                return localStorage.getItem('mockIP') || generateMockIP();
+            } catch (e) {
+                return generateMockIP();
+            }
+        }
+
+        function generateMockIP() {
+            const ip = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+            localStorage.setItem('mockIP', ip);
+            return ip;
+        }
+
+        async function checkIPBlocked(ip) {
+            const blockedDoc = await db.collection('admin').doc('blockedIPs').get();
+            if (blockedDoc.exists) {
+                const blocked = blockedDoc.data().ips || [];
+                return blocked.includes(ip);
+            }
+            return false;
+        }
+
+        // ==================== AUTHENTICATION ====================
+        async function register(username, password) {
+            try {
+                showLoading();
+                
+                const ip = await getClientIP();
+                if (await checkIPBlocked(ip)) {
+                    throw new Error('Your IP address has been blocked');
+                }
+
+                // Check if username exists
+                const usersSnapshot = await db.collection('users').where('username', '==', username).get();
+                if (!usersSnapshot.empty) {
+                    throw new Error('Username already exists');
+                }
+
+                const salt = generateSalt();
+                const hashedPassword = await hashPassword(password, salt);
+                
+                // Create user document
+                const userRef = db.collection('users').doc();
+                await userRef.set({
+                    username: username,
+                    passwordHash: hashedPassword,
+                    salt: salt,
+                    avatar: '😀',
+                    isAdmin: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastIP: ip
+                });
+
+                // Auto login
+                await login(username, password);
+            } catch (error) {
+                hideLoading();
+                throw error;
+            }
+        }
+
+        async function login(username, password) {
+            try {
+                showLoading();
+                
+                const ip = await getClientIP();
+                if (await checkIPBlocked(ip)) {
+                    throw new Error('Your IP address has been blocked');
+                }
+
+                // Find user by username
+                const usersSnapshot = await db.collection('users').where('username', '==', username).get();
+                
+                if (usersSnapshot.empty) {
+                    throw new Error('Invalid username or password');
+                }
+
+                const userDoc = usersSnapshot.docs[0];
+                const userData = userDoc.data();
+                const hashedPassword = await hashPassword(password, userData.salt);
+
+                if (hashedPassword !== userData.passwordHash) {
+                    throw new Error('Invalid username or password');
+                }
+
+                // Check maintenance mode
+                const maintenanceDoc = await db.collection('admin').doc('settings').get();
+                if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !userData.isAdmin) {
+                    showMaintenanceMode();
+                    hideLoading();
+                    return;
+                }
+
+                // Store session
+                currentUser = {
+                    id: userDoc.id,
+                    ...userData
+                };
+
+                localStorage.setItem('sessionToken', userDoc.id);
+                localStorage.setItem('sessionUser', JSON.stringify(currentUser));
+
+                // Update last IP and online status
+                await userDoc.ref.update({
+                    lastIP: ip,
+                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                setUserOnline(userDoc.id, true);
+                showChatApp();
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                throw error;
+            }
+        }
+
+        async function autoLogin() {
+            const sessionToken = localStorage.getItem('sessionToken');
+            if (!sessionToken) return false;
+
+            try {
+                showLoading();
+                const userDoc = await db.collection('users').doc(sessionToken).get();
+                
+                if (!userDoc.exists) {
+                    localStorage.removeItem('sessionToken');
+                    localStorage.removeItem('sessionUser');
+                    return false;
+                }
+
+                const ip = await getClientIP();
+                if (await checkIPBlocked(ip)) {
+                    throw new Error('Your IP address has been blocked');
+                }
+
+                currentUser = {
+                    id: userDoc.id,
+                    ...userDoc.data()
+                };
+
+                // Check maintenance mode
+                const maintenanceDoc = await db.collection('admin').doc('settings').get();
+                if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !currentUser.isAdmin) {
+                    showMaintenanceMode();
+                    hideLoading();
+                    return true;
+                }
+
+                setUserOnline(userDoc.id, true);
+                showChatApp();
+                hideLoading();
+                return true;
+            } catch (error) {
+                console.error('Auto login failed:', error);
+                hideLoading();
+                return false;
+            }
+        }
+
+        function logout() {
+            if (currentUser) {
+                setUserOnline(currentUser.id, false);
+                
+                // Detach all listeners
+                Object.values(messageListeners).forEach(unsubscribe => unsubscribe());
+                messageListeners = {};
+            }
+
+            currentUser = null;
+            localStorage.removeItem('sessionToken');
+            localStorage.removeItem('sessionUser');
+            
+            document.getElementById('chatApp').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        async function changePassword() {
+            const current = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmNewPassword').value;
+
+            if (!current || !newPass || !confirm) {
+                alert('Please fill all fields');
+                return;
+            }
+
+            if (newPass !== confirm) {
+                alert('New passwords do not match');
+                return;
+            }
+
+            try {
+                showLoading();
+
+                // Verify current password
+                const hashedCurrent = await hashPassword(current, currentUser.salt);
+                if (hashedCurrent !== currentUser.passwordHash) {
+                    throw new Error('Current password is incorrect');
+                }
+
+                // Update password
+                const newSalt = generateSalt();
+                const newHash = await hashPassword(newPass, newSalt);
+
+                await db.collection('users').doc(currentUser.id).update({
+                    passwordHash: newHash,
+                    salt: newSalt
+                });
+
+                currentUser.passwordHash = newHash;
+                currentUser.salt = newSalt;
+
+                alert('Password changed successfully!');
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmNewPassword').value = '';
+                
+                hideLoading();
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // ==================== USER STATUS ====================
+        function setUserOnline(userId, online) {
+            rtdb.ref('status/' + userId).set({
+                online: online,
+                lastSeen: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            // Set up disconnect handler
+            if (online) {
+                rtdb.ref('status/' + userId).onDisconnect().set({
+                    online: false,
+                    lastSeen: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+        }
+
+        function listenToUserStatus(userId, callback) {
+            rtdb.ref('status/' + userId).on('value', snapshot => {
+                const status = snapshot.val();
+                callback(status);
+            });
+        }
+
+        // ==================== CHAT FUNCTIONS ====================
+        function showChatApp() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('registerPage').classList.add('hidden');
+            document.getElementById('maintenancePage').classList.add('hidden');
+            document.getElementById('chatApp').classList.remove('hidden');
+
+            // Update UI with user info
+            document.getElementById('currentUsername').textContent = currentUser.username;
+            document.getElementById('userAvatar').textContent = currentUser.avatar;
+
+            // Show admin button if admin
+            if (currentUser.isAdmin) {
+                document.getElementById('adminButton').classList.remove('hidden');
+            }
+
+            // Load chats
+            loadChatList();
+            selectChat('global');
+            
+            // Apply saved theme
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        async function loadChatList() {
+            const chatList = document.getElementById('chatList');
+            
+            // Clear existing (keep global)
+            chatList.innerHTML = `
+                <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
+                    <div class="avatar">🌍</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">Global Chat</div>
+                        <div class="chat-item-preview">Public chat room</div>
+                    </div>
+                </div>
+            `;
+
+            // Load private chats from Realtime Database
+            const chatsRef = rtdb.ref('privateChats');
+            chatsRef.on('value', snapshot => {
+                const chats = snapshot.val() || {};
+                const userChats = [];
+
+                Object.keys(chats).forEach(chatId => {
+                    if (chatId.includes(currentUser.id)) {
+                        const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
+                        userChats.push({ chatId, otherUserId });
+                    }
+                });
+
+                // Load user info for each chat
+                userChats.forEach(async ({ chatId, otherUserId }) => {
+                    const userDoc = await db.collection('users').doc(otherUserId).get();
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        const chatItem = document.createElement('div');
+                        chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
+                        chatItem.onclick = () => selectChat(chatId);
+                        chatItem.innerHTML = `
+                            <div class="avatar">${userData.avatar}</div>
+                            <div class="chat-item-info">
+                                <div class="chat-item-name">
+                                    ${sanitizeHTML(userData.username)}
+                                    <span class="status-indicator ${userData.online ? '' : 'offline'}" id="status-${otherUserId}"></span>
+                                </div>
+                                <div class="chat-item-preview">Private chat</div>
+                            </div>
+                        `;
+                        chatList.appendChild(chatItem);
+
+                        // Listen to status
+                        listenToUserStatus(otherUserId, status => {
+                            const indicator = document.getElementById(`status-${otherUserId}`);
+                            if (indicator) {
+                                indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
+        function selectChat(chatId) {
+            currentChat = chatId;
+            
+            // Update active state in sidebar
+            document.querySelectorAll('.chat-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.chat-item')?.classList.add('active');
+
+            // Update header
+            const chatTitle = document.getElementById('chatTitle');
+            if (chatId === 'global') {
+                chatTitle.innerHTML = '<span class="avatar">🌍</span><span>Global Chat</span>';
+            } else {
+                const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
+                db.collection('users').doc(otherUserId).get().then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        chatTitle.innerHTML = `
+                            <span class="avatar">${userData.avatar}</span>
+                            <span>${sanitizeHTML(userData.username)}</span>
+                            <span class="status-indicator ${userData.online ? '' : 'offline'}" id="chat-status-${otherUserId}"></span>
+                        `;
+                        
+                        listenToUserStatus(otherUserId, status => {
+                            const indicator = document.getElementById(`chat-status-${otherUserId}`);
+                            if (indicator) {
+                                indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Load messages
+            loadMessages(chatId);
+
+            // Close sidebar on mobile
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        }
+
+        function loadMessages(chatId) {
+            const container = document.getElementById('messagesContainer');
+            container.innerHTML = '';
+
+            // Detach previous listener
+            if (messageListeners[currentChat]) {
+                messageListeners[currentChat]();
+            }
+
+            if (chatId === 'global') {
+                // Load from Firestore
+                const unsubscribe = db.collection('messages')
+                    .orderBy('timestamp', 'asc')
+                    .limit(100)
+                    .onSnapshot(snapshot => {
+                        container.innerHTML = '';
+                        snapshot.forEach(doc => {
+                            const message = { id: doc.id, ...doc.data() };
+                            displayMessage(message, container);
+                        });
+                        scrollToBottom();
+                    });
+                messageListeners[chatId] = unsubscribe;
+            } else {
+                // Load from Realtime Database
+                const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
+                messagesRef.on('value', snapshot => {
+                    container.innerHTML = '';
+                    const messages = [];
+                    snapshot.forEach(child => {
+                        messages.push({ id: child.key, ...child.val() });
+                    });
+                    messages.forEach(message => displayMessage(message, container, true));
+                    scrollToBottom();
+                });
+                messageListeners[chatId] = () => messagesRef.off();
+            }
+        }
+
+        function displayMessage(message, container, isPrivate = false) {
+            const div = document.createElement('div');
+            const isOwn = message.userId === currentUser.id;
+            const isSystem = message.type === 'system';
+            const isBroadcast = message.type === 'broadcast';
+            
+            let className = 'message';
+            if (isOwn && !isSystem && !isBroadcast) className += ' own';
+            if (isSystem) className += ' system';
+            if (isBroadcast) className += ' admin-broadcast';
+            if (isPrivate && !isSystem) className += ' private';
+            
+            div.className = className;
+
+            let content = '';
+            
+            if (!isSystem) {
+                content += `
+                    <div class="message-header">
+                        <span class="avatar">${message.userAvatar || '😀'}</span>
+                        <span>${sanitizeHTML(message.username || 'Unknown')}</span>
+                        ${message.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
+                        ${isBroadcast ? '<span class="badge">BROADCAST</span>' : ''}
+                    </div>
+                `;
+            }
+
+            content += `<div class="message-content">${sanitizeHTML(message.content)}</div>`;
+
+            if (!isSystem) {
+                const canEdit = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
+                const canDelete = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
+
+                content += `
+                    <div class="message-footer">
+                        <span>${formatTimestamp(message.timestamp)}</span>
+                        ${canEdit || canDelete ? `
+                            <div class="message-actions">
+                                ${canEdit ? `<button onclick="editMessage('${message.id}', '${currentChat}', ${isPrivate})">Edit</button>` : ''}
+                                ${canDelete ? `<button onclick="deleteMessage('${message.id}', '${currentChat}', ${isPrivate})">Delete</button>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            div.innerHTML = content;
+            container.appendChild(div);
+        }
+
+        function isWithinEditTime(timestamp) {
+            if (!timestamp) return false;
+            const messageTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            const now = new Date();
+            const diff = now - messageTime;
+            return diff < 7200000; // 2 hours in milliseconds
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+
+            if (!content) return;
+
+            try {
+                const messageData = {
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    userAvatar: currentUser.avatar,
+                    isAdmin: currentUser.isAdmin,
+                    content: content,
+                    timestamp: currentChat === 'global' ? firebase.firestore.FieldValue.serverTimestamp() : firebase.database.ServerValue.TIMESTAMP,
+                    type: 'normal'
+                };
+
+                if (editingMessageId) {
+                    // Update existing message
+                    if (currentChat === 'global') {
+                        await db.collection('messages').doc(editingMessageId).update({
+                            content: content,
+                            edited: true,
+                            editedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    } else {
+                        await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({
+                            content: content,
+                            edited: true,
+                            editedAt: firebase.database.ServerValue.TIMESTAMP
+                        });
+                    }
+                    editingMessageId = null;
+                } else {
+                    // Send new message
+                    if (currentChat === 'global') {
+                        await db.collection('messages').add(messageData);
+                    } else {
+                        await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
+                    }
+                }
+
+                input.value = '';
+                scrollToBottom();
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message');
+            }
+        }
+
+        function editMessage(messageId, chatId, isPrivate) {
+            editingMessageId = messageId;
+            
+            // Get message content
+            if (isPrivate) {
+                rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).once('value', snapshot => {
+                    const message = snapshot.val();
+                    if (message) {
+                        document.getElementById('messageInput').value = message.content;
+                        document.getElementById('messageInput').focus();
+                    }
+                });
+            } else {
+                db.collection('messages').doc(messageId).get().then(doc => {
+                    if (doc.exists) {
+                        document.getElementById('messageInput').value = doc.data().content;
+                        document.getElementById('messageInput').focus();
+                    }
+                });
+            }
+        }
+
+        async function deleteMessage(messageId, chatId, isPrivate) {
+            if (!confirm('Are you sure you want to delete this message?')) return;
+
+            try {
+                if (isPrivate) {
+                    await rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).remove();
+                } else {
+                    await db.collection('messages').doc(messageId).delete();
+                }
+            } catch (error) {
+                console.error('Error deleting message:', error);
+                alert('Failed to delete message');
+            }
+        }
+
+        function handleMessageKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function searchUsers() {
+            const query = document.getElementById('userSearch').value.toLowerCase().trim();
+            
+            if (!query) {
+                loadChatList();
+                return;
+            }
+
+            const usersSnapshot = await db.collection('users').get();
+            const chatList = document.getElementById('chatList');
+            
+            // Keep global chat
+            chatList.innerHTML = `
+                <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
+                    <div class="avatar">🌍</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">Global Chat</div>
+                        <div class="chat-item-preview">Public chat room</div>
+                    </div>
+                </div>
+            `;
+
+            usersSnapshot.forEach(doc => {
+                if (doc.id === currentUser.id) return;
+                
+                const userData = doc.data();
+                if (userData.username.toLowerCase().includes(query)) {
+                    const chatId = [currentUser.id, doc.id].sort().join('_');
+                    const chatItem = document.createElement('div');
+                    chatItem.className = 'chat-item';
+                    chatItem.onclick = () => startPrivateChat(doc.id);
+                    chatItem.innerHTML = `
+                        <div class="avatar">${userData.avatar}</div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">${sanitizeHTML(userData.username)}</div>
+                            <div class="chat-item-preview">Start private chat</div>
+                        </div>
+                    `;
+                    chatList.appendChild(chatItem);
+                }
+            });
+        }
+
+        async function startPrivateChat(otherUserId) {
+            const chatId = [currentUser.id, otherUserId].sort().join('_');
+            
+            // Create chat if it doesn't exist
+            const chatRef = rtdb.ref(`privateChats/${chatId}`);
+            const snapshot = await chatRef.once('value');
+            
+            if (!snapshot.exists()) {
+                await chatRef.set({
+                    participants: [currentUser.id, otherUserId],
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                });
+
+                // Send system message
+                await rtdb.ref(`privateChats/${chatId}/messages`).push({
+                    type: 'system',
+                    content: 'Private chat started',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+            }
+
+            selectChat(chatId);
+            loadChatList();
+        }
+
+        // ==================== SETTINGS ====================
+        function showSettings() {
+            document.getElementById('settingsModal').classList.remove('hidden');
+            initializeEmojiPicker();
+            initializeThemeSelector();
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function initializeEmojiPicker() {
+            const grid = document.getElementById('emojiGrid');
+            grid.innerHTML = '';
+            
+            EMOJIS.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-btn';
+                btn.textContent = emoji;
+                if (emoji === currentUser.avatar) {
+                    btn.classList.add('selected');
+                }
+                btn.onclick = () => selectEmoji(emoji);
+                grid.appendChild(btn);
+            });
+        }
+
+        async function selectEmoji(emoji) {
+            try {
+                await db.collection('users').doc(currentUser.id).update({
+                    avatar: emoji
+                });
+                
+                currentUser.avatar = emoji;
+                document.getElementById('userAvatar').textContent = emoji;
+                
+                document.querySelectorAll('.emoji-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                event.target.classList.add('selected');
+            } catch (error) {
+                console.error('Error updating avatar:', error);
+            }
+        }
+
+        function initializeThemeSelector() {
+            const selector = document.getElementById('themeSelector');
+            selector.innerHTML = '';
+            
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            
+            THEMES.forEach(theme => {
+                const btn = document.createElement('button');
+                btn.className = 'theme-btn';
+                btn.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
+                if (theme === savedTheme) {
+                    btn.classList.add('active');
+                }
+                btn.onclick = () => selectTheme(theme);
+                selector.appendChild(btn);
+            });
+        }
+
+        function selectTheme(theme) {
+            applyTheme(theme);
+            localStorage.setItem('theme', theme);
+            
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function applyTheme(theme) {
+            document.body.className = 'theme-' + theme;
+        }
+
+        // ==================== ADMIN PANEL ====================
+        async function showAdminPanel() {
+            if (!currentUser.isAdmin) {
+                alert('Access denied');
+                return;
+            }
+
+            document.getElementById('adminModal').classList.remove('hidden');
+            await loadAdminStats();
+            await loadAdminUsers();
+            await loadBlockedIPs();
+            await loadMaintenanceStatus();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('adminModal').classList.add('hidden');
+        }
+
+        async function loadAdminStats() {
+            try {
+                // Count users
+                const usersSnapshot = await db.collection('users').get();
+                document.getElementById('totalUsers').textContent = usersSnapshot.size;
+
+                // Count online users
+                const statusSnapshot = await rtdb.ref('status').once('value');
+                let onlineCount = 0;
+                statusSnapshot.forEach(child => {
+                    if (child.val().online) onlineCount++;
+                });
+                document.getElementById('onlineUsers').textContent = onlineCount;
+
+                // Count messages
+                const messagesSnapshot = await db.collection('messages').get();
+                document.getElementById('totalMessages').textContent = messagesSnapshot.size;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadAdminUsers() {
+            const userList = document.getElementById('adminUserList');
+            userList.innerHTML = '';
+
+            const usersSnapshot = await db.collection('users').get();
+            
+            usersSnapshot.forEach(doc => {
+                const userData = doc.data();
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <div class="user-item-info">
+                        <span class="avatar">${userData.avatar}</span>
+                        <span>${sanitizeHTML(userData.username)}</span>
+                        ${userData.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
+                    </div>
+                    <div class="user-actions">
+                        ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${doc.id}')">Make Admin</button>` : ''}
+                        ${userData.isAdmin && doc.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${doc.id}')">Remove Admin</button>` : ''}
+                        ${doc.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${doc.id}')">Delete</button>` : ''}
+                    </div>
+                `;
+                userList.appendChild(div);
+            });
+        }
+
+        async function makeAdmin(userId) {
+            if (!confirm('Grant admin rights to this user?')) return;
+
+            try {
+                await db.collection('users').doc(userId).update({
+                    isAdmin: true
+                });
+                loadAdminUsers();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function removeAdmin(userId) {
+            if (!confirm('Remove admin rights from this user?')) return;
+
+            try {
+                await db.collection('users').doc(userId).update({
+                    isAdmin: false
+                });
+                loadAdminUsers();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Delete this user permanently?')) return;
+
+            try {
+                await db.collection('users').doc(userId).delete();
+                await rtdb.ref('status/' + userId).remove();
+                loadAdminUsers();
+                loadAdminStats();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function sendBroadcast() {
+            const content = document.getElementById('broadcastMessage').value.trim();
+            
+            if (!content) {
+                alert('Please enter a message');
+                return;
+            }
+
+            try {
+                await db.collection('messages').add({
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    userAvatar: currentUser.avatar,
+                    isAdmin: true,
+                    content: content,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    type: 'broadcast'
+                });
+
+                document.getElementById('broadcastMessage').value = '';
+                alert('Broadcast sent!');
+            } catch (error) {
+                alert('Error sending broadcast: ' + error.message);
+            }
+        }
+
+        async function cleanupOldMessages() {
+            if (!confirm('Delete old messages? (Keeps last 100 in each chat)')) return;
+
+            try {
+                showLoading();
+
+                // Cleanup global messages
+                const messagesSnapshot = await db.collection('messages')
+                    .orderBy('timestamp', 'desc')
+                    .get();
+                
+                const toDelete = [];
+                messagesSnapshot.forEach((doc, index) => {
+                    if (index >= 100) {
+                        toDelete.push(doc.ref.delete());
+                    }
+                });
+
+                await Promise.all(toDelete);
+
+                hideLoading();
+                alert('Cleanup completed!');
+                loadAdminStats();
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function wipeAllData() {
+            if (!confirm('⚠️ DELETE ALL DATA? This cannot be undone!')) return;
+            if (!confirm('Are you ABSOLUTELY sure?')) return;
+
+            try {
+                showLoading();
+
+                // Delete all messages
+                const messagesSnapshot = await db.collection('messages').get();
+                const deletions = [];
+                messagesSnapshot.forEach(doc => deletions.push(doc.ref.delete()));
+                await Promise.all(deletions);
+
+                // Clear private chats
+                await rtdb.ref('privateChats').remove();
+
+                hideLoading();
+                alert('All data wiped!');
+                loadAdminStats();
+            } catch (error) {
+                hideLoading();
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function toggleMaintenance() {
+            const settingsRef = db.collection('admin').doc('settings');
+            const settingsDoc = await settingsRef.get();
+            
+            const currentState = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
+            const newState = !currentState;
+
+            await settingsRef.set({
+                maintenanceMode: newState
+            }, { merge: true });
+
+            document.getElementById('maintenanceText').textContent = 
+                newState ? 'Disable Maintenance' : 'Enable Maintenance';
+
+            alert(newState ? 'Maintenance mode enabled' : 'Maintenance mode disabled');
+        }
+
+        async function loadMaintenanceStatus() {
+            const settingsDoc = await db.collection('admin').doc('settings').get();
+            const maintenanceMode = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
+            
+            document.getElementById('maintenanceText').textContent = 
+                maintenanceMode ? 'Disable Maintenance' : 'Enable Maintenance';
+        }
+
+        async function blockIP() {
+            const ip = document.getElementById('blockIpInput').value.trim();
+            
+            if (!ip) {
+                alert('Please enter an IP address');
+                return;
+            }
+
+            try {
+                const blockedRef = db.collection('admin').doc('blockedIPs');
+                const doc = await blockedRef.get();
+                
+                const ips = doc.exists ? (doc.data().ips || []) : [];
+                if (!ips.includes(ip)) {
+                    ips.push(ip);
+                    await blockedRef.set({ ips }, { merge: true });
+                }
+
+                document.getElementById('blockIpInput').value = '';
+                loadBlockedIPs();
+                alert('IP blocked successfully');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function loadBlockedIPs() {
+            const listDiv = document.getElementById('blockedIpList');
+            const doc = await db.collection('admin').doc('blockedIPs').get();
+            
+            if (!doc.exists || !doc.data().ips || doc.data().ips.length === 0) {
+                listDiv.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.875rem;">No blocked IPs</p>';
+                return;
+            }
+
+            const ips = doc.data().ips;
+            listDiv.innerHTML = '<h4 style="margin-bottom: 0.5rem;">Blocked IPs:</h4>';
+            
+            ips.forEach(ip => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; justify-content: space-between; padding: 0.5rem; background: var(--background); border-radius: 0.25rem; margin-bottom: 0.25rem;';
+                div.innerHTML = `
+                    <span>${ip}</span>
+                    <button class="btn-small btn-danger" onclick="unblockIP('${ip}')">Unblock</button>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        async function unblockIP(ip) {
+            try {
+                const blockedRef = db.collection('admin').doc('blockedIPs');
+                const doc = await blockedRef.get();
+                
+                if (doc.exists) {
+                    const ips = doc.data().ips.filter(i => i !== ip);
+                    await blockedRef.set({ ips }, { merge: true });
+                    loadBlockedIPs();
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        // ==================== MAINTENANCE MODE / GAME ====================
+        function showMaintenanceMode() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('chatApp').classList.add('hidden');
+            document.getElementById('maintenancePage').classList.remove('hidden');
+            
+            initFlappyBird();
+        }
+
+        // Flappy Bird Game
+        function initFlappyBird() {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreDisplay = document.getElementById('gameScore');
+
+            let bird = {
+                x: 50,
+                y: 150,
+                width: 34,
+                height: 24,
+                gravity: 0.5,
+                velocity: 0,
+                jump: -8
+            };
+
+            let pipes = [];
+            let frame = 0;
+            let score = 0;
+            let gameOver = false;
+
+            function createPipe() {
+                const gap = 150;
+                const minHeight = 50;
+                const maxHeight = canvas.height - gap - minHeight;
+                const height = Math.random() * (maxHeight - minHeight) + minHeight;
+                
+                pipes.push({
+                    x: canvas.width,
+                    top: height,
+                    bottom: height + gap,
+                    width: 50,
+                    passed: false
+                });
+            }
+
+            function drawBird() {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(bird.x, bird.y, bird.width, bird.height);
+                
+                // Eye
+                ctx.fillStyle = '#000';
+                ctx.fillRect(bird.x + 20, bird.y + 5, 5, 5);
+            }
+
+            function drawPipes() {
+                ctx.fillStyle = '#228B22';
+                pipes.forEach(pipe => {
+                    // Top pipe
+                    ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+                    // Bottom pipe
+                    ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
+                });
+            }
+
+            function update() {
+                if (gameOver) return;
+
+                // Update bird
+                bird.velocity += bird.gravity;
+                bird.y += bird.velocity;
+
+                // Create pipes
+                if (frame % 90 === 0) {
+                    createPipe();
+                }
+
+                // Update pipes
+                pipes.forEach((pipe, index) => {
+                    pipe.x -= 2;
+
+                    // Check score
+                    if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                        pipe.passed = true;
+                        score++;
+                        scoreDisplay.textContent = score;
+                    }
+
+                    // Check collision
+                    if (
+                        bird.x < pipe.x + pipe.width &&
+                        bird.x + bird.width > pipe.x &&
+                        (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
+                    ) {
+                        gameOver = true;
+                        alert('Game Over! Score: ' + score);
+                        resetGame();
+                    }
+
+                    // Remove off-screen pipes
+                    if (pipe.x + pipe.width < 0) {
+                        pipes.splice(index, 1);
+                    }
+                });
+
+                // Check bounds
+                if (bird.y + bird.height > canvas.height || bird.y < 0) {
+                    gameOver = true;
+                    alert('Game Over! Score: ' + score);
+                    resetGame();
+                }
+
+                frame++;
+            }
+
+            function draw() {
+                ctx.fillStyle = '#70c5ce';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                drawPipes();
+                drawBird();
+            }
+
+            function gameLoop() {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+
+            function resetGame() {
+                bird.y = 150;
+                bird.velocity = 0;
+                pipes = [];
+                score = 0;
+                frame = 0;
+                gameOver = false;
+                scoreDisplay.textContent = score;
+            }
+
+            canvas.addEventListener('click', () => {
+                if (!gameOver) {
+                    bird.velocity = bird.jump;
+                }
+            });
+
+            gameLoop();
+        }
+
+        // ==================== UI HELPERS ====================
+        function showLogin() {
+            document.getElementById('registerPage').classList.add('hidden');
+            document.getElementById('loginPage').classList.remove('hidden');
+        }
+
+        function showRegister() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('registerPage').classList.remove('hidden');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                await login(username, password);
+            } catch (error) {
+                showError('loginError', error.message);
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerConfirmPassword').value;
+
+            if (password !== confirm) {
+                showError('registerError', 'Passwords do not match');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('registerError', 'Password must be at least 6 characters');
+                return;
+            }
+
+            try {
+                await register(username, password);
+            } catch (error) {
+                showError('registerError', error.message);
+            }
+        });
+
+        // ==================== INITIALIZATION ====================
+        window.addEventListener('load', async () => {
+            const loggedIn = await autoLogin();
+            if (!loggedIn) {
+                document.getElementById('loginPage').classList.remove('hidden');
+            }
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (currentUser) {
+                setUserOnline(currentUser.id, false);
+            }
+        });
+    </script>
+</body>
+</html>
