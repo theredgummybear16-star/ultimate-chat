@@ -6,11 +6,7 @@
     <title>Ultimate Chat</title>
     <link rel="icon" type="image/png" href="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.pngmart.com%2Ffiles%2F11%2FChat-Logo-PNG-Pic.png&f=1&nofb=1&ipt=282b359cc027c71e1d0c549868e3cce0202f5b0185a1d96d02bd22143786cb2e">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --primary: #3b82f6;
@@ -26,9 +22,9 @@
             --system-msg: #dcfce7;
             --admin-msg: #fef3c7;
             --private-msg: #dbeafe;
+            --owner-color: #f59e0b;
         }
 
-        /* Theme Classes */
         .theme-dark {
             --primary: #60a5fa;
             --secondary: #94a3b8;
@@ -62,9 +58,7 @@
             overflow: hidden;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
 
         /* Auth Pages */
         .auth-container {
@@ -85,15 +79,9 @@
             margin: 1rem;
         }
 
-        .auth-box h2 {
-            margin-bottom: 1.5rem;
-            color: var(--text);
-            text-align: center;
-        }
+        .auth-box h2 { margin-bottom: 1.5rem; color: var(--text); text-align: center; }
 
-        .form-group {
-            margin-bottom: 1rem;
-        }
+        .form-group { margin-bottom: 1rem; }
 
         .form-group label {
             display: block;
@@ -130,26 +118,14 @@
             transition: opacity 0.2s;
         }
 
-        .btn:hover {
-            opacity: 0.9;
-        }
+        .btn:hover { opacity: 0.9; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--text-secondary) 100%);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
+        .btn-secondary { background: linear-gradient(135deg, var(--secondary) 0%, var(--text-secondary) 100%); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .btn-owner { background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
 
         .btn-small {
             width: auto;
@@ -167,9 +143,7 @@
             font-size: 0.875rem;
         }
 
-        .link:hover {
-            text-decoration: underline;
-        }
+        .link:hover { text-decoration: underline; }
 
         .error {
             background: #fee2e2;
@@ -190,11 +164,7 @@
         }
 
         /* Main Chat Layout */
-        .chat-container {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
+        .chat-container { display: flex; height: 100vh; overflow: hidden; }
 
         .sidebar {
             width: 280px;
@@ -213,11 +183,7 @@
             align-items: center;
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+        .user-info { display: flex; align-items: center; gap: 0.5rem; }
 
         .avatar {
             font-size: 1.5rem;
@@ -239,14 +205,9 @@
             margin-left: 0.25rem;
         }
 
-        .status-indicator.offline {
-            background: var(--secondary);
-        }
+        .status-indicator.offline { background: var(--secondary); }
 
-        .chat-list {
-            flex: 1;
-            overflow-y: auto;
-        }
+        .chat-list { flex: 1; overflow-y: auto; }
 
         .chat-item {
             padding: 1rem;
@@ -259,19 +220,10 @@
             position: relative;
         }
 
-        .chat-item:hover {
-            background: var(--background);
-        }
+        .chat-item:hover { background: var(--background); }
+        .chat-item.active { background: var(--primary); color: white; }
 
-        .chat-item.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .chat-item-info {
-            flex: 1;
-            min-width: 0;
-        }
+        .chat-item-info { flex: 1; min-width: 0; }
 
         .chat-item-name {
             font-weight: 600;
@@ -304,12 +256,7 @@
             margin-left: auto;
         }
 
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
         .chat-header {
             padding: 1rem;
@@ -328,12 +275,7 @@
             gap: 0.5rem;
         }
 
-        /* Header action buttons grouped */
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+        .header-actions { display: flex; align-items: center; gap: 0.5rem; }
 
         .messages-container {
             flex: 1;
@@ -351,11 +293,7 @@
             word-wrap: break-word;
         }
 
-        .message.own {
-            margin-left: auto;
-            background: var(--primary);
-            color: white;
-        }
+        .message.own { margin-left: auto; background: var(--primary); color: white; }
 
         .message.system {
             background: var(--system-msg);
@@ -371,9 +309,7 @@
             border-left: 4px solid var(--warning);
         }
 
-        .message.private {
-            background: var(--private-msg);
-        }
+        .message.private { background: var(--private-msg); }
 
         .message-header {
             display: flex;
@@ -384,9 +320,7 @@
             opacity: 0.8;
         }
 
-        .message-content {
-            margin-bottom: 0.25rem;
-        }
+        .message-content { margin-bottom: 0.25rem; }
 
         .message-footer {
             display: flex;
@@ -397,10 +331,7 @@
             margin-top: 0.5rem;
         }
 
-        .message-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
+        .message-actions { display: flex; gap: 0.5rem; }
 
         .message-actions button {
             background: none;
@@ -413,9 +344,7 @@
             transition: background 0.2s;
         }
 
-        .message-actions button:hover {
-            background: rgba(0,0,0,0.1);
-        }
+        .message-actions button:hover { background: rgba(0,0,0,0.1); }
 
         .input-container {
             padding: 1rem;
@@ -444,7 +373,6 @@
             cursor: pointer;
         }
 
-        /* Announcements read-only bar */
         .readonly-bar {
             padding: 1rem;
             background: var(--surface);
@@ -458,14 +386,12 @@
             font-style: italic;
         }
 
-        /* Announcements message style */
         .message.announcement {
             border-left: 4px solid #f59e0b;
             background: var(--admin-msg);
             max-width: 100%;
         }
 
-        /* Announcement channel badge in sidebar */
         .channel-badge {
             font-size: 0.65rem;
             background: #f59e0b;
@@ -477,13 +403,14 @@
             flex-shrink: 0;
         }
 
+        .channel-badge.group {
+            background: #8b5cf6;
+        }
+
         /* Modal */
         .modal {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5);
             display: flex;
             justify-content: center;
@@ -508,9 +435,7 @@
             margin-bottom: 1.5rem;
         }
 
-        .modal-header h3 {
-            font-size: 1.5rem;
-        }
+        .modal-header h3 { font-size: 1.5rem; }
 
         .close-btn {
             background: none;
@@ -521,21 +446,23 @@
         }
 
         /* Admin Panel */
-        .admin-panel {
-            padding: 1rem;
-        }
+        .admin-panel { padding: 1rem; }
 
         .admin-section {
             background: var(--surface);
             padding: 1.5rem;
             border-radius: 0.75rem;
             margin-bottom: 1rem;
+            border: 1px solid var(--border);
         }
 
-        .admin-section h3 {
-            margin-bottom: 1rem;
-            color: var(--primary);
+        .admin-section h3 { margin-bottom: 1rem; color: var(--primary); }
+
+        /* Owner section highlight */
+        .admin-section.owner-section {
+            border-color: var(--owner-color);
         }
+        .admin-section.owner-section h3 { color: var(--owner-color); }
 
         .stats-grid {
             display: grid;
@@ -551,22 +478,10 @@
             text-align: center;
         }
 
-        .stat-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
+        .stat-value { font-size: 2rem; font-weight: bold; color: var(--primary); }
+        .stat-label { font-size: 0.875rem; color: var(--text-secondary); margin-top: 0.5rem; }
 
-        .stat-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-top: 0.5rem;
-        }
-
-        .user-list {
-            max-height: 300px;
-            overflow-y: auto;
-        }
+        .user-list { max-height: 300px; overflow-y: auto; }
 
         .user-item {
             display: flex;
@@ -576,16 +491,8 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .user-item-info {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .user-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
+        .user-item-info { display: flex; align-items: center; gap: 0.5rem; }
+        .user-actions { display: flex; gap: 0.5rem; }
 
         /* Maintenance Mode / Game */
         .maintenance-container {
@@ -600,15 +507,8 @@
             padding: 2rem;
         }
 
-        .maintenance-container h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-
-        .maintenance-container p {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-        }
+        .maintenance-container h1 { font-size: 3rem; margin-bottom: 1rem; }
+        .maintenance-container p { font-size: 1.25rem; margin-bottom: 2rem; }
 
         #gameCanvas {
             border: 2px solid white;
@@ -617,16 +517,10 @@
             cursor: pointer;
         }
 
-        .game-info {
-            margin-top: 1rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
+        .game-info { margin-top: 1rem; font-size: 1.5rem; font-weight: bold; }
 
         /* Settings Panel */
-        .settings-panel {
-            padding: 1rem;
-        }
+        .settings-panel { padding: 1rem; }
 
         .theme-selector {
             display: grid;
@@ -646,15 +540,8 @@
             font-size: 0.875rem;
         }
 
-        .theme-btn:hover {
-            border-color: var(--primary);
-        }
-
-        .theme-btn.active {
-            border-color: var(--primary);
-            background: var(--primary);
-            color: white;
-        }
+        .theme-btn:hover { border-color: var(--primary); }
+        .theme-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
 
         /* Loading Spinner */
         .spinner {
@@ -666,16 +553,11 @@
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .loading-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.5);
             display: flex;
             justify-content: center;
@@ -687,20 +569,13 @@
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
-                left: 0;
-                top: 0;
-                bottom: 0;
+                left: 0; top: 0; bottom: 0;
                 z-index: 100;
                 transform: translateX(-100%);
             }
 
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .message {
-                max-width: 85%;
-            }
+            .sidebar.open { transform: translateX(0); }
+            .message { max-width: 85%; }
 
             .menu-toggle {
                 display: block;
@@ -712,17 +587,14 @@
             }
         }
 
-        @media (min-width: 769px) {
-            .menu-toggle {
-                display: none;
-            }
-        }
+        @media (min-width: 769px) { .menu-toggle { display: none; } }
 
         /* Tabs */
         .tabs {
             display: flex;
             border-bottom: 1px solid var(--border);
             background: var(--surface);
+            flex-wrap: wrap;
         }
 
         .tab {
@@ -732,23 +604,11 @@
             transition: all 0.2s;
         }
 
-        .tab:hover {
-            background: var(--background);
-        }
+        .tab:hover { background: var(--background); }
+        .tab.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: 600; }
 
-        .tab.active {
-            border-bottom-color: var(--primary);
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
+        .tab-content { display: none; padding: 1rem 0; }
+        .tab-content.active { display: block; }
 
         /* Emoji Picker */
         .emoji-grid {
@@ -768,15 +628,8 @@
             transition: all 0.2s;
         }
 
-        .emoji-btn:hover {
-            border-color: var(--primary);
-            transform: scale(1.1);
-        }
-
-        .emoji-btn.selected {
-            border-color: var(--primary);
-            background: var(--primary);
-        }
+        .emoji-btn:hover { border-color: var(--primary); transform: scale(1.1); }
+        .emoji-btn.selected { border-color: var(--primary); background: var(--primary); }
 
         /* Search */
         .search-box {
@@ -803,15 +656,13 @@
             color: white;
         }
 
-        .badge.admin {
-            background: var(--danger);
-        }
+        .badge.admin { background: var(--danger); }
+        .badge.owner { background: linear-gradient(135deg, #f59e0b, #b45309); color: white; }
 
         /* Toast Notifications */
         .toast-container {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
+            top: 1rem; right: 1rem;
             z-index: 3000;
             display: flex;
             flex-direction: column;
@@ -833,25 +684,12 @@
             border-left: 4px solid var(--primary);
         }
 
-        .toast.success {
-            border-left-color: var(--success);
-        }
+        .toast.success { border-left-color: var(--success); }
+        .toast.error { border-left-color: var(--danger); }
+        .toast.warning { border-left-color: var(--warning); }
 
-        .toast.error {
-            border-left-color: var(--danger);
-        }
-
-        .toast.warning {
-            border-left-color: var(--warning);
-        }
-
-        .toast-icon {
-            font-size: 1.5rem;
-        }
-
-        .toast-message {
-            flex: 1;
-        }
+        .toast-icon { font-size: 1.5rem; }
+        .toast-message { flex: 1; }
 
         .toast-close {
             background: none;
@@ -863,42 +701,24 @@
             opacity: 0.7;
         }
 
-        .toast-close:hover {
-            opacity: 1;
-        }
+        .toast-close:hover { opacity: 1; }
 
         @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
         @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
         }
 
-        .toast.removing {
-            animation: slideOut 0.3s ease forwards;
-        }
+        .toast.removing { animation: slideOut 0.3s ease forwards; }
 
         /* Broadcast Banner */
         .broadcast-banner {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
             color: white;
             padding: 1rem 2rem;
@@ -911,12 +731,8 @@
         }
 
         @keyframes slideDown {
-            from {
-                transform: translateY(-100%);
-            }
-            to {
-                transform: translateY(0);
-            }
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
         }
 
         .broadcast-content {
@@ -926,20 +742,14 @@
             gap: 1rem;
         }
 
-        .broadcast-icon {
-            font-size: 2rem;
-            animation: pulse 2s infinite;
-        }
+        .broadcast-icon { font-size: 2rem; animation: pulse 2s infinite; }
 
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
 
-        .broadcast-message {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
+        .broadcast-message { font-size: 1.1rem; font-weight: 600; }
 
         .broadcast-close {
             background: rgba(255,255,255,0.2);
@@ -952,9 +762,52 @@
             transition: all 0.2s;
         }
 
-        .broadcast-close:hover {
-            background: rgba(255,255,255,0.3);
-            transform: scale(1.05);
+        .broadcast-close:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
+
+        /* Owner URL Confirmation Dialog */
+        .owner-url-dialog {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+        }
+
+        .owner-url-dialog-box {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 480px;
+            width: 90%;
+            border: 2px solid var(--owner-color);
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
+        }
+
+        .owner-url-dialog-box h3 {
+            color: var(--owner-color);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .owner-url-preview {
+            background: var(--background);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            word-break: break-all;
+            margin-bottom: 1rem;
+            border-left: 3px solid var(--owner-color);
+        }
+
+        .owner-url-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
         }
 
         /* Image messages */
@@ -968,6 +821,7 @@
             transition: opacity 0.2s;
             object-fit: contain;
         }
+
         .message-image:hover { opacity: 0.9; }
 
         /* URL preview cards */
@@ -984,7 +838,9 @@
             text-decoration: none;
             color: inherit;
         }
+
         .url-preview:hover { background: rgba(0,0,0,0.14); }
+
         .url-preview-thumb {
             width: 80px;
             min-width: 80px;
@@ -992,6 +848,7 @@
             object-fit: cover;
             flex-shrink: 0;
         }
+
         .url-preview-body {
             padding: 0.5rem 0.5rem 0.5rem 0;
             display: flex;
@@ -1000,6 +857,7 @@
             gap: 0.2rem;
             overflow: hidden;
         }
+
         .url-preview-title {
             font-weight: 600;
             font-size: 0.85rem;
@@ -1007,6 +865,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .url-preview-desc {
             font-size: 0.75rem;
             opacity: 0.7;
@@ -1015,6 +874,7 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+
         .url-preview-domain {
             font-size: 0.7rem;
             opacity: 0.5;
@@ -1022,6 +882,55 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* Group section in sidebar */
+        .sidebar-section-header {
+            padding: 0.5rem 1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-secondary);
+            background: var(--background);
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* Admin grid buttons */
+        .admin-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        .admin-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        /* Scrollable user select list */
+        .user-select-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            background: var(--background);
+        }
+
+        .user-select-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .user-select-item:hover { background: var(--surface); }
+
+        /* Group message style */
+        .message.group { background: rgba(139,92,246,0.12); }
     </style>
 </head>
 <body class="theme-dark">
@@ -1041,6 +950,19 @@
     <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
+    </div>
+
+    <!-- Owner URL Confirmation Dialog -->
+    <div id="ownerUrlDialog" class="owner-url-dialog hidden">
+        <div class="owner-url-dialog-box">
+            <h3>👑 Admin wil een URL openen</h3>
+            <p style="margin-bottom:0.75rem; color: var(--text-secondary);">Een admin heeft een link naar je gestuurd. Wil je deze openen?</p>
+            <div class="owner-url-preview" id="ownerUrlPreviewText"></div>
+            <div class="owner-url-buttons">
+                <button class="btn btn-secondary btn-small" onclick="rejectOwnerUrl()">Nee, weigeren</button>
+                <button class="btn btn-owner btn-small" onclick="acceptOwnerUrl()">Ja, openen</button>
+            </div>
+        </div>
     </div>
 
     <!-- Login Page -->
@@ -1120,12 +1042,10 @@
                 </div>
             </div>
 
-            <!-- Search Users -->
             <div class="search-box">
                 <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsersDebounced()">
             </div>
 
-            <!-- Chat List -->
             <div class="chat-list" id="chatList">
                 <div class="chat-item active" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
@@ -1136,7 +1056,8 @@
                 </div>
             </div>
 
-            <div style="padding: 1rem; border-top: 1px solid var(--border);">
+            <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="btn" onclick="showCreateGroupModal()">➕ Create Group</button>
                 <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -1149,11 +1070,13 @@
                     <span class="avatar">🌍</span>
                     <span>Global Chat</span>
                 </div>
-                <!-- Settings and Admin buttons grouped in header -->
                 <div class="header-actions">
                     <button class="btn-small" onclick="showSettings()">⚙️ Settings</button>
                     <div id="adminButton" class="hidden">
                         <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
+                    </div>
+                    <div id="ownerButton" class="hidden">
+                        <button class="btn-small btn-owner" onclick="showOwnerPanel()">⭐ Owner</button>
                     </div>
                 </div>
             </div>
@@ -1179,9 +1102,9 @@
             </div>
 
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('profile')">Profile</div>
-                <div class="tab" onclick="switchTab('appearance')">Appearance</div>
-                <div class="tab" onclick="switchTab('security')">Security</div>
+                <div class="tab active" onclick="switchTab('profile', event)">Profile</div>
+                <div class="tab" onclick="switchTab('appearance', event)">Appearance</div>
+                <div class="tab" onclick="switchTab('security', event)">Security</div>
             </div>
 
             <div id="profileTab" class="tab-content active">
@@ -1216,16 +1139,47 @@
         </div>
     </div>
 
+    <!-- Create Group Modal -->
+    <div id="createGroupModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 Create Group</h3>
+                <button class="close-btn" onclick="closeCreateGroupModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" id="groupNameInput" placeholder="e.g. Gaming Squad">
+            </div>
+            <div class="form-group">
+                <label>Group Emoji / Icon</label>
+                <input type="text" id="groupEmojiInput" placeholder="e.g. 🎮" maxlength="4" style="font-size:1.5rem;">
+            </div>
+            <div class="form-group">
+                <label>Add Members (select at least 2 others)</label>
+                <div class="user-select-list" id="groupMemberList"></div>
+            </div>
+            <button class="btn" onclick="createGroup()">Create Group</button>
+        </div>
+    </div>
+
     <!-- Admin Panel Modal -->
     <div id="adminModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content" style="max-width: 850px;">
             <div class="modal-header">
                 <h3>👑 Admin Panel</h3>
                 <button class="close-btn" onclick="closeAdminPanel()">×</button>
             </div>
 
-            <div class="admin-panel">
-                <!-- Statistics -->
+            <div class="tabs">
+                <div class="tab active" onclick="switchAdminTab('statsTab', event)">📊 Stats</div>
+                <div class="tab" onclick="switchAdminTab('usersTab', event)">👥 Users</div>
+                <div class="tab" onclick="switchAdminTab('systemTab', event)">🎮 System</div>
+                <div class="tab" onclick="switchAdminTab('broadcastTabPanel', event)">📢 Broadcast</div>
+                <div class="tab" onclick="switchAdminTab('ipTab', event)">🌐 IP</div>
+            </div>
+
+            <!-- Stats Tab -->
+            <div id="statsTab" class="tab-content active" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>📊 Statistics</h3>
                     <div class="stats-grid">
@@ -1241,23 +1195,40 @@
                             <div class="stat-value" id="totalMessages">0</div>
                             <div class="stat-label">Total Messages</div>
                         </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalGroups">0</div>
+                            <div class="stat-label">Total Groups</div>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- System Controls -->
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content" style="padding: 1rem;">
+                <div class="admin-section">
+                    <h3>👥 User Management</h3>
+                    <div class="user-list" id="adminUserList"></div>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div id="systemTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>🎮 System Controls</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div class="admin-grid-2" style="margin-bottom: 0.5rem;">
                         <button class="btn" onclick="toggleMaintenance()">
                             <span id="maintenanceText">Enable Maintenance</span>
                         </button>
                         <button class="btn btn-secondary" onclick="cleanupOldMessages()">Cleanup Old Messages</button>
                         <button class="btn btn-success" onclick="showUrlRedirect()">🌐 Send URL to Users</button>
+                        <button class="btn btn-warning" onclick="showPageReloadPanel()">🔄 Reload User Pages</button>
                         <button class="btn btn-danger" onclick="wipeAllData()">⚠️ Wipe All Data</button>
                     </div>
                 </div>
+            </div>
 
-                <!-- Broadcast Message -->
+            <!-- Broadcast Tab -->
+            <div id="broadcastTabPanel" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>📢 Broadcast Message</h3>
                     <div class="form-group">
@@ -1265,14 +1236,10 @@
                     </div>
                     <button class="btn" onclick="sendBroadcast()">Send Broadcast</button>
                 </div>
+            </div>
 
-                <!-- User Management -->
-                <div class="admin-section">
-                    <h3>👥 User Management</h3>
-                    <div class="user-list" id="adminUserList"></div>
-                </div>
-
-                <!-- IP Tracking & Banning -->
+            <!-- IP Tab -->
+            <div id="ipTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>🌐 IP Address Tracking</h3>
                     <div style="margin-bottom: 1rem;">
@@ -1281,7 +1248,6 @@
                     <div id="ipTrackingList" style="max-height: 400px; overflow-y: auto;"></div>
                 </div>
 
-                <!-- IP Management -->
                 <div class="admin-section">
                     <h3>🚫 IP Management</h3>
                     <div class="form-group">
@@ -1291,6 +1257,34 @@
                     <button class="btn btn-danger" onclick="blockIP()">Block IP</button>
                     <div id="blockedIpList" style="margin-top: 1rem;"></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner Panel Modal -->
+    <div id="ownerModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 700px; border: 2px solid var(--owner-color);">
+            <div class="modal-header">
+                <h3 style="color: var(--owner-color);">⭐ Owner Panel</h3>
+                <button class="close-btn" onclick="closeOwnerPanel()">×</button>
+            </div>
+
+            <div class="admin-section owner-section">
+                <h3>⭐ Owner Controls</h3>
+                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
+                    As the Owner, you have ultimate control. These actions cannot be reversed by admins.
+                </p>
+                <div class="admin-grid-2">
+                    <button class="btn btn-owner" onclick="ownerWipeEverything()">☢️ Wipe Everything (incl. users)</button>
+                    <button class="btn btn-danger" onclick="ownerForceLogoutAll()">🚪 Force Logout All Users</button>
+                    <button class="btn btn-warning" onclick="ownerReloadAll()">🔄 Reload All Pages</button>
+                    <button class="btn btn-success" onclick="ownerRestoreDefaults()">♻️ Reset to Defaults</button>
+                </div>
+            </div>
+
+            <div class="admin-section owner-section">
+                <h3>👑 Manage Admins</h3>
+                <div id="ownerAdminList" style="max-height: 300px; overflow-y: auto;"></div>
             </div>
         </div>
     </div>
@@ -1322,6 +1316,22 @@
         </div>
     </div>
 
+    <!-- Page Reload Modal -->
+    <div id="pageReloadModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔄 Reload User Pages</h3>
+                <button class="close-btn" onclick="closePageReloadModal()">×</button>
+            </div>
+            <p style="margin-bottom: 1rem; color: var(--text-secondary);">This will force-reload the page for selected users (or all users).</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                <button class="btn" onclick="sendReloadToAll()">🔄 Reload All Users</button>
+                <button class="btn btn-secondary" onclick="showReloadUserSelect()">Select Users</button>
+            </div>
+            <div id="reloadUserList" class="hidden" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -1340,11 +1350,18 @@
             appId: "1:841161776812:web:a2431de726187bdb7ac909"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
         const rtdb = firebase.database();
+
+        // ==================== OWNER CONFIG (HARDCODED) ====================
+        // The owner is identified by username — hardcoded, never stored in DB as owner status
+        const OWNER_USERNAME = 'theredgummybear16@gmail.com';
+
+        function isOwnerUser(username) {
+            return username === OWNER_USERNAME;
+        }
 
         // ==================== GLOBAL STATE ====================
         let currentUser = null;
@@ -1352,28 +1369,29 @@
         let messageListeners = {};
         let editingMessageId = null;
 
-        // ── Request-optimization caches ──────────────────────────────────
-        // In-memory user cache: { [userId]: userData }
+        // Caches
         let usersCache = {};
         let usersCacheTimestamp = 0;
-        const USERS_CACHE_TTL = 60 * 1000; // 1 minute
+        const USERS_CACHE_TTL = 60 * 1000;
 
-        // Maintenance status cache
         let maintenanceCacheValue = null;
         let maintenanceCacheTimestamp = 0;
-        const MAINTENANCE_CACHE_TTL = 30 * 1000; // 30 seconds
+        const MAINTENANCE_CACHE_TTL = 30 * 1000;
 
-        // Blocked IPs cache (already existed, we keep it)
         let cachedBlockedIPs = [];
 
-        // Search debounce timer
+        // Debounce timer
         let searchDebounceTimer = null;
 
-        // Unread messages counters
+        // Unread counters
         let unreadCounts = { global: 0, announcements: 0 };
 
         // Notification permission
         let notificationPermission = false;
+
+        // Pending owner URL
+        let pendingOwnerUrl = null;
+        let pendingOwnerBroadcastId = null;
 
         const EMOJIS = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'];
 
@@ -1385,25 +1403,18 @@
             if (Notification.permission === "granted") {
                 notificationPermission = true;
             } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    notificationPermission = permission === "granted";
-                });
+                Notification.requestPermission().then(p => { notificationPermission = p === "granted"; });
             }
         }
 
         function showNotification(title, body, icon = '💬') {
             if (!notificationPermission) return;
-            try {
-                new Notification(title, { body, icon });
-            } catch (e) {
-                console.warn('Notification failed', e);
-            }
+            try { new Notification(title, { body, icon }); } catch(e) {}
         }
 
-        // ==================== UNREAD BADGE UPDATE ====================
+        // ==================== UNREAD BADGE ====================
         function updateUnreadBadge(chatId) {
-            const chatItems = document.querySelectorAll('.chat-item');
-            chatItems.forEach(item => {
+            document.querySelectorAll('.chat-item').forEach(item => {
                 const onclick = item.getAttribute('onclick');
                 if (!onclick) return;
                 let match = onclick.match(/selectChat\(['"]([^'"]+)['"]\)/);
@@ -1426,7 +1437,7 @@
             });
         }
 
-        // ==================== TOAST NOTIFICATIONS ====================
+        // ==================== TOAST ====================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -1444,7 +1455,7 @@
             }, 5000);
         }
 
-        // ==================== UTILITY FUNCTIONS ====================
+        // ==================== UTILITY ====================
         async function hashPassword(password, salt) {
             const encoder = new TextEncoder();
             const data = encoder.encode(password + salt);
@@ -1457,13 +1468,8 @@
             return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         }
 
-        function showLoading() {
-            document.getElementById('loadingOverlay').classList.remove('hidden');
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').classList.add('hidden');
-        }
+        function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
         function showError(elementId, message) {
             const errorEl = document.getElementById(elementId);
@@ -1490,49 +1496,34 @@
         }
 
         async function getClientIP() {
-            try {
-                return localStorage.getItem('mockIP') || generateMockIP();
-            } catch (e) {
-                return generateMockIP();
-            }
+            try { return localStorage.getItem('mockIP') || generateMockIP(); }
+            catch(e) { return generateMockIP(); }
         }
 
         function generateMockIP() {
-            const ip = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+            const ip = `${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}`;
             localStorage.setItem('mockIP', ip);
             return ip;
         }
 
         async function checkIPBlocked(ip) {
-            // Use cached blocked IPs if available, otherwise fetch once
-            if (cachedBlockedIPs.length === 0) {
-                await loadBlockedIPsCache();
-            }
+            if (cachedBlockedIPs.length === 0) await loadBlockedIPsCache();
             return cachedBlockedIPs.includes(ip);
         }
 
-        // ==================== USER CACHE HELPERS ====================
-        /**
-         * Returns all users from cache (or fetches once and caches).
-         * This prevents N individual reads for the user list.
-         */
+        // ==================== USER CACHE ====================
         async function getCachedUsers(forceRefresh = false) {
             const now = Date.now();
-            if (!forceRefresh && usersCache && usersCacheTimestamp && (now - usersCacheTimestamp) < USERS_CACHE_TTL) {
+            if (!forceRefresh && usersCacheTimestamp && (now - usersCacheTimestamp) < USERS_CACHE_TTL) {
                 return Object.values(usersCache);
             }
             const snapshot = await db.collection('users').get();
             usersCache = {};
-            snapshot.forEach(doc => {
-                usersCache[doc.id] = { id: doc.id, ...doc.data() };
-            });
+            snapshot.forEach(doc => { usersCache[doc.id] = { id: doc.id, ...doc.data() }; });
             usersCacheTimestamp = now;
             return Object.values(usersCache);
         }
 
-        /**
-         * Get a single user from cache; falls back to a Firestore read only if missing.
-         */
         async function getCachedUser(userId) {
             if (usersCache[userId]) return usersCache[userId];
             const doc = await db.collection('users').doc(userId).get();
@@ -1543,12 +1534,9 @@
             return null;
         }
 
-        /** Invalidate the users cache (call after any write that changes user data). */
-        function invalidateUsersCache() {
-            usersCacheTimestamp = 0;
-        }
+        function invalidateUsersCache() { usersCacheTimestamp = 0; }
 
-        // ==================== MAINTENANCE CACHE HELPERS ====================
+        // ==================== MAINTENANCE CACHE ====================
         async function getMaintenanceStatus(forceRefresh = false) {
             const now = Date.now();
             if (!forceRefresh && maintenanceCacheTimestamp && (now - maintenanceCacheTimestamp) < MAINTENANCE_CACHE_TTL) {
@@ -1560,9 +1548,7 @@
             return maintenanceCacheValue;
         }
 
-        function invalidateMaintenanceCache() {
-            maintenanceCacheTimestamp = 0;
-        }
+        function invalidateMaintenanceCache() { maintenanceCacheTimestamp = 0; }
 
         // ==================== AUTHENTICATION ====================
         async function register(username, password) {
@@ -1571,11 +1557,8 @@
                 const ip = await getClientIP();
                 if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
-                // Check username uniqueness using cache if warm, else direct query
                 const allUsers = await getCachedUsers();
-                if (allUsers.some(u => u.username === username)) {
-                    throw new Error('Username already exists');
-                }
+                if (allUsers.some(u => u.username === username)) throw new Error('Username already exists');
 
                 const salt = generateSalt();
                 const hashedPassword = await hashPassword(password, salt);
@@ -1591,7 +1574,7 @@
                 });
                 invalidateUsersCache();
                 await login(username, password);
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 throw error;
             }
@@ -1603,7 +1586,6 @@
                 const ip = await getClientIP();
                 if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
-                // Use a targeted Firestore query (single indexed read) rather than full collection scan
                 const usersSnapshot = await db.collection('users').where('username', '==', username).get();
                 if (usersSnapshot.empty) throw new Error('Invalid username or password');
 
@@ -1613,19 +1595,18 @@
                 if (hashedPassword !== userData.passwordHash) throw new Error('Invalid username or password');
 
                 currentUser = { id: userDoc.id, ...userData };
+                // Attach owner flag (hardcoded, never from DB)
+                currentUser.isOwner = isOwnerUser(currentUser.username);
+
                 localStorage.setItem('sessionToken', userDoc.id);
                 localStorage.setItem('sessionUser', JSON.stringify(currentUser));
 
-                // Batch: update user record + fetch maintenance status in parallel
                 const [, maintenanceMode] = await Promise.all([
-                    userDoc.ref.update({
-                        lastIP: ip,
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                    }),
+                    userDoc.ref.update({ lastIP: ip, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }),
                     getMaintenanceStatus(true)
                 ]);
 
-                if (maintenanceMode && !userData.isAdmin) {
+                if (maintenanceMode && !userData.isAdmin && !currentUser.isOwner) {
                     showMaintenanceMode();
                     hideLoading();
                     return;
@@ -1635,7 +1616,7 @@
                 showChatApp();
                 hideLoading();
                 requestNotificationPermission();
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 throw error;
             }
@@ -1657,10 +1638,10 @@
                 if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
                 currentUser = { id: userDoc.id, ...userDoc.data() };
+                currentUser.isOwner = isOwnerUser(currentUser.username);
 
-                // Reuse cached maintenance status (or fetch once)
                 const maintenanceMode = await getMaintenanceStatus();
-                if (maintenanceMode && !currentUser.isAdmin) {
+                if (maintenanceMode && !currentUser.isAdmin && !currentUser.isOwner) {
                     showMaintenanceMode();
                     hideLoading();
                     return true;
@@ -1671,7 +1652,7 @@
                 hideLoading();
                 requestNotificationPermission();
                 return true;
-            } catch (error) {
+            } catch(error) {
                 console.error('Auto login failed:', error);
                 hideLoading();
                 return false;
@@ -1681,13 +1662,10 @@
         function logout() {
             if (currentUser) {
                 setUserOnline(currentUser.id, false);
-                Object.values(messageListeners).forEach(unsubscribe => {
-                    if (typeof unsubscribe === 'function') unsubscribe();
-                });
+                Object.values(messageListeners).forEach(unsub => { if (typeof unsub === 'function') unsub(); });
                 messageListeners = {};
             }
             currentUser = null;
-            // Clear caches on logout
             usersCache = {};
             usersCacheTimestamp = 0;
             localStorage.removeItem('sessionToken');
@@ -1700,32 +1678,24 @@
             const current = document.getElementById('currentPassword').value;
             const newPass = document.getElementById('newPassword').value;
             const confirm = document.getElementById('confirmNewPassword').value;
-
             if (!current || !newPass || !confirm) { showToast('Please fill all fields', 'warning'); return; }
             if (newPass !== confirm) { showToast('New passwords do not match', 'error'); return; }
-
             try {
                 showLoading();
                 const hashedCurrent = await hashPassword(current, currentUser.salt);
                 if (hashedCurrent !== currentUser.passwordHash) throw new Error('Current password is incorrect');
-
                 const newSalt = generateSalt();
                 const newHash = await hashPassword(newPass, newSalt);
                 await db.collection('users').doc(currentUser.id).update({ passwordHash: newHash, salt: newSalt });
-                // Update local state & cache
                 currentUser.passwordHash = newHash;
                 currentUser.salt = newSalt;
-                if (usersCache[currentUser.id]) {
-                    usersCache[currentUser.id].passwordHash = newHash;
-                    usersCache[currentUser.id].salt = newSalt;
-                }
-
+                if (usersCache[currentUser.id]) { usersCache[currentUser.id].passwordHash = newHash; usersCache[currentUser.id].salt = newSalt; }
                 showToast('Password changed successfully!', 'success');
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmNewPassword').value = '';
                 hideLoading();
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
@@ -1733,22 +1703,14 @@
 
         // ==================== USER STATUS ====================
         function setUserOnline(userId, online) {
-            rtdb.ref('status/' + userId).set({
-                online,
-                lastSeen: firebase.database.ServerValue.TIMESTAMP
-            });
+            rtdb.ref('status/' + userId).set({ online, lastSeen: firebase.database.ServerValue.TIMESTAMP });
             if (online) {
-                rtdb.ref('status/' + userId).onDisconnect().set({
-                    online: false,
-                    lastSeen: firebase.database.ServerValue.TIMESTAMP
-                });
+                rtdb.ref('status/' + userId).onDisconnect().set({ online: false, lastSeen: firebase.database.ServerValue.TIMESTAMP });
             }
         }
 
         function listenToUserStatus(userId, callback) {
-            rtdb.ref('status/' + userId).on('value', snapshot => {
-                callback(snapshot.val());
-            });
+            rtdb.ref('status/' + userId).on('value', snapshot => callback(snapshot.val()));
         }
 
         // ==================== CHAT FUNCTIONS ====================
@@ -1761,11 +1723,20 @@
             document.getElementById('currentUsername').textContent = currentUser.username;
             document.getElementById('userAvatar').textContent = currentUser.avatar;
 
+            // Admin button
             const adminButton = document.getElementById('adminButton');
             if (currentUser && currentUser.isAdmin === true) {
                 adminButton.classList.remove('hidden');
             } else {
                 adminButton.classList.add('hidden');
+            }
+
+            // Owner button
+            const ownerButton = document.getElementById('ownerButton');
+            if (currentUser && currentUser.isOwner) {
+                ownerButton.classList.remove('hidden');
+            } else {
+                ownerButton.classList.add('hidden');
             }
 
             loadChatList();
@@ -1779,6 +1750,7 @@
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
             chatList.innerHTML = `
+                <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
                     <div class="chat-item-info">
@@ -1799,7 +1771,36 @@
             `;
 
             try {
-                // Use cached users list — avoids a full Firestore scan on every call
+                // Load groups
+                const groupsSnapshot = await db.collection('groups').where('members', 'array-contains', currentUser.id).get();
+                if (!groupsSnapshot.empty) {
+                    const groupHeader = document.createElement('div');
+                    groupHeader.className = 'sidebar-section-header';
+                    groupHeader.textContent = 'Groups';
+                    chatList.appendChild(groupHeader);
+
+                    groupsSnapshot.forEach(doc => {
+                        const group = { id: doc.id, ...doc.data() };
+                        const chatId = 'group_' + group.id;
+                        const item = document.createElement('div');
+                        item.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
+                        item.onclick = () => selectChat(chatId);
+                        item.innerHTML = `
+                            <div class="avatar">${group.emoji || '👥'}</div>
+                            <div class="chat-item-info">
+                                <div class="chat-item-name">
+                                    ${sanitizeHTML(group.name)}
+                                    <span class="channel-badge group">GROUP</span>
+                                </div>
+                                <div class="chat-item-preview">${group.members.length} members</div>
+                            </div>
+                        `;
+                        chatList.appendChild(item);
+                        if (!unreadCounts[chatId]) unreadCounts[chatId] = 0;
+                    });
+                }
+
+                // Load users
                 const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
 
                 const chatsRef = rtdb.ref('privateChats');
@@ -1819,17 +1820,32 @@
                     return a.username.localeCompare(b.username);
                 });
 
+                const dmHeader = document.createElement('div');
+                dmHeader.className = 'sidebar-section-header';
+                dmHeader.textContent = 'Direct Messages';
+                chatList.appendChild(dmHeader);
+
                 sortedUsers.forEach(userData => {
                     const chatId = [currentUser.id, userData.id].sort().join('_');
                     const hasChat = existingChats.has(chatId);
                     const chatItem = document.createElement('div');
                     chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
                     chatItem.onclick = () => hasChat ? selectChat(chatId) : startPrivateChat(userData.id);
+
+                    // Determine badge for user
+                    let userBadge = '';
+                    if (isOwnerUser(userData.username)) {
+                        userBadge = '<span class="badge owner" style="font-size:0.6rem;">⭐ OWNER</span>';
+                    } else if (userData.isAdmin) {
+                        userBadge = '<span class="badge admin" style="font-size:0.6rem;">ADMIN</span>';
+                    }
+
                     chatItem.innerHTML = `
                         <div class="avatar">${userData.avatar}</div>
                         <div class="chat-item-info">
                             <div class="chat-item-name">
                                 ${sanitizeHTML(userData.username)}
+                                ${userBadge}
                                 <span class="status-indicator ${userData.online ? '' : 'offline'}" id="status-${userData.id}"></span>
                             </div>
                             <div class="chat-item-preview">${hasChat ? 'Private chat' : 'Start chat'}</div>
@@ -1841,14 +1857,12 @@
 
                     listenToUserStatus(userData.id, status => {
                         const indicator = document.getElementById(`status-${userData.id}`);
-                        if (indicator) {
-                            indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
-                        }
+                        if (indicator) indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
                     });
                 });
 
                 updateUnreadBadge();
-            } catch (error) {
+            } catch(error) {
                 console.error('Error loading chat list:', error);
                 showToast('Error loading users: ' + error.message, 'error');
             }
@@ -1869,6 +1883,14 @@
                 chatTitle.innerHTML = '<span class="avatar">🌍</span><span>Global Chat</span>';
             } else if (chatId === 'announcements') {
                 chatTitle.innerHTML = '<span class="avatar">📣</span><span>Announcements</span>';
+            } else if (chatId.startsWith('group_')) {
+                const groupId = chatId.replace('group_', '');
+                db.collection('groups').doc(groupId).get().then(doc => {
+                    if (doc.exists) {
+                        const group = doc.data();
+                        chatTitle.innerHTML = `<span class="avatar">${group.emoji || '👥'}</span><span>${sanitizeHTML(group.name)}</span><span class="channel-badge group">GROUP</span>`;
+                    }
+                });
             } else {
                 const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
                 getCachedUser(otherUserId).then(userData => {
@@ -1880,18 +1902,15 @@
                         `;
                         listenToUserStatus(otherUserId, status => {
                             const indicator = document.getElementById(`chat-status-${otherUserId}`);
-                            if (indicator) {
-                                indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
-                            }
+                            if (indicator) indicator.className = `status-indicator ${status && status.online ? '' : 'offline'}`;
                         });
                     }
                 });
             }
 
-            // Show correct input area
             const inputContainer = document.getElementById('inputContainer');
             const readonlyBar = document.getElementById('readonlyBar');
-            if (chatId === 'announcements' && !currentUser.isAdmin) {
+            if (chatId === 'announcements' && !currentUser.isAdmin && !currentUser.isOwner) {
                 inputContainer.classList.add('hidden');
                 readonlyBar.classList.remove('hidden');
             } else {
@@ -1902,16 +1921,13 @@
             loadMessages(chatId);
             updateUnreadBadge(chatId);
 
-            if (window.innerWidth <= 768) {
-                document.getElementById('sidebar').classList.remove('open');
-            }
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
         }
 
         function loadMessages(chatId) {
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
 
-            // Clean up previous listeners for this chat slot
             if (messageListeners[currentChat]) {
                 const prev = messageListeners[currentChat];
                 if (typeof prev === 'function') prev();
@@ -1923,107 +1939,98 @@
 
             if (chatId === 'announcements') {
                 let knownMessageIds = null;
-                const unsubscribe = db.collection('announcements')
-                    .onSnapshot(snapshot => {
-                        container.innerHTML = '';
-                        const messages = [];
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            if (data.timestamp) messages.push({ id: doc.id, ...data });
-                        });
-                        messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-                        const lastMessages = messages.slice(-100);
-                        lastMessages.forEach(msg => displayMessage(msg, container, false, true));
-                        scrollToBottom();
-
-                        if (knownMessageIds !== null) {
-                            lastMessages.forEach(msg => {
-                                if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                                    if (currentChat !== 'announcements') {
-                                        unreadCounts['announcements'] = (unreadCounts['announcements'] || 0) + 1;
-                                        updateUnreadBadge('announcements');
-                                        showNotification('📣 New Announcement', msg.content, '📣');
-                                    }
+                const unsubscribe = db.collection('announcements').onSnapshot(snapshot => {
+                    container.innerHTML = '';
+                    const messages = [];
+                    snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
+                    messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
+                    const lastMessages = messages.slice(-100);
+                    lastMessages.forEach(msg => displayMessage(msg, container, false, true));
+                    scrollToBottom();
+                    if (knownMessageIds !== null) {
+                        lastMessages.forEach(msg => {
+                            if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
+                                if (currentChat !== 'announcements') {
+                                    unreadCounts['announcements'] = (unreadCounts['announcements'] || 0) + 1;
+                                    updateUnreadBadge('announcements');
+                                    showNotification('📣 New Announcement', msg.content, '📣');
                                 }
-                            });
-                        }
-                        knownMessageIds = new Set(lastMessages.map(m => m.id));
-                    }, error => {
-                        console.error('Error loading announcements:', error);
-                        showToast('Error loading announcements: ' + error.message, 'error');
-                    });
+                            }
+                        });
+                    }
+                    knownMessageIds = new Set(lastMessages.map(m => m.id));
+                }, error => { showToast('Error loading announcements: ' + error.message, 'error'); });
                 messageListeners[chatId] = unsubscribe;
 
             } else if (chatId === 'global') {
-                // Single real-time listener for all global messages.
-                // We track which message IDs we've already seen so we can
-                // detect genuinely new arrivals for unread/notification logic.
-                let knownMessageIds = null; // null = first snapshot, set = subsequent
-
-                const unsubscribe = db.collection('messages')
-                    .onSnapshot(snapshot => {
-                        container.innerHTML = '';
-                        const messages = [];
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            if (data.timestamp) messages.push({ id: doc.id, ...data });
-                        });
-                        messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-                        const lastMessages = messages.slice(-100);
-                        lastMessages.forEach(msg => displayMessage(msg, container));
-                        scrollToBottom();
-
-                        // Detect new messages (after first render) for unread/notifications
-                        if (knownMessageIds !== null) {
-                            lastMessages.forEach(msg => {
-                                if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                                    if (currentChat !== 'global') {
-                                        unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                        updateUnreadBadge('global');
-                                        showNotification('New message in Global Chat', msg.content, msg.userAvatar);
-                                    }
+                let knownMessageIds = null;
+                const unsubscribe = db.collection('messages').onSnapshot(snapshot => {
+                    container.innerHTML = '';
+                    const messages = [];
+                    snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
+                    messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
+                    const lastMessages = messages.slice(-100);
+                    lastMessages.forEach(msg => displayMessage(msg, container));
+                    scrollToBottom();
+                    if (knownMessageIds !== null) {
+                        lastMessages.forEach(msg => {
+                            if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
+                                if (currentChat !== 'global') {
+                                    unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                    updateUnreadBadge('global');
+                                    showNotification('New message in Global Chat', msg.content, msg.userAvatar);
                                 }
-                            });
-                        }
-                        // Refresh known IDs
-                        knownMessageIds = new Set(lastMessages.map(m => m.id));
-                    }, error => {
-                        console.error('Error loading messages:', error);
-                        showToast('Error loading messages: ' + error.message, 'error');
-                    });
-
+                            }
+                        });
+                    }
+                    knownMessageIds = new Set(lastMessages.map(m => m.id));
+                }, error => { showToast('Error loading messages: ' + error.message, 'error'); });
                 messageListeners[chatId] = unsubscribe;
+
+            } else if (chatId.startsWith('group_')) {
+                const groupId = chatId.replace('group_', '');
+                const groupRef = rtdb.ref(`groupChats/${groupId}/messages`).orderByChild('timestamp').limitToLast(100);
+                groupRef.on('value', snapshot => {
+                    container.innerHTML = '';
+                    const messages = [];
+                    snapshot.forEach(child => messages.push({ id: child.key, ...child.val() }));
+                    messages.forEach(msg => displayMessage(msg, container, false, false, true));
+                    scrollToBottom();
+                }, error => { showToast('Error loading group messages: ' + error.message, 'error'); });
+                messageListeners[chatId] = () => groupRef.off();
+
+                const newGroupRef = rtdb.ref(`groupChats/${groupId}/messages`).orderByChild('timestamp').limitToLast(1);
+                let groupListenerReady = false;
+                newGroupRef.on('child_added', snapshot => {
+                    if (!groupListenerReady) { groupListenerReady = true; return; }
+                    const msg = snapshot.val();
+                    if (msg.userId !== currentUser.id && currentChat !== chatId) {
+                        unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
+                        updateUnreadBadge(chatId);
+                        showNotification('New group message', msg.content, msg.userAvatar || '👥');
+                    }
+                });
+                messageListeners[chatId + '_new'] = () => newGroupRef.off();
 
             } else {
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
-                let firstLoad = true;
                 messagesRef.on('value', snapshot => {
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(child => messages.push({ id: child.key, ...child.val() }));
                     messages.forEach(msg => displayMessage(msg, container, true));
                     scrollToBottom();
-
-                    // After first load, subsequent 'value' events carry deltas
-                    // We don't need a separate child_added listener anymore
-                    firstLoad = false;
-                }, error => {
-                    console.error('Error loading messages:', error);
-                    showToast('Error loading messages: ' + error.message, 'error');
-                });
+                }, error => { showToast('Error loading messages: ' + error.message, 'error'); });
                 messageListeners[chatId] = () => messagesRef.off();
 
-                // Lightweight listener for new private messages (unread + notifications)
-                // Uses child_added on just the last 1 item to avoid re-reading all messages
                 const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
                 let privateListenerReady = false;
                 newPrivateRef.on('child_added', snapshot => {
-                    if (!privateListenerReady) { privateListenerReady = true; return; } // skip initial load event
+                    if (!privateListenerReady) { privateListenerReady = true; return; }
                     const msg = snapshot.val();
                     if (msg.userId !== currentUser.id && currentChat !== chatId) {
                         unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
                         updateUnreadBadge(chatId);
-                        // Use user cache instead of a Firestore read
                         getCachedUser(msg.userId).then(userData => {
                             if (userData) showNotification(`Message from ${userData.username}`, msg.content, userData.avatar);
                         });
@@ -2033,11 +2040,12 @@
             }
         }
 
-        function displayMessage(message, container, isPrivate = false, isAnnouncement = false) {
+        function displayMessage(message, container, isPrivate = false, isAnnouncement = false, isGroup = false) {
             const div = document.createElement('div');
             const isOwn = message.userId === currentUser.id;
             const isSystem = message.type === 'system';
             const isBroadcast = message.type === 'broadcast';
+            const msgIsOwner = isOwnerUser(message.username || '');
 
             let className = 'message';
             if (isOwn && !isSystem && !isBroadcast) className += ' own';
@@ -2045,6 +2053,7 @@
             if (isBroadcast) className += ' admin-broadcast';
             if (isPrivate && !isSystem) className += ' private';
             if (isAnnouncement && !isSystem) className += ' announcement';
+            if (isGroup && !isSystem) className += ' group';
 
             div.className = className;
 
@@ -2054,13 +2063,12 @@
                     <div class="message-header">
                         <span class="avatar">${message.userAvatar || '😀'}</span>
                         <span>${sanitizeHTML(message.username || 'Unknown')}</span>
-                        ${message.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
+                        ${msgIsOwner ? '<span class="badge owner">⭐ OWNER</span>' : (message.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
                         ${isBroadcast ? '<span class="badge">BROADCAST</span>' : ''}
                     </div>
                 `;
             }
 
-            // Parse content: detect image URLs vs regular URLs
             const rawText = message.content || '';
             const URL_REGEX = /(https?:\/\/[^\s]+)/g;
             const parts = [];
@@ -2069,9 +2077,7 @@
             const detectedLinks = [];
 
             while ((match = URL_REGEX.exec(rawText)) !== null) {
-                if (match.index > lastIndex) {
-                    parts.push({ type: 'text', value: rawText.slice(lastIndex, match.index) });
-                }
+                if (match.index > lastIndex) parts.push({ type: 'text', value: rawText.slice(lastIndex, match.index) });
                 const url = match[0];
                 if (isImageUrl(url)) {
                     parts.push({ type: 'image', value: url });
@@ -2081,9 +2087,7 @@
                 }
                 lastIndex = match.index + url.length;
             }
-            if (lastIndex < rawText.length) {
-                parts.push({ type: 'text', value: rawText.slice(lastIndex) });
-            }
+            if (lastIndex < rawText.length) parts.push({ type: 'text', value: rawText.slice(lastIndex) });
 
             let messageHtml = '';
             parts.forEach(part => {
@@ -2099,15 +2103,15 @@
             content += `<div class="message-content">${messageHtml}</div>`;
 
             if (!isSystem) {
-                const canEdit   = isOwn && !isBroadcast && isWithinEditTime(message.timestamp) && !isAnnouncement;
-                const canDelete = (isOwn || (currentUser.isAdmin && isAnnouncement)) && !isBroadcast && isWithinEditTime(message.timestamp);
+                const canEdit = isOwn && !isBroadcast && isWithinEditTime(message.timestamp) && !isAnnouncement;
+                const canDelete = (isOwn || currentUser.isAdmin || currentUser.isOwner) && !isBroadcast && isWithinEditTime(message.timestamp);
                 content += `
                     <div class="message-footer">
                         <span>${formatTimestamp(message.timestamp)}</span>
                         ${canEdit || canDelete ? `
                             <div class="message-actions">
-                                ${canEdit ? `<button onclick="editMessage('${message.id}', '${currentChat}', ${isPrivate})">Edit</button>` : ''}
-                                ${canDelete ? `<button onclick="deleteMessage('${message.id}', '${currentChat}', ${isPrivate})">Delete</button>` : ''}
+                                ${canEdit ? `<button onclick="editMessage('${message.id}', '${currentChat}', ${isPrivate}, ${isGroup})">Edit</button>` : ''}
+                                ${canDelete ? `<button onclick="deleteMessage('${message.id}', '${currentChat}', ${isPrivate}, ${isGroup})">Delete</button>` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -2117,11 +2121,7 @@
             div.innerHTML = content;
             container.appendChild(div);
 
-            // After inserting, asynchronously add URL preview cards for non-image links
-            if (detectedLinks.length > 0 && !isSystem) {
-                // Only preview the first link to keep UI clean
-                fetchAndRenderPreview(detectedLinks[0], div);
-            }
+            if (detectedLinks.length > 0 && !isSystem) fetchAndRenderPreview(detectedLinks[0], div);
         }
 
         function isWithinEditTime(timestamp) {
@@ -2135,8 +2135,7 @@
             const content = input.value.trim();
             if (!content) return;
 
-            // Guard: only admins can post in announcements
-            if (currentChat === 'announcements' && !currentUser.isAdmin) {
+            if (currentChat === 'announcements' && !currentUser.isAdmin && !currentUser.isOwner) {
                 showToast('Only admins can post in Announcements', 'error');
                 return;
             }
@@ -2153,23 +2152,14 @@
 
                 if (editingMessageId) {
                     if (currentChat === 'global') {
-                        await db.collection('messages').doc(editingMessageId).update({
-                            content,
-                            edited: true,
-                            editedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        await db.collection('messages').doc(editingMessageId).update({ content, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     } else if (currentChat === 'announcements') {
-                        await db.collection('announcements').doc(editingMessageId).update({
-                            content,
-                            edited: true,
-                            editedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        await db.collection('announcements').doc(editingMessageId).update({ content, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                    } else if (currentChat.startsWith('group_')) {
+                        const groupId = currentChat.replace('group_', '');
+                        await rtdb.ref(`groupChats/${groupId}/messages/${editingMessageId}`).update({ content, edited: true, editedAt: firebase.database.ServerValue.TIMESTAMP });
                     } else {
-                        await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({
-                            content,
-                            edited: true,
-                            editedAt: firebase.database.ServerValue.TIMESTAMP
-                        });
+                        await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({ content, edited: true, editedAt: firebase.database.ServerValue.TIMESTAMP });
                     }
                     editingMessageId = null;
                 } else {
@@ -2179,6 +2169,10 @@
                     } else if (currentChat === 'announcements') {
                         messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                         await db.collection('announcements').add(messageData);
+                    } else if (currentChat.startsWith('group_')) {
+                        const groupId = currentChat.replace('group_', '');
+                        messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
+                        await rtdb.ref(`groupChats/${groupId}/messages`).push(messageData);
                     } else {
                         messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
                         await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
@@ -2187,58 +2181,58 @@
 
                 input.value = '';
                 scrollToBottom();
-            } catch (error) {
+            } catch(error) {
                 console.error('Error sending message:', error);
                 showToast('Failed to send message: ' + error.message, 'error');
             }
         }
 
-        function editMessage(messageId, chatId, isPrivate) {
+        function editMessage(messageId, chatId, isPrivate, isGroup) {
             editingMessageId = messageId;
-            if (isPrivate) {
+            if (isGroup) {
+                const groupId = chatId.replace('group_', '');
+                rtdb.ref(`groupChats/${groupId}/messages/${messageId}`).once('value', snapshot => {
+                    const message = snapshot.val();
+                    if (message) { document.getElementById('messageInput').value = message.content; document.getElementById('messageInput').focus(); }
+                });
+            } else if (isPrivate) {
                 rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).once('value', snapshot => {
                     const message = snapshot.val();
-                    if (message) {
-                        document.getElementById('messageInput').value = message.content;
-                        document.getElementById('messageInput').focus();
-                    }
+                    if (message) { document.getElementById('messageInput').value = message.content; document.getElementById('messageInput').focus(); }
                 });
             } else {
                 db.collection('messages').doc(messageId).get().then(doc => {
-                    if (doc.exists) {
-                        document.getElementById('messageInput').value = doc.data().content;
-                        document.getElementById('messageInput').focus();
-                    }
+                    if (doc.exists) { document.getElementById('messageInput').value = doc.data().content; document.getElementById('messageInput').focus(); }
                 });
             }
         }
 
-        async function deleteMessage(messageId, chatId, isPrivate) {
+        async function deleteMessage(messageId, chatId, isPrivate, isGroup) {
             try {
                 if (chatId === 'announcements') {
                     await db.collection('announcements').doc(messageId).delete();
+                } else if (isGroup) {
+                    const groupId = chatId.replace('group_', '');
+                    await rtdb.ref(`groupChats/${groupId}/messages/${messageId}`).remove();
                 } else if (isPrivate) {
                     await rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).remove();
                 } else {
                     await db.collection('messages').doc(messageId).delete();
                 }
                 showToast('Message deleted', 'success');
-            } catch (error) {
+            } catch(error) {
                 console.error('Error deleting message:', error);
                 showToast('Failed to delete message', 'error');
             }
         }
 
-        function handleMessageKeyPress(event) {
-            if (event.key === 'Enter') sendMessage();
-        }
+        function handleMessageKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
 
         function scrollToBottom() {
             const container = document.getElementById('messagesContainer');
             container.scrollTop = container.scrollHeight;
         }
 
-        // Debounced search to avoid a Firestore read on every keystroke
         function searchUsersDebounced() {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(searchUsers, 300);
@@ -2247,11 +2241,8 @@
         async function searchUsers() {
             const query = document.getElementById('userSearch').value.toLowerCase().trim();
             if (!query) { loadChatList(); return; }
-
-            // Use cache — no new Firestore read required
             const allUsers = await getCachedUsers();
             const chatList = document.getElementById('chatList');
-
             chatList.innerHTML = `
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
@@ -2261,11 +2252,9 @@
                     </div>
                 </div>
             `;
-
             allUsers.forEach(userData => {
                 if (userData.id === currentUser.id) return;
                 if (!userData.username.toLowerCase().includes(query)) return;
-
                 const chatItem = document.createElement('div');
                 chatItem.className = 'chat-item';
                 chatItem.onclick = () => startPrivateChat(userData.id);
@@ -2285,10 +2274,7 @@
             const chatRef = rtdb.ref(`privateChats/${chatId}`);
             const snapshot = await chatRef.once('value');
             if (!snapshot.exists()) {
-                await chatRef.set({
-                    participants: [currentUser.id, otherUserId],
-                    createdAt: firebase.database.ServerValue.TIMESTAMP
-                });
+                await chatRef.set({ participants: [currentUser.id, otherUserId], createdAt: firebase.database.ServerValue.TIMESTAMP });
                 await rtdb.ref(`privateChats/${chatId}/messages`).push({
                     type: 'system',
                     content: 'Private chat started',
@@ -2299,104 +2285,64 @@
             loadChatList();
         }
 
-        // ==================== ADMIN FUNCTIONS ====================
-        async function loadIPTracking() {
-            const listDiv = document.getElementById('ipTrackingList');
-            listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Loading...</p>';
-
-            try {
-                // Reuse cached users — avoids a fresh Firestore scan
-                const users = await getCachedUsers();
-
-                users.sort((a, b) => {
-                    const aTime = a.lastSeen ? a.lastSeen.toMillis() : 0;
-                    const bTime = b.lastSeen ? b.lastSeen.toMillis() : 0;
-                    return bTime - aTime;
-                });
-
-                listDiv.innerHTML = '';
-                if (users.length === 0) {
-                    listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No users found</p>';
-                    return;
-                }
-
-                users.forEach(user => {
-                    const div = document.createElement('div');
-                    div.className = 'user-item';
-                    div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.5rem;';
-                    const isBlocked = checkIfIPBlocked(user.ip || 'Unknown');
-                    div.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
-                            <span class="avatar">${user.avatar}</span>
-                            <div style="flex: 1;">
-                                <div style="font-weight: 600; margin-bottom: 0.25rem;">
-                                    ${sanitizeHTML(user.username)}
-                                    ${user.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
-                                </div>
-                                <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                                    IP: <code style="background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace;">${user.ip || 'Unknown'}</code>
-                                </div>
-                                ${user.lastSeen ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Last seen: ${formatTimestamp(user.lastSeen)}</div>` : ''}
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            ${user.ip && user.ip !== 'Unknown' ? `
-                                <button class="btn-small ${isBlocked ? '' : 'btn-danger'}" onclick="toggleIPBan('${user.ip}', '${user.username}')">
-                                    ${isBlocked ? '🔓 Unban IP' : '🚫 Ban IP'}
-                                </button>
-                            ` : ''}
-                        </div>
-                    `;
-                    listDiv.appendChild(div);
-                });
-
-                document.getElementById('ipSearchInput').oninput = function() {
-                    const searchTerm = this.value.toLowerCase();
-                    Array.from(listDiv.children).forEach(item => {
-                        item.style.display = item.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
-                    });
-                };
-
-            } catch (error) {
-                console.error('Error loading IP tracking:', error);
-                listDiv.innerHTML = '<p style="text-align: center; color: var(--danger);">Error loading IP data</p>';
-            }
+        // ==================== GROUPS ====================
+        async function showCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.remove('hidden');
+            document.getElementById('groupNameInput').value = '';
+            document.getElementById('groupEmojiInput').value = '👥';
+            const listEl = document.getElementById('groupMemberList');
+            listEl.innerHTML = '<p style="color:var(--text-secondary); font-size:0.875rem;">Loading users...</p>';
+            const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
+            listEl.innerHTML = '';
+            users.forEach(u => {
+                const item = document.createElement('label');
+                item.className = 'user-select-item';
+                item.innerHTML = `
+                    <input type="checkbox" value="${u.id}" name="groupMember">
+                    <span class="avatar" style="font-size:1.2rem;">${u.avatar}</span>
+                    <span>${sanitizeHTML(u.username)}</span>
+                `;
+                listEl.appendChild(item);
+            });
         }
 
-        async function loadBlockedIPsCache() {
-            const doc = await db.collection('admin').doc('blockedIPs').get();
-            cachedBlockedIPs = doc.exists ? (doc.data().ips || []) : [];
+        function closeCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.add('hidden');
         }
 
-        function checkIfIPBlocked(ip) {
-            return cachedBlockedIPs.includes(ip);
-        }
+        async function createGroup() {
+            const name = document.getElementById('groupNameInput').value.trim();
+            const emoji = document.getElementById('groupEmojiInput').value.trim() || '👥';
+            if (!name) { showToast('Please enter a group name', 'warning'); return; }
 
-        async function toggleIPBan(ip, username) {
+            const checkboxes = document.querySelectorAll('#groupMemberList input[name="groupMember"]:checked');
+            if (checkboxes.length < 2) { showToast('Please select at least 2 members', 'warning'); return; }
+
+            const memberIds = [currentUser.id, ...Array.from(checkboxes).map(cb => cb.value)];
+
             try {
                 showLoading();
-                const blockedRef = db.collection('admin').doc('blockedIPs');
-                const doc = await blockedRef.get();
-                let ips = doc.exists ? (doc.data().ips || []) : [];
-                const isCurrentlyBlocked = ips.includes(ip);
-                if (isCurrentlyBlocked) {
-                    ips = ips.filter(i => i !== ip);
-                    await blockedRef.set({ ips }, { merge: true });
-                    showToast(`IP ${ip} unbanned (${username})`, 'success');
-                } else {
-                    if (!ips.includes(ip)) {
-                        ips.push(ip);
-                        await blockedRef.set({ ips }, { merge: true });
-                        showToast(`IP ${ip} banned (${username})`, 'warning');
-                    }
-                }
-                await loadBlockedIPsCache();
-                await loadIPTracking();
-                await loadBlockedIPs();
+                const groupRef = await db.collection('groups').add({
+                    name,
+                    emoji,
+                    members: memberIds,
+                    createdBy: currentUser.id,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                // System message in RTDB
+                await rtdb.ref(`groupChats/${groupRef.id}/messages`).push({
+                    type: 'system',
+                    content: `Group "${name}" created by ${currentUser.username}`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
                 hideLoading();
-            } catch (error) {
+                closeCreateGroupModal();
+                showToast(`Group "${name}" created!`, 'success');
+                await loadChatList();
+                selectChat('group_' + groupRef.id);
+            } catch(error) {
                 hideLoading();
-                showToast('Error: ' + error.message, 'error');
+                showToast('Error creating group: ' + error.message, 'error');
             }
         }
 
@@ -2407,15 +2353,22 @@
             initializeThemeSelector();
         }
 
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.add('hidden');
+        function closeSettings() { document.getElementById('settingsModal').classList.add('hidden'); }
+
+        function switchTab(tabName, evt) {
+            const modal = (evt.target || event.target).closest('.modal-content') || document;
+            modal.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            modal.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            (evt ? evt.target : event.target).classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
         }
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById(tabName + 'Tab').classList.add('active');
+        function switchAdminTab(tabId, evt) {
+            const panel = (evt ? evt.target : event.target).closest('.modal-content');
+            panel.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            panel.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            (evt ? evt.target : event.target).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
         }
 
         function initializeEmojiPicker() {
@@ -2426,23 +2379,20 @@
                 btn.className = 'emoji-btn';
                 btn.textContent = emoji;
                 if (emoji === currentUser.avatar) btn.classList.add('selected');
-                btn.onclick = () => selectEmoji(emoji);
+                btn.onclick = (e) => selectEmoji(emoji, e.target);
                 grid.appendChild(btn);
             });
         }
 
-        async function selectEmoji(emoji) {
+        async function selectEmoji(emoji, btnEl) {
             try {
                 await db.collection('users').doc(currentUser.id).update({ avatar: emoji });
                 currentUser.avatar = emoji;
                 document.getElementById('userAvatar').textContent = emoji;
-                // Update cache
                 if (usersCache[currentUser.id]) usersCache[currentUser.id].avatar = emoji;
                 document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
-                event.target.classList.add('selected');
-            } catch (error) {
-                console.error('Error updating avatar:', error);
-            }
+                if (btnEl) btnEl.classList.add('selected');
+            } catch(error) { console.error('Error updating avatar:', error); }
         }
 
         function initializeThemeSelector() {
@@ -2454,27 +2404,24 @@
                 btn.className = 'theme-btn';
                 btn.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
                 if (theme === savedTheme) btn.classList.add('active');
-                btn.onclick = () => selectTheme(theme);
+                btn.onclick = (e) => selectTheme(theme, e.target);
                 selector.appendChild(btn);
             });
         }
 
-        function selectTheme(theme) {
+        function selectTheme(theme, btnEl) {
             applyTheme(theme);
             localStorage.setItem('theme', theme);
             document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (btnEl) btnEl.classList.add('active');
         }
 
-        function applyTheme(theme) {
-            document.body.className = 'theme-' + theme;
-        }
+        function applyTheme(theme) { document.body.className = 'theme-' + theme; }
 
         // ==================== ADMIN PANEL ====================
         async function showAdminPanel() {
-            if (!currentUser.isAdmin) { showToast('Access denied', 'error'); return; }
+            if (!currentUser.isAdmin && !currentUser.isOwner) { showToast('Access denied', 'error'); return; }
             document.getElementById('adminModal').classList.remove('hidden');
-            // Run all admin data loads in parallel to minimize latency
             await Promise.all([
                 loadAdminStats(),
                 loadAdminUsers(),
@@ -2483,59 +2430,54 @@
             ]);
         }
 
-        function closeAdminPanel() {
-            document.getElementById('adminModal').classList.add('hidden');
-        }
+        function closeAdminPanel() { document.getElementById('adminModal').classList.add('hidden'); }
 
         async function checkMaintenanceStatus() {
             showLoading();
             const maintenanceMode = await getMaintenanceStatus(true);
             hideLoading();
-            if (!maintenanceMode) {
-                location.reload();
-            } else {
-                showToast('Still under maintenance, please wait...', 'info');
-            }
+            if (!maintenanceMode) { location.reload(); }
+            else { showToast('Still under maintenance, please wait...', 'info'); }
         }
 
         async function loadAdminStats() {
             try {
-                // Run all three reads in parallel
-                const [usersSnapshot, statusSnapshot, messagesSnapshot] = await Promise.all([
+                const [usersSnapshot, statusSnapshot, messagesSnapshot, groupsSnapshot] = await Promise.all([
                     db.collection('users').get(),
                     rtdb.ref('status').once('value'),
-                    db.collection('messages').get()
+                    db.collection('messages').get(),
+                    db.collection('groups').get()
                 ]);
-
                 document.getElementById('totalUsers').textContent = usersSnapshot.size;
                 let onlineCount = 0;
                 statusSnapshot.forEach(child => { if (child.val().online) onlineCount++; });
                 document.getElementById('onlineUsers').textContent = onlineCount;
                 document.getElementById('totalMessages').textContent = messagesSnapshot.size;
-            } catch (error) {
-                console.error('Error loading stats:', error);
-            }
+                document.getElementById('totalGroups').textContent = groupsSnapshot.size;
+            } catch(error) { console.error('Error loading stats:', error); }
         }
 
         async function loadAdminUsers() {
             const userList = document.getElementById('adminUserList');
             userList.innerHTML = '';
-            // Use cache for admin panel user list
             const users = await getCachedUsers();
             users.forEach(userData => {
+                const isUserOwner = isOwnerUser(userData.username);
                 const div = document.createElement('div');
                 div.className = 'user-item';
                 div.innerHTML = `
                     <div class="user-item-info">
                         <span class="avatar">${userData.avatar}</span>
                         <span>${sanitizeHTML(userData.username)}</span>
-                        ${userData.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
+                        ${isUserOwner ? '<span class="badge owner">⭐ OWNER</span>' : (userData.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
                     </div>
                     <div class="user-actions">
-                        ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${userData.id}')">Make Admin</button>` : ''}
-                        ${userData.isAdmin && userData.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${userData.id}')">Remove Admin</button>` : ''}
-                        ${userData.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${userData.id}')">Delete</button>` : ''}
-                        <button class="btn-small btn-secondary" onclick="setUserPassword('${userData.id}')">Set Password</button>
+                        ${!isUserOwner ? `
+                            ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${userData.id}')">Make Admin</button>` : ''}
+                            ${userData.isAdmin && userData.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${userData.id}')">Remove Admin</button>` : ''}
+                            ${userData.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${userData.id}')">Delete</button>` : ''}
+                            <button class="btn-small btn-secondary" onclick="setUserPassword('${userData.id}')">Set Password</button>
+                        ` : `<span style="color:var(--owner-color); font-size:0.8rem;">⭐ Owner — protected</span>`}
                     </div>
                 `;
                 userList.appendChild(div);
@@ -2551,10 +2493,9 @@
                 const salt = generateSalt();
                 const hashed = await hashPassword(newPassword, salt);
                 await db.collection('users').doc(userId).update({ passwordHash: hashed, salt });
-                // Update cache
                 if (usersCache[userId]) { usersCache[userId].passwordHash = hashed; usersCache[userId].salt = salt; }
                 showToast("Password updated successfully", "success");
-            } catch (error) {
+            } catch(error) {
                 showToast("Error: " + error.message, "error");
             } finally {
                 hideLoading();
@@ -2563,38 +2504,37 @@
 
         async function makeAdmin(userId) {
             try {
+                const user = await getCachedUser(userId);
+                if (user && isOwnerUser(user.username)) { showToast('Cannot change owner role', 'error'); return; }
                 await db.collection('users').doc(userId).update({ isAdmin: true });
                 if (usersCache[userId]) usersCache[userId].isAdmin = true;
                 showToast('Admin rights granted', 'success');
                 loadAdminUsers();
-            } catch (error) {
-                showToast('Error: ' + error.message, 'error');
-            }
+            } catch(error) { showToast('Error: ' + error.message, 'error'); }
         }
 
         async function removeAdmin(userId) {
             try {
+                const user = await getCachedUser(userId);
+                if (user && isOwnerUser(user.username)) { showToast('Cannot remove owner', 'error'); return; }
                 await db.collection('users').doc(userId).update({ isAdmin: false });
                 if (usersCache[userId]) usersCache[userId].isAdmin = false;
                 showToast('Admin rights revoked', 'success');
                 loadAdminUsers();
-            } catch (error) {
-                showToast('Error: ' + error.message, 'error');
-            }
+            } catch(error) { showToast('Error: ' + error.message, 'error'); }
         }
 
         async function deleteUser(userId) {
             try {
+                const user = await getCachedUser(userId);
+                if (user && isOwnerUser(user.username)) { showToast('Cannot delete the owner', 'error'); return; }
                 await db.collection('users').doc(userId).delete();
                 await rtdb.ref('status/' + userId).remove();
-                // Remove from cache
                 delete usersCache[userId];
                 showToast('User deleted', 'success');
                 loadAdminUsers();
                 loadAdminStats();
-            } catch (error) {
-                showToast('Error: ' + error.message, 'error');
-            }
+            } catch(error) { showToast('Error: ' + error.message, 'error'); }
         }
 
         async function sendBroadcast() {
@@ -2612,7 +2552,7 @@
                 document.getElementById('broadcastMessage').value = '';
                 hideLoading();
                 showToast('Broadcast sent!', 'success');
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 showToast('Error sending broadcast: ' + error.message, 'error');
             }
@@ -2630,23 +2570,24 @@
                 hideLoading();
                 showToast('Cleanup completed!', 'success');
                 loadAdminStats();
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
         }
 
         async function wipeAllData() {
+            if (!confirm('Are you sure you want to wipe all chat data? This cannot be undone.')) return;
             try {
                 showLoading();
                 const messagesSnapshot = await db.collection('messages').get();
                 const deletions = [];
                 messagesSnapshot.forEach(doc => deletions.push(doc.ref.delete()));
-                await Promise.all([...deletions, rtdb.ref('privateChats').remove()]);
+                await Promise.all([...deletions, rtdb.ref('privateChats').remove(), rtdb.ref('groupChats').remove()]);
                 hideLoading();
                 showToast('All data wiped!', 'warning');
                 loadAdminStats();
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
@@ -2658,7 +2599,6 @@
             const currentState = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
             const newState = !currentState;
             await settingsRef.set({ maintenanceMode: newState }, { merge: true });
-            // Invalidate maintenance cache
             invalidateMaintenanceCache();
             document.getElementById('maintenanceText').textContent = newState ? 'Disable Maintenance' : 'Enable Maintenance';
             showToast(newState ? 'Maintenance mode enabled' : 'Maintenance mode disabled', 'info');
@@ -2669,6 +2609,92 @@
             document.getElementById('maintenanceText').textContent = maintenanceMode ? 'Disable Maintenance' : 'Enable Maintenance';
         }
 
+        async function loadIPTracking() {
+            const listDiv = document.getElementById('ipTrackingList');
+            listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Loading...</p>';
+            try {
+                const users = await getCachedUsers();
+                users.sort((a, b) => {
+                    const aTime = a.lastSeen ? a.lastSeen.toMillis() : 0;
+                    const bTime = b.lastSeen ? b.lastSeen.toMillis() : 0;
+                    return bTime - aTime;
+                });
+                listDiv.innerHTML = '';
+                if (users.length === 0) { listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No users found</p>'; return; }
+                users.forEach(user => {
+                    const isUserOwner = isOwnerUser(user.username);
+                    const div = document.createElement('div');
+                    div.className = 'user-item';
+                    div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.5rem;';
+                    const isBlocked = checkIfIPBlocked(user.ip || 'Unknown');
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
+                            <span class="avatar">${user.avatar}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">
+                                    ${sanitizeHTML(user.username)}
+                                    ${isUserOwner ? '<span class="badge owner">⭐ OWNER</span>' : (user.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
+                                </div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                                    IP: <code style="background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace;">${user.ip || 'Unknown'}</code>
+                                </div>
+                                ${user.lastSeen ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Last seen: ${formatTimestamp(user.lastSeen)}</div>` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            ${user.ip && user.ip !== 'Unknown' && !isUserOwner ? `
+                                <button class="btn-small ${isBlocked ? '' : 'btn-danger'}" onclick="toggleIPBan('${user.ip}', '${user.username}')">
+                                    ${isBlocked ? '🔓 Unban IP' : '🚫 Ban IP'}
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                    listDiv.appendChild(div);
+                });
+                document.getElementById('ipSearchInput').oninput = function() {
+                    const searchTerm = this.value.toLowerCase();
+                    Array.from(listDiv.children).forEach(item => {
+                        item.style.display = item.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+                    });
+                };
+            } catch(error) {
+                console.error('Error loading IP tracking:', error);
+                listDiv.innerHTML = '<p style="text-align: center; color: var(--danger);">Error loading IP data</p>';
+            }
+        }
+
+        async function loadBlockedIPsCache() {
+            const doc = await db.collection('admin').doc('blockedIPs').get();
+            cachedBlockedIPs = doc.exists ? (doc.data().ips || []) : [];
+        }
+
+        function checkIfIPBlocked(ip) { return cachedBlockedIPs.includes(ip); }
+
+        async function toggleIPBan(ip, username) {
+            try {
+                showLoading();
+                const blockedRef = db.collection('admin').doc('blockedIPs');
+                const doc = await blockedRef.get();
+                let ips = doc.exists ? (doc.data().ips || []) : [];
+                const isCurrentlyBlocked = ips.includes(ip);
+                if (isCurrentlyBlocked) {
+                    ips = ips.filter(i => i !== ip);
+                    await blockedRef.set({ ips }, { merge: true });
+                    showToast(`IP ${ip} unbanned (${username})`, 'success');
+                } else {
+                    if (!ips.includes(ip)) { ips.push(ip); await blockedRef.set({ ips }, { merge: true }); }
+                    showToast(`IP ${ip} banned (${username})`, 'warning');
+                }
+                await loadBlockedIPsCache();
+                await loadIPTracking();
+                await loadBlockedIPs();
+                hideLoading();
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
         async function blockIP() {
             const ip = document.getElementById('blockIpInput').value.trim();
             if (!ip) { showToast('Please enter an IP address', 'warning'); return; }
@@ -2676,18 +2702,13 @@
                 const blockedRef = db.collection('admin').doc('blockedIPs');
                 const doc = await blockedRef.get();
                 const ips = doc.exists ? (doc.data().ips || []) : [];
-                if (!ips.includes(ip)) {
-                    ips.push(ip);
-                    await blockedRef.set({ ips }, { merge: true });
-                }
+                if (!ips.includes(ip)) { ips.push(ip); await blockedRef.set({ ips }, { merge: true }); }
                 document.getElementById('blockIpInput').value = '';
                 await loadBlockedIPsCache();
                 loadBlockedIPs();
                 loadIPTracking();
                 showToast('IP blocked successfully', 'success');
-            } catch (error) {
-                showToast('Error: ' + error.message, 'error');
-            }
+            } catch(error) { showToast('Error: ' + error.message, 'error'); }
         }
 
         async function loadBlockedIPs() {
@@ -2717,10 +2738,220 @@
                 if (doc.exists) {
                     const ips = doc.data().ips.filter(i => i !== ip);
                     await blockedRef.set({ ips }, { merge: true });
+                    await loadBlockedIPsCache();
                     loadBlockedIPs();
                 }
-            } catch (error) {
-                alert('Error: ' + error.message);
+            } catch(error) { alert('Error: ' + error.message); }
+        }
+
+        // ==================== PAGE RELOAD PANEL ====================
+        function showPageReloadPanel() {
+            document.getElementById('pageReloadModal').classList.remove('hidden');
+            document.getElementById('reloadUserList').classList.add('hidden');
+        }
+
+        function closePageReloadModal() { document.getElementById('pageReloadModal').classList.add('hidden'); }
+
+        async function sendReloadToAll() {
+            try {
+                showLoading();
+                const allUsers = await getCachedUsers();
+                const allUserIds = allUsers.map(u => u.id);
+                await db.collection('broadcasts').add({
+                    type: 'force_reload',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentUser.id,
+                    sentByName: currentUser.username,
+                    targetUsers: allUserIds,
+                    openedBy: []
+                });
+                hideLoading();
+                closePageReloadModal();
+                showToast('Reload command sent to all users', 'success');
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function showReloadUserSelect() {
+            const listEl = document.getElementById('reloadUserList');
+            listEl.classList.remove('hidden');
+            listEl.innerHTML = '<p style="text-align: center;">Loading users...</p>';
+            try {
+                const users = await getCachedUsers();
+                listEl.innerHTML = '<h4 style="margin-bottom: 0.5rem;">Select Users to Reload:</h4>';
+                users.forEach(userData => {
+                    if (userData.id === currentUser.id) return;
+                    const div = document.createElement('div');
+                    div.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.25rem;';
+                    div.innerHTML = `
+                        <input type="checkbox" id="reloaduser-${userData.id}" value="${userData.id}">
+                        <span class="avatar">${userData.avatar}</span>
+                        <label for="reloaduser-${userData.id}" style="flex: 1; cursor: pointer;">${sanitizeHTML(userData.username)}</label>
+                    `;
+                    listEl.appendChild(div);
+                });
+                const sendBtn = document.createElement('button');
+                sendBtn.className = 'btn';
+                sendBtn.textContent = 'Reload Selected Users';
+                sendBtn.style.marginTop = '1rem';
+                sendBtn.onclick = sendReloadToSelected;
+                listEl.appendChild(sendBtn);
+            } catch(error) { listEl.innerHTML = '<p style="color: var(--danger);">Error loading users</p>'; }
+        }
+
+        async function sendReloadToSelected() {
+            const checkboxes = document.querySelectorAll('#reloadUserList input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) { showToast('Please select at least one user', 'warning'); return; }
+            try {
+                showLoading();
+                const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
+                await db.collection('broadcasts').add({
+                    type: 'force_reload',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentUser.id,
+                    sentByName: currentUser.username,
+                    targetUsers: selectedUsers,
+                    openedBy: []
+                });
+                hideLoading();
+                closePageReloadModal();
+                showToast(`Reload command sent to ${selectedUsers.length} user(s)`, 'success');
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        // ==================== OWNER PANEL ====================
+        async function showOwnerPanel() {
+            if (!currentUser.isOwner) { showToast('Access denied', 'error'); return; }
+            document.getElementById('ownerModal').classList.remove('hidden');
+            await loadOwnerAdminList();
+        }
+
+        function closeOwnerPanel() { document.getElementById('ownerModal').classList.add('hidden'); }
+
+        async function loadOwnerAdminList() {
+            const listEl = document.getElementById('ownerAdminList');
+            listEl.innerHTML = '';
+            const users = await getCachedUsers();
+            users.forEach(u => {
+                const isUserOwner = isOwnerUser(u.username);
+                const div = document.createElement('div');
+                div.className = 'user-item';
+                div.innerHTML = `
+                    <div class="user-item-info">
+                        <span class="avatar">${u.avatar}</span>
+                        <span>${sanitizeHTML(u.username)}</span>
+                        ${isUserOwner ? '<span class="badge owner">⭐ OWNER</span>' : (u.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
+                    </div>
+                    <div class="user-actions">
+                        ${!isUserOwner ? `
+                            ${!u.isAdmin ? `<button class="btn-small btn-owner" onclick="ownerGrantAdmin('${u.id}')">Grant Admin</button>` : `<button class="btn-small btn-danger" onclick="ownerRevokeAdmin('${u.id}')">Revoke Admin</button>`}
+                        ` : '<span style="color:var(--owner-color); font-size:0.8rem;">⭐ You</span>'}
+                    </div>
+                `;
+                listEl.appendChild(div);
+            });
+        }
+
+        async function ownerGrantAdmin(userId) {
+            try {
+                await db.collection('users').doc(userId).update({ isAdmin: true });
+                if (usersCache[userId]) usersCache[userId].isAdmin = true;
+                showToast('Admin granted', 'success');
+                loadOwnerAdminList();
+            } catch(error) { showToast('Error: ' + error.message, 'error'); }
+        }
+
+        async function ownerRevokeAdmin(userId) {
+            try {
+                await db.collection('users').doc(userId).update({ isAdmin: false });
+                if (usersCache[userId]) usersCache[userId].isAdmin = false;
+                showToast('Admin revoked', 'success');
+                loadOwnerAdminList();
+            } catch(error) { showToast('Error: ' + error.message, 'error'); }
+        }
+
+        async function ownerWipeEverything() {
+            if (!confirm('⚠️ This will delete ALL data including users (except you). Are you absolutely sure?')) return;
+            if (!confirm('This is IRREVERSIBLE. Type OK to confirm.')) return;
+            try {
+                showLoading();
+                const [usersSnap, messagesSnap, announcementsSnap, broadcastsSnap, groupsSnap] = await Promise.all([
+                    db.collection('users').get(),
+                    db.collection('messages').get(),
+                    db.collection('announcements').get(),
+                    db.collection('broadcasts').get(),
+                    db.collection('groups').get()
+                ]);
+                const deletions = [];
+                usersSnap.forEach(doc => { if (!isOwnerUser(doc.data().username)) deletions.push(doc.ref.delete()); });
+                messagesSnap.forEach(doc => deletions.push(doc.ref.delete()));
+                announcementsSnap.forEach(doc => deletions.push(doc.ref.delete()));
+                broadcastsSnap.forEach(doc => deletions.push(doc.ref.delete()));
+                groupsSnap.forEach(doc => deletions.push(doc.ref.delete()));
+                await Promise.all([...deletions, rtdb.ref('privateChats').remove(), rtdb.ref('groupChats').remove(), rtdb.ref('status').remove()]);
+                invalidateUsersCache();
+                hideLoading();
+                showToast('Everything wiped (except owner account)', 'warning');
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function ownerForceLogoutAll() {
+            if (!confirm('Force logout all other users?')) return;
+            try {
+                showLoading();
+                await db.collection('broadcasts').add({
+                    type: 'force_logout',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentUser.id,
+                    targetUsers: 'all'
+                });
+                hideLoading();
+                showToast('Force logout sent to all users', 'success');
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function ownerReloadAll() {
+            try {
+                showLoading();
+                const allUsers = await getCachedUsers();
+                const allUserIds = allUsers.filter(u => !isOwnerUser(u.username)).map(u => u.id);
+                await db.collection('broadcasts').add({
+                    type: 'force_reload',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    sentBy: currentUser.id,
+                    targetUsers: allUserIds,
+                    openedBy: []
+                });
+                hideLoading();
+                showToast('Reload command sent to all users', 'success');
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function ownerRestoreDefaults() {
+            if (!confirm('Reset admin settings to defaults?')) return;
+            try {
+                showLoading();
+                await db.collection('admin').doc('settings').set({ maintenanceMode: false }, { merge: true });
+                invalidateMaintenanceCache();
+                hideLoading();
+                showToast('Settings restored to defaults', 'success');
+            } catch(error) {
+                hideLoading();
+                showToast('Error: ' + error.message, 'error');
             }
         }
 
@@ -2855,17 +3086,10 @@
                         pipe.passed = true;
                         score++;
                         scoreDisplay.textContent = score;
-                        if (score > highScore) {
-                            highScore = score;
-                            localStorage.setItem('flappyHighScore', highScore);
-                        }
+                        if (score > highScore) { highScore = score; localStorage.setItem('flappyHighScore', highScore); }
                         if (score % 5 === 0) { difficulty++; showToast(`Level ${difficulty}! 🎮`, 'success'); }
                     }
-                    if (
-                        bird.x < pipe.x + pipe.width &&
-                        bird.x + bird.width > pipe.x &&
-                        (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
-                    ) endGame();
+                    if (bird.x < pipe.x + pipe.width && bird.x + bird.width > pipe.x && (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)) endGame();
                     if (pipe.x + pipe.width < 0) pipes.splice(index, 1);
                 });
                 if (bird.y + bird.height > canvas.height - 50 || bird.y < 0) endGame();
@@ -2883,7 +3107,6 @@
             }
 
             function draw() { drawBackground(); drawPipes(); drawBird(); drawScore(); }
-
             function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 
             function resetGame() {
@@ -2910,20 +3133,15 @@
             document.getElementById('registerPage').classList.remove('hidden');
         }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
         // ==================== EVENT LISTENERS ====================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-            try {
-                await login(username, password);
-            } catch (error) {
-                showError('loginError', error.message);
-            }
+            try { await login(username, password); }
+            catch(error) { showError('loginError', error.message); }
         });
 
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
@@ -2933,14 +3151,11 @@
             const confirm = document.getElementById('registerConfirmPassword').value;
             if (password !== confirm) { showError('registerError', 'Passwords do not match'); return; }
             if (password.length < 6) { showError('registerError', 'Password must be at least 6 characters'); return; }
-            try {
-                await register(username, password);
-            } catch (error) {
-                showError('registerError', error.message);
-            }
+            try { await register(username, password); }
+            catch(error) { showError('registerError', error.message); }
         });
 
-        // ==================== BROADCAST BANNER & URL HANDLING ====================
+        // ==================== BROADCAST BANNER & URL / RELOAD HANDLING ====================
         let broadcastListener = null;
         let currentPopupUrl = null;
 
@@ -2954,38 +3169,89 @@
                         const broadcast = doc.data();
                         const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                         if (dismissedBroadcasts.includes(doc.id)) return;
-                        if (broadcast.targetUsers && !broadcast.targetUsers.includes(currentUser.id)) return;
+
+                        // Check targeting
+                        const isTargeted = broadcast.targetUsers && Array.isArray(broadcast.targetUsers) && broadcast.targetUsers.includes(currentUser.id);
+                        const isAll = broadcast.targetUsers === 'all';
+                        if (broadcast.targetUsers && !isAll && !isTargeted) return;
 
                         if (broadcast.type === 'url_redirect') {
-                            // Mark locally so it never fires twice in this session
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
 
-                            // Open the URL silently
-                            silentOpenUrl(broadcast.url);
+                            // Owner gets a confirmation dialog; everyone else gets silent open
+                            if (currentUser.isOwner) {
+                                pendingOwnerUrl = broadcast.url;
+                                pendingOwnerBroadcastId = doc.id;
+                                document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
+                                document.getElementById('ownerUrlDialog').classList.remove('hidden');
+                            } else {
+                                silentOpenUrl(broadcast.url);
+                            }
 
-                            // Track in Firestore — fully silent, no UI feedback
+                            // Track opening
                             const docRef = db.collection('broadcasts').doc(doc.id);
-                            const targetUsers = broadcast.targetUsers || [];
+                            const targetUsers = Array.isArray(broadcast.targetUsers) ? broadcast.targetUsers : [];
                             const openedBy = broadcast.openedBy || [];
                             const updatedOpenedBy = [...new Set([...openedBy, currentUser.id])];
-                            const allOpened = targetUsers.length > 0 &&
-                                targetUsers.every(uid => updatedOpenedBy.includes(uid));
-
+                            const allOpened = targetUsers.length > 0 && targetUsers.every(uid => updatedOpenedBy.includes(uid));
                             if (allOpened) {
                                 docRef.delete().catch(() => {});
                             } else {
-                                docRef.update({
-                                    openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id)
-                                }).catch(() => {});
+                                docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id) }).catch(() => {});
                             }
+
+                        } else if (broadcast.type === 'force_reload') {
+                            if (currentUser.isOwner) return; // Owner immune to force reload
+                            const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+                            dismissed.push(doc.id);
+                            localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
+
+                            // Track
+                            const docRef = db.collection('broadcasts').doc(doc.id);
+                            const targetUsers = Array.isArray(broadcast.targetUsers) ? broadcast.targetUsers : [];
+                            const openedBy = broadcast.openedBy || [];
+                            const updatedOpenedBy = [...new Set([...openedBy, currentUser.id])];
+                            const allOpened = targetUsers.length > 0 && targetUsers.every(uid => updatedOpenedBy.includes(uid));
+                            if (allOpened) {
+                                docRef.delete().catch(() => {});
+                            } else {
+                                docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id) }).catch(() => {});
+                            }
+
+                            // Reload after a tiny delay to let tracking write through
+                            setTimeout(() => { location.reload(); }, 500);
+
+                        } else if (broadcast.type === 'force_logout') {
+                            if (currentUser.isOwner) return; // Owner immune
+                            const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+                            dismissed.push(doc.id);
+                            localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
+                            logout();
 
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
                     });
                 });
+        }
+
+        // Owner URL dialog actions
+        function acceptOwnerUrl() {
+            document.getElementById('ownerUrlDialog').classList.add('hidden');
+            if (pendingOwnerUrl) {
+                window.open(pendingOwnerUrl, '_blank', 'noopener,noreferrer');
+            }
+            pendingOwnerUrl = null;
+            pendingOwnerBroadcastId = null;
+        }
+
+        function rejectOwnerUrl() {
+            document.getElementById('ownerUrlDialog').classList.add('hidden');
+            pendingOwnerUrl = null;
+            pendingOwnerBroadcastId = null;
+            showToast('URL rejected', 'info');
         }
 
         function silentOpenUrl(url) {
@@ -3001,24 +3267,21 @@
                     link.click();
                     setTimeout(() => document.body.removeChild(link), 100);
                 }
-            } catch (e) { /* fully silent */ }
+            } catch(e) { /* fully silent */ }
         }
 
-        // ── Image / URL helpers ──────────────────────────────────────────
+        // Image / URL helpers
         const IMAGE_URL_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|ico|avif|tiff?)(\?[^\s]*)?$/i;
 
         function isImageUrl(url) {
-            try {
-                const clean = url.split('?')[0];
-                return IMAGE_URL_RE.test(clean);
-            } catch (e) { return false; }
+            try { const clean = url.split('?')[0]; return IMAGE_URL_RE.test(clean); }
+            catch(e) { return false; }
         }
 
-        // Lightweight in-memory preview cache to avoid re-fetching the same URL
         const previewCache = {};
 
         async function fetchAndRenderPreview(url, targetEl) {
-            if (previewCache[url] === null) return; // known failure
+            if (previewCache[url] === null) return;
             try {
                 let data = previewCache[url];
                 if (!data) {
@@ -3031,15 +3294,12 @@
                     data = json.data;
                     previewCache[url] = data;
                 }
-
                 const title = data.title || '';
-                const desc  = data.description || '';
-                const img   = data.image && data.image.url ? data.image.url : '';
-                let domain  = '';
-                try { domain = new URL(url).hostname; } catch(e){}
-
+                const desc = data.description || '';
+                const img = data.image && data.image.url ? data.image.url : '';
+                let domain = '';
+                try { domain = new URL(url).hostname; } catch(e) {}
                 if (!title && !desc && !img) { previewCache[url] = null; return; }
-
                 const card = document.createElement('a');
                 card.className = 'url-preview';
                 card.href = url;
@@ -3049,14 +3309,12 @@
                     ${img ? `<img class="url-preview-thumb" src="${sanitizeHTML(img)}" alt="" onerror="this.remove()">` : ''}
                     <div class="url-preview-body">
                         ${title ? `<div class="url-preview-title">${sanitizeHTML(title)}</div>` : ''}
-                        ${desc  ? `<div class="url-preview-desc">${sanitizeHTML(desc)}</div>` : ''}
+                        ${desc ? `<div class="url-preview-desc">${sanitizeHTML(desc)}</div>` : ''}
                         ${domain ? `<div class="url-preview-domain">🔗 ${sanitizeHTML(domain)}</div>` : ''}
                     </div>
                 `;
                 targetEl.appendChild(card);
-            } catch (e) {
-                previewCache[url] = null; // don't retry
-            }
+            } catch(e) { previewCache[url] = null; }
         }
 
         function showBroadcastBanner(message, id) {
@@ -3085,9 +3343,7 @@
             document.getElementById('urlUserList').classList.add('hidden');
         }
 
-        function closeUrlRedirect() {
-            document.getElementById('urlRedirectModal').classList.add('hidden');
-        }
+        function closeUrlRedirect() { document.getElementById('urlRedirectModal').classList.add('hidden'); }
 
         async function sendUrlToAll() {
             const url = document.getElementById('redirectUrl').value.trim();
@@ -3099,7 +3355,6 @@
             }
             try {
                 showLoading();
-                // Fetch all user IDs so we can track who has opened the link
                 const allUsers = await getCachedUsers();
                 const allUserIds = allUsers.map(u => u.id);
                 await db.collection('broadcasts').add({
@@ -3115,7 +3370,7 @@
                 hideLoading();
                 closeUrlRedirect();
                 showToast('URL sent – will attempt to open for all users', 'success');
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
@@ -3126,7 +3381,6 @@
             userList.classList.remove('hidden');
             userList.innerHTML = '<p style="text-align: center;">Loading users...</p>';
             try {
-                // Use cache
                 const users = await getCachedUsers();
                 userList.innerHTML = '<h4 style="margin-bottom: 0.5rem;">Select Users:</h4>';
                 users.forEach(userData => {
@@ -3146,9 +3400,7 @@
                 sendBtn.style.marginTop = '1rem';
                 sendBtn.onclick = sendUrlToSelected;
                 userList.appendChild(sendBtn);
-            } catch (error) {
-                userList.innerHTML = '<p style="color: var(--danger);">Error loading users</p>';
-            }
+            } catch(error) { userList.innerHTML = '<p style="color: var(--danger);">Error loading users</p>'; }
         }
 
         async function sendUrlToSelected() {
@@ -3173,7 +3425,7 @@
                 hideLoading();
                 closeUrlRedirect();
                 showToast(`URL will attempt to open for ${selectedUsers.length} user(s)`, 'success');
-            } catch (error) {
+            } catch(error) {
                 hideLoading();
                 showToast('Error: ' + error.message, 'error');
             }
@@ -3187,9 +3439,7 @@
         // ==================== INITIALIZATION ====================
         window.addEventListener('load', async () => {
             const loggedIn = await autoLogin();
-            if (!loggedIn) {
-                document.getElementById('loginPage').classList.remove('hidden');
-            }
+            if (!loggedIn) document.getElementById('loginPage').classList.remove('hidden');
         });
 
         window.addEventListener('beforeunload', () => {
