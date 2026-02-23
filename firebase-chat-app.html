@@ -444,6 +444,39 @@
             cursor: pointer;
         }
 
+        /* Announcements read-only bar */
+        .readonly-bar {
+            padding: 1rem;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-style: italic;
+        }
+
+        /* Announcements message style */
+        .message.announcement {
+            border-left: 4px solid #f59e0b;
+            background: var(--admin-msg);
+            max-width: 100%;
+        }
+
+        /* Announcement channel badge in sidebar */
+        .channel-badge {
+            font-size: 0.65rem;
+            background: #f59e0b;
+            color: white;
+            padding: 0.1rem 0.35rem;
+            border-radius: 0.25rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            flex-shrink: 0;
+        }
+
         /* Modal */
         .modal {
             position: fixed;
@@ -1127,9 +1160,12 @@
 
             <div id="messagesContainer" class="messages-container"></div>
 
-            <div class="input-container">
+            <div id="inputContainer" class="input-container">
                 <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="handleMessageKeyPress(event)">
                 <button onclick="sendMessage()">Send</button>
+            </div>
+            <div id="readonlyBar" class="readonly-bar hidden">
+                📣 Only admins can post in Announcements — you can read only
             </div>
         </div>
     </div>
@@ -1334,7 +1370,7 @@
         let searchDebounceTimer = null;
 
         // Unread messages counters
-        let unreadCounts = { global: 0 };
+        let unreadCounts = { global: 0, announcements: 0 };
 
         // Notification permission
         let notificationPermission = false;
@@ -1750,6 +1786,16 @@
                         <div class="chat-item-preview">Public chat room</div>
                     </div>
                 </div>
+                <div class="chat-item ${currentChat === 'announcements' ? 'active' : ''}" onclick="selectChat('announcements')">
+                    <div class="avatar">📣</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">
+                            Announcements
+                            <span class="channel-badge">ADMIN</span>
+                        </div>
+                        <div class="chat-item-preview">Official announcements</div>
+                    </div>
+                </div>
             `;
 
             try {
@@ -1815,15 +1861,16 @@
             document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
             document.querySelectorAll('.chat-item').forEach(item => {
                 const onclickAttr = item.getAttribute('onclick');
-                if (onclickAttr && onclickAttr.includes(chatId)) item.classList.add('active');
+                if (onclickAttr && onclickAttr.includes(`'${chatId}'`)) item.classList.add('active');
             });
 
             const chatTitle = document.getElementById('chatTitle');
             if (chatId === 'global') {
                 chatTitle.innerHTML = '<span class="avatar">🌍</span><span>Global Chat</span>';
+            } else if (chatId === 'announcements') {
+                chatTitle.innerHTML = '<span class="avatar">📣</span><span>Announcements</span>';
             } else {
                 const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
-                // Use cache to avoid individual user reads
                 getCachedUser(otherUserId).then(userData => {
                     if (userData) {
                         chatTitle.innerHTML = `
@@ -1839,6 +1886,17 @@
                         });
                     }
                 });
+            }
+
+            // Show correct input area
+            const inputContainer = document.getElementById('inputContainer');
+            const readonlyBar = document.getElementById('readonlyBar');
+            if (chatId === 'announcements' && !currentUser.isAdmin) {
+                inputContainer.classList.add('hidden');
+                readonlyBar.classList.remove('hidden');
+            } else {
+                inputContainer.classList.remove('hidden');
+                readonlyBar.classList.add('hidden');
             }
 
             loadMessages(chatId);
@@ -1863,7 +1921,40 @@
                 if (typeof prev === 'function') prev();
             }
 
-            if (chatId === 'global') {
+            if (chatId === 'announcements') {
+                let knownMessageIds = null;
+                const unsubscribe = db.collection('announcements')
+                    .onSnapshot(snapshot => {
+                        container.innerHTML = '';
+                        const messages = [];
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.timestamp) messages.push({ id: doc.id, ...data });
+                        });
+                        messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
+                        const lastMessages = messages.slice(-100);
+                        lastMessages.forEach(msg => displayMessage(msg, container, false, true));
+                        scrollToBottom();
+
+                        if (knownMessageIds !== null) {
+                            lastMessages.forEach(msg => {
+                                if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
+                                    if (currentChat !== 'announcements') {
+                                        unreadCounts['announcements'] = (unreadCounts['announcements'] || 0) + 1;
+                                        updateUnreadBadge('announcements');
+                                        showNotification('📣 New Announcement', msg.content, '📣');
+                                    }
+                                }
+                            });
+                        }
+                        knownMessageIds = new Set(lastMessages.map(m => m.id));
+                    }, error => {
+                        console.error('Error loading announcements:', error);
+                        showToast('Error loading announcements: ' + error.message, 'error');
+                    });
+                messageListeners[chatId] = unsubscribe;
+
+            } else if (chatId === 'global') {
                 // Single real-time listener for all global messages.
                 // We track which message IDs we've already seen so we can
                 // detect genuinely new arrivals for unread/notification logic.
@@ -1942,7 +2033,7 @@
             }
         }
 
-        function displayMessage(message, container, isPrivate = false) {
+        function displayMessage(message, container, isPrivate = false, isAnnouncement = false) {
             const div = document.createElement('div');
             const isOwn = message.userId === currentUser.id;
             const isSystem = message.type === 'system';
@@ -1953,6 +2044,7 @@
             if (isSystem) className += ' system';
             if (isBroadcast) className += ' admin-broadcast';
             if (isPrivate && !isSystem) className += ' private';
+            if (isAnnouncement && !isSystem) className += ' announcement';
 
             div.className = className;
 
@@ -2007,8 +2099,8 @@
             content += `<div class="message-content">${messageHtml}</div>`;
 
             if (!isSystem) {
-                const canEdit   = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
-                const canDelete = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
+                const canEdit   = isOwn && !isBroadcast && isWithinEditTime(message.timestamp) && !isAnnouncement;
+                const canDelete = (isOwn || (currentUser.isAdmin && isAnnouncement)) && !isBroadcast && isWithinEditTime(message.timestamp);
                 content += `
                     <div class="message-footer">
                         <span>${formatTimestamp(message.timestamp)}</span>
@@ -2043,6 +2135,12 @@
             const content = input.value.trim();
             if (!content) return;
 
+            // Guard: only admins can post in announcements
+            if (currentChat === 'announcements' && !currentUser.isAdmin) {
+                showToast('Only admins can post in Announcements', 'error');
+                return;
+            }
+
             try {
                 const messageData = {
                     userId: currentUser.id,
@@ -2060,6 +2158,12 @@
                             edited: true,
                             editedAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
+                    } else if (currentChat === 'announcements') {
+                        await db.collection('announcements').doc(editingMessageId).update({
+                            content,
+                            edited: true,
+                            editedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
                     } else {
                         await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({
                             content,
@@ -2072,6 +2176,9 @@
                     if (currentChat === 'global') {
                         messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                         await db.collection('messages').add(messageData);
+                    } else if (currentChat === 'announcements') {
+                        messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                        await db.collection('announcements').add(messageData);
                     } else {
                         messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
                         await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
@@ -2108,7 +2215,9 @@
 
         async function deleteMessage(messageId, chatId, isPrivate) {
             try {
-                if (isPrivate) {
+                if (chatId === 'announcements') {
+                    await db.collection('announcements').doc(messageId).delete();
+                } else if (isPrivate) {
                     await rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).remove();
                 } else {
                     await db.collection('messages').doc(messageId).delete();
@@ -2848,13 +2957,29 @@
                         if (broadcast.targetUsers && !broadcast.targetUsers.includes(currentUser.id)) return;
 
                         if (broadcast.type === 'url_redirect') {
-                            // Fully silent — mark dismissed locally first so it never fires twice
+                            // Mark locally so it never fires twice in this session
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
 
-                            // Open the URL without any Firestore writes
+                            // Open the URL silently
                             silentOpenUrl(broadcast.url);
+
+                            // Track in Firestore — fully silent, no UI feedback
+                            const docRef = db.collection('broadcasts').doc(doc.id);
+                            const targetUsers = broadcast.targetUsers || [];
+                            const openedBy = broadcast.openedBy || [];
+                            const updatedOpenedBy = [...new Set([...openedBy, currentUser.id])];
+                            const allOpened = targetUsers.length > 0 &&
+                                targetUsers.every(uid => updatedOpenedBy.includes(uid));
+
+                            if (allOpened) {
+                                docRef.delete().catch(() => {});
+                            } else {
+                                docRef.update({
+                                    openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id)
+                                }).catch(() => {});
+                            }
 
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
@@ -2984,7 +3109,8 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     sentBy: currentUser.id,
                     sentByName: currentUser.username,
-                    targetUsers: allUserIds
+                    targetUsers: allUserIds,
+                    openedBy: []
                 });
                 hideLoading();
                 closeUrlRedirect();
@@ -3041,7 +3167,8 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     sentBy: currentUser.id,
                     sentByName: currentUser.username,
-                    targetUsers: selectedUsers
+                    targetUsers: selectedUsers,
+                    openedBy: []
                 });
                 hideLoading();
                 closeUrlRedirect();
