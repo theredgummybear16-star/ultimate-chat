@@ -289,15 +289,40 @@
             padding: 0.75rem 1rem;
             border-radius: 0.75rem;
             background: var(--surface);
-            max-width: 70%;
+            display: inline-block;
+            max-width: 75%;
+            min-width: 80px;
+            width: fit-content;
             word-wrap: break-word;
+            word-break: break-word;
+            clear: both;
         }
 
-        .message.own { margin-left: auto; background: var(--primary); color: white; }
+        .message.own {
+            float: right;
+            background: var(--primary);
+            color: white;
+            margin-left: auto;
+        }
+
+        /* Clearfix so floated bubbles don't overlap */
+        #messagesContainer::after {
+            content: '';
+            display: table;
+            clear: both;
+        }
+
+        /* Each message wrapper clears floats */
+        .message + .message {
+            clear: both;
+        }
 
         .message.system {
             background: var(--system-msg);
+            width: 100%;
             max-width: 100%;
+            display: block;
+            float: none;
             text-align: center;
             font-style: italic;
             font-size: 0.875rem;
@@ -305,11 +330,25 @@
 
         .message.admin-broadcast {
             background: var(--admin-msg);
+            width: 100%;
             max-width: 100%;
+            display: block;
+            float: none;
             border-left: 4px solid var(--warning);
         }
 
         .message.private { background: var(--private-msg); }
+
+        .message.announcement {
+            border-left: 4px solid #f59e0b;
+            background: var(--admin-msg);
+            width: 100%;
+            max-width: 100%;
+            display: block;
+            float: none;
+        }
+
+        .message.group { background: rgba(139,92,246,0.12); }
 
         .message-header {
             display: flex;
@@ -386,13 +425,7 @@
             font-style: italic;
         }
 
-        .message.announcement {
-            border-left: 4px solid #f59e0b;
-            background: var(--admin-msg);
-            max-width: 100%;
-        }
-
-        .channel-badge {
+        
             font-size: 0.65rem;
             background: #f59e0b;
             color: white;
