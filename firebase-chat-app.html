@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Firebase Chat Application</title>
+    <title>Ultimate Chat</title>
+    <link rel="icon" type="image/png" href="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.pngmart.com%2Ffiles%2F11%2FChat-Logo-PNG-Pic.png&f=1&nofb=1&ipt=282b359cc027c71e1d0c549868e3cce0202f5b0185a1d96d02bd22143786cb2e">
     <style>
         * {
             margin: 0;
@@ -322,6 +323,13 @@
         .chat-title {
             font-size: 1.25rem;
             font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Header action buttons grouped */
+        .header-actions {
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -937,7 +945,7 @@
     </div>
 
     <!-- Login Page -->
-    <div id="loginPage" class="auth-container">
+    <div id="loginPage" class="auth-container hidden">
         <div class="auth-box">
             <h2>🔐 Login</h2>
             <div id="loginError" class="error hidden"></div>
@@ -1011,12 +1019,11 @@
                         <span class="status-indicator" id="userStatus"></span>
                     </div>
                 </div>
-                <button class="btn-small" onclick="showSettings()">⚙️</button>
             </div>
 
             <!-- Search Users -->
             <div class="search-box">
-                <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
+                <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsersDebounced()">
             </div>
 
             <!-- Chat List -->
@@ -1043,8 +1050,12 @@
                     <span class="avatar">🌍</span>
                     <span>Global Chat</span>
                 </div>
-                <div id="adminButton" class="hidden">
-                    <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
+                <!-- Settings and Admin buttons grouped in header -->
+                <div class="header-actions">
+                    <button class="btn-small" onclick="showSettings()">⚙️ Settings</button>
+                    <div id="adminButton" class="hidden">
+                        <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
+                    </div>
                 </div>
             </div>
 
@@ -1239,22 +1250,36 @@
         let messageListeners = {};
         let editingMessageId = null;
 
+        // ── Request-optimization caches ──────────────────────────────────
+        // In-memory user cache: { [userId]: userData }
+        let usersCache = {};
+        let usersCacheTimestamp = 0;
+        const USERS_CACHE_TTL = 60 * 1000; // 1 minute
+
+        // Maintenance status cache
+        let maintenanceCacheValue = null;
+        let maintenanceCacheTimestamp = 0;
+        const MAINTENANCE_CACHE_TTL = 30 * 1000; // 30 seconds
+
+        // Blocked IPs cache (already existed, we keep it)
+        let cachedBlockedIPs = [];
+
+        // Search debounce timer
+        let searchDebounceTimer = null;
+
         // Unread messages counters
         let unreadCounts = { global: 0 };
 
         // Notification permission
         let notificationPermission = false;
 
-        const EMOJIS = ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓', '🧐', '😕', '😟', '🙁', '☹️', '😮', '😯', '😲', '😳', '🥺', '😦', '😧', '😨', '😰', '😥', '😢', '😭', '😱', '😖', '😣', '😞', '😓', '😩', '😫', '🥱', '😤', '😡', '😠', '🤬', '😈', '👿', '💀', '☠️', '💩', '🤡', '👹', '👺', '👻', '👽', '👾', '🤖'];
+        const EMOJIS = ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🤐','🤨','😐','😑','😶','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🤧','🥵','🥶','🥴','😵','🤯','🤠','🥳','😎','🤓','🧐','😕','😟','🙁','☹️','😮','😯','😲','😳','🥺','😦','😧','😨','😰','😥','😢','😭','😱','😖','😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖'];
 
-        const THEMES = ['light', 'dark', 'blue', 'green', 'purple', 'red', 'orange', 'pink', 'teal', 'indigo', 'cyan', 'lime', 'amber'];
+        const THEMES = ['light','dark','blue','green','purple','red','orange','pink','teal','indigo','cyan','lime','amber'];
 
         // ==================== NOTIFICATION HELPER ====================
         function requestNotificationPermission() {
-            if (!("Notification" in window)) {
-                console.log("This browser does not support notifications.");
-                return;
-            }
+            if (!("Notification" in window)) return;
             if (Notification.permission === "granted") {
                 notificationPermission = true;
             } else if (Notification.permission !== "denied") {
@@ -1279,7 +1304,6 @@
             chatItems.forEach(item => {
                 const onclick = item.getAttribute('onclick');
                 if (!onclick) return;
-                // Extract chat id from onclick string (rough but works)
                 let match = onclick.match(/selectChat\(['"]([^'"]+)['"]\)/);
                 if (!match) match = onclick.match(/startPrivateChat\(['"]([^'"]+)['"]\)/);
                 if (match) {
@@ -1305,23 +1329,13 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
-            const icons = {
-                success: '✅',
-                error: '❌',
-                warning: '⚠️',
-                info: 'ℹ️'
-            };
-            
+            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
             toast.innerHTML = `
                 <span class="toast-icon">${icons[type] || icons.info}</span>
                 <div class="toast-message">${message}</div>
                 <button class="toast-close" onclick="this.parentElement.remove()">×</button>
             `;
-            
             container.appendChild(toast);
-            
-            // Auto remove after 5 seconds
             setTimeout(() => {
                 toast.classList.add('removing');
                 setTimeout(() => toast.remove(), 300);
@@ -1367,11 +1381,9 @@
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
             const now = new Date();
             const diff = now - date;
-            
             if (diff < 60000) return 'Just now';
             if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
             if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
-            
             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         }
 
@@ -1390,43 +1402,92 @@
         }
 
         async function checkIPBlocked(ip) {
-            const blockedDoc = await db.collection('admin').doc('blockedIPs').get();
-            if (blockedDoc.exists) {
-                const blocked = blockedDoc.data().ips || [];
-                return blocked.includes(ip);
+            // Use cached blocked IPs if available, otherwise fetch once
+            if (cachedBlockedIPs.length === 0) {
+                await loadBlockedIPsCache();
             }
-            return false;
+            return cachedBlockedIPs.includes(ip);
+        }
+
+        // ==================== USER CACHE HELPERS ====================
+        /**
+         * Returns all users from cache (or fetches once and caches).
+         * This prevents N individual reads for the user list.
+         */
+        async function getCachedUsers(forceRefresh = false) {
+            const now = Date.now();
+            if (!forceRefresh && usersCache && usersCacheTimestamp && (now - usersCacheTimestamp) < USERS_CACHE_TTL) {
+                return Object.values(usersCache);
+            }
+            const snapshot = await db.collection('users').get();
+            usersCache = {};
+            snapshot.forEach(doc => {
+                usersCache[doc.id] = { id: doc.id, ...doc.data() };
+            });
+            usersCacheTimestamp = now;
+            return Object.values(usersCache);
+        }
+
+        /**
+         * Get a single user from cache; falls back to a Firestore read only if missing.
+         */
+        async function getCachedUser(userId) {
+            if (usersCache[userId]) return usersCache[userId];
+            const doc = await db.collection('users').doc(userId).get();
+            if (doc.exists) {
+                usersCache[doc.id] = { id: doc.id, ...doc.data() };
+                return usersCache[doc.id];
+            }
+            return null;
+        }
+
+        /** Invalidate the users cache (call after any write that changes user data). */
+        function invalidateUsersCache() {
+            usersCacheTimestamp = 0;
+        }
+
+        // ==================== MAINTENANCE CACHE HELPERS ====================
+        async function getMaintenanceStatus(forceRefresh = false) {
+            const now = Date.now();
+            if (!forceRefresh && maintenanceCacheTimestamp && (now - maintenanceCacheTimestamp) < MAINTENANCE_CACHE_TTL) {
+                return maintenanceCacheValue;
+            }
+            const doc = await db.collection('admin').doc('settings').get();
+            maintenanceCacheValue = doc.exists ? (doc.data().maintenanceMode || false) : false;
+            maintenanceCacheTimestamp = now;
+            return maintenanceCacheValue;
+        }
+
+        function invalidateMaintenanceCache() {
+            maintenanceCacheTimestamp = 0;
         }
 
         // ==================== AUTHENTICATION ====================
         async function register(username, password) {
             try {
                 showLoading();
-                
                 const ip = await getClientIP();
-                if (await checkIPBlocked(ip)) {
-                    throw new Error('Your IP address has been blocked');
-                }
+                if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
-                const usersSnapshot = await db.collection('users').where('username', '==', username).get();
-                if (!usersSnapshot.empty) {
+                // Check username uniqueness using cache if warm, else direct query
+                const allUsers = await getCachedUsers();
+                if (allUsers.some(u => u.username === username)) {
                     throw new Error('Username already exists');
                 }
 
                 const salt = generateSalt();
                 const hashedPassword = await hashPassword(password, salt);
-                
                 const userRef = db.collection('users').doc();
                 await userRef.set({
-                    username: username,
+                    username,
                     passwordHash: hashedPassword,
-                    salt: salt,
+                    salt,
                     avatar: '😀',
                     isAdmin: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastIP: ip
                 });
-
+                invalidateUsersCache();
                 await login(username, password);
             } catch (error) {
                 hideLoading();
@@ -1437,41 +1498,32 @@
         async function login(username, password) {
             try {
                 showLoading();
-                
                 const ip = await getClientIP();
-                if (await checkIPBlocked(ip)) {
-                    throw new Error('Your IP address has been blocked');
-                }
+                if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
+                // Use a targeted Firestore query (single indexed read) rather than full collection scan
                 const usersSnapshot = await db.collection('users').where('username', '==', username).get();
-                
-                if (usersSnapshot.empty) {
-                    throw new Error('Invalid username or password');
-                }
+                if (usersSnapshot.empty) throw new Error('Invalid username or password');
 
                 const userDoc = usersSnapshot.docs[0];
                 const userData = userDoc.data();
                 const hashedPassword = await hashPassword(password, userData.salt);
+                if (hashedPassword !== userData.passwordHash) throw new Error('Invalid username or password');
 
-                if (hashedPassword !== userData.passwordHash) {
-                    throw new Error('Invalid username or password');
-                }
-
-                currentUser = {
-                    id: userDoc.id,
-                    ...userData
-                };
-
+                currentUser = { id: userDoc.id, ...userData };
                 localStorage.setItem('sessionToken', userDoc.id);
                 localStorage.setItem('sessionUser', JSON.stringify(currentUser));
 
-                await userDoc.ref.update({
-                    lastIP: ip,
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                // Batch: update user record + fetch maintenance status in parallel
+                const [, maintenanceMode] = await Promise.all([
+                    userDoc.ref.update({
+                        lastIP: ip,
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                    }),
+                    getMaintenanceStatus(true)
+                ]);
 
-                const maintenanceDoc = await db.collection('admin').doc('settings').get();
-                if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !userData.isAdmin) {
+                if (maintenanceMode && !userData.isAdmin) {
                     showMaintenanceMode();
                     hideLoading();
                     return;
@@ -1480,8 +1532,6 @@
                 setUserOnline(userDoc.id, true);
                 showChatApp();
                 hideLoading();
-
-                // Request notification permission after login
                 requestNotificationPermission();
             } catch (error) {
                 hideLoading();
@@ -1492,11 +1542,9 @@
         async function autoLogin() {
             const sessionToken = localStorage.getItem('sessionToken');
             if (!sessionToken) return false;
-
             try {
                 showLoading();
                 const userDoc = await db.collection('users').doc(sessionToken).get();
-                
                 if (!userDoc.exists) {
                     localStorage.removeItem('sessionToken');
                     localStorage.removeItem('sessionUser');
@@ -1504,17 +1552,13 @@
                 }
 
                 const ip = await getClientIP();
-                if (await checkIPBlocked(ip)) {
-                    throw new Error('Your IP address has been blocked');
-                }
+                if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
-                currentUser = {
-                    id: userDoc.id,
-                    ...userDoc.data()
-                };
+                currentUser = { id: userDoc.id, ...userDoc.data() };
 
-                const maintenanceDoc = await db.collection('admin').doc('settings').get();
-                if (maintenanceDoc.exists && maintenanceDoc.data().maintenanceMode && !currentUser.isAdmin) {
+                // Reuse cached maintenance status (or fetch once)
+                const maintenanceMode = await getMaintenanceStatus();
+                if (maintenanceMode && !currentUser.isAdmin) {
                     showMaintenanceMode();
                     hideLoading();
                     return true;
@@ -1523,7 +1567,6 @@
                 setUserOnline(userDoc.id, true);
                 showChatApp();
                 hideLoading();
-
                 requestNotificationPermission();
                 return true;
             } catch (error) {
@@ -1536,15 +1579,17 @@
         function logout() {
             if (currentUser) {
                 setUserOnline(currentUser.id, false);
-                
-                Object.values(messageListeners).forEach(unsubscribe => unsubscribe());
+                Object.values(messageListeners).forEach(unsubscribe => {
+                    if (typeof unsubscribe === 'function') unsubscribe();
+                });
                 messageListeners = {};
             }
-
             currentUser = null;
+            // Clear caches on logout
+            usersCache = {};
+            usersCacheTimestamp = 0;
             localStorage.removeItem('sessionToken');
             localStorage.removeItem('sessionUser');
-            
             document.getElementById('chatApp').classList.add('hidden');
             document.getElementById('loginPage').classList.remove('hidden');
         }
@@ -1554,40 +1599,29 @@
             const newPass = document.getElementById('newPassword').value;
             const confirm = document.getElementById('confirmNewPassword').value;
 
-            if (!current || !newPass || !confirm) {
-                showToast('Please fill all fields', 'warning');
-                return;
-            }
-
-            if (newPass !== confirm) {
-                showToast('New passwords do not match', 'error');
-                return;
-            }
+            if (!current || !newPass || !confirm) { showToast('Please fill all fields', 'warning'); return; }
+            if (newPass !== confirm) { showToast('New passwords do not match', 'error'); return; }
 
             try {
                 showLoading();
-
                 const hashedCurrent = await hashPassword(current, currentUser.salt);
-                if (hashedCurrent !== currentUser.passwordHash) {
-                    throw new Error('Current password is incorrect');
-                }
+                if (hashedCurrent !== currentUser.passwordHash) throw new Error('Current password is incorrect');
 
                 const newSalt = generateSalt();
                 const newHash = await hashPassword(newPass, newSalt);
-
-                await db.collection('users').doc(currentUser.id).update({
-                    passwordHash: newHash,
-                    salt: newSalt
-                });
-
+                await db.collection('users').doc(currentUser.id).update({ passwordHash: newHash, salt: newSalt });
+                // Update local state & cache
                 currentUser.passwordHash = newHash;
                 currentUser.salt = newSalt;
+                if (usersCache[currentUser.id]) {
+                    usersCache[currentUser.id].passwordHash = newHash;
+                    usersCache[currentUser.id].salt = newSalt;
+                }
 
                 showToast('Password changed successfully!', 'success');
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('newPassword').value = '';
                 document.getElementById('confirmNewPassword').value = '';
-                
                 hideLoading();
             } catch (error) {
                 hideLoading();
@@ -1598,10 +1632,9 @@
         // ==================== USER STATUS ====================
         function setUserOnline(userId, online) {
             rtdb.ref('status/' + userId).set({
-                online: online,
+                online,
                 lastSeen: firebase.database.ServerValue.TIMESTAMP
             });
-
             if (online) {
                 rtdb.ref('status/' + userId).onDisconnect().set({
                     online: false,
@@ -1612,8 +1645,7 @@
 
         function listenToUserStatus(userId, callback) {
             rtdb.ref('status/' + userId).on('value', snapshot => {
-                const status = snapshot.val();
-                callback(status);
+                callback(snapshot.val());
             });
         }
 
@@ -1636,16 +1668,14 @@
 
             loadChatList();
             selectChat('global');
-            
             initBroadcastListener();
-            
+
             const savedTheme = localStorage.getItem('theme') || 'dark';
             applyTheme(savedTheme);
         }
 
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
-            
             chatList.innerHTML = `
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
@@ -1657,36 +1687,21 @@
             `;
 
             try {
-                const usersSnapshot = await db.collection('users').get();
-                const users = [];
-                
-                usersSnapshot.forEach(doc => {
-                    if (doc.id !== currentUser.id) {
-                        users.push({
-                            id: doc.id,
-                            ...doc.data()
-                        });
-                    }
-                });
+                // Use cached users list — avoids a full Firestore scan on every call
+                const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
 
                 const chatsRef = rtdb.ref('privateChats');
                 const chatsSnapshot = await chatsRef.once('value');
                 const existingChats = new Set();
-                
                 if (chatsSnapshot.exists()) {
-                    const chats = chatsSnapshot.val();
-                    Object.keys(chats).forEach(chatId => {
-                        if (chatId.includes(currentUser.id)) {
-                            existingChats.add(chatId);
-                        }
+                    Object.keys(chatsSnapshot.val()).forEach(chatId => {
+                        if (chatId.includes(currentUser.id)) existingChats.add(chatId);
                     });
                 }
 
                 const sortedUsers = users.sort((a, b) => {
-                    const chatIdA = [currentUser.id, a.id].sort().join('_');
-                    const chatIdB = [currentUser.id, b.id].sort().join('_');
-                    const hasA = existingChats.has(chatIdA);
-                    const hasB = existingChats.has(chatIdB);
+                    const hasA = existingChats.has([currentUser.id, a.id].sort().join('_'));
+                    const hasB = existingChats.has([currentUser.id, b.id].sort().join('_'));
                     if (hasA && !hasB) return -1;
                     if (!hasA && hasB) return 1;
                     return a.username.localeCompare(b.username);
@@ -1695,7 +1710,6 @@
                 sortedUsers.forEach(userData => {
                     const chatId = [currentUser.id, userData.id].sort().join('_');
                     const hasChat = existingChats.has(chatId);
-                    
                     const chatItem = document.createElement('div');
                     chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
                     chatItem.onclick = () => hasChat ? selectChat(chatId) : startPrivateChat(userData.id);
@@ -1711,7 +1725,6 @@
                     `;
                     chatList.appendChild(chatItem);
 
-                    // Initialize unread count for this chat if not exists
                     if (!unreadCounts[chatId]) unreadCounts[chatId] = 0;
 
                     listenToUserStatus(userData.id, status => {
@@ -1731,20 +1744,12 @@
 
         function selectChat(chatId) {
             currentChat = chatId;
-            
-            // Reset unread count for this chat
             unreadCounts[chatId] = 0;
-            
+
+            document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
             document.querySelectorAll('.chat-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            const chatItems = document.querySelectorAll('.chat-item');
-            chatItems.forEach(item => {
-                const itemOnClick = item.getAttribute('onclick');
-                if (itemOnClick && itemOnClick.includes(chatId)) {
-                    item.classList.add('active');
-                }
+                const onclickAttr = item.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(chatId)) item.classList.add('active');
             });
 
             const chatTitle = document.getElementById('chatTitle');
@@ -1752,15 +1757,14 @@
                 chatTitle.innerHTML = '<span class="avatar">🌍</span><span>Global Chat</span>';
             } else {
                 const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
-                db.collection('users').doc(otherUserId).get().then(doc => {
-                    if (doc.exists) {
-                        const userData = doc.data();
+                // Use cache to avoid individual user reads
+                getCachedUser(otherUserId).then(userData => {
+                    if (userData) {
                         chatTitle.innerHTML = `
                             <span class="avatar">${userData.avatar}</span>
                             <span>${sanitizeHTML(userData.username)}</span>
                             <span class="status-indicator ${userData.online ? '' : 'offline'}" id="chat-status-${otherUserId}"></span>
                         `;
-                        
                         listenToUserStatus(otherUserId, status => {
                             const indicator = document.getElementById(`chat-status-${otherUserId}`);
                             if (indicator) {
@@ -1783,92 +1787,88 @@
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
 
+            // Clean up previous listeners for this chat slot
             if (messageListeners[currentChat]) {
-                messageListeners[currentChat]();
+                const prev = messageListeners[currentChat];
+                if (typeof prev === 'function') prev();
+            }
+            if (messageListeners[currentChat + '_new']) {
+                const prev = messageListeners[currentChat + '_new'];
+                if (typeof prev === 'function') prev();
             }
 
             if (chatId === 'global') {
+                // Single real-time listener for all global messages.
+                // We track which message IDs we've already seen so we can
+                // detect genuinely new arrivals for unread/notification logic.
+                let knownMessageIds = null; // null = first snapshot, set = subsequent
+
                 const unsubscribe = db.collection('messages')
                     .onSnapshot(snapshot => {
                         container.innerHTML = '';
                         const messages = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
-                            if (data.timestamp) {
-                                messages.push({ id: doc.id, ...data });
-                            }
+                            if (data.timestamp) messages.push({ id: doc.id, ...data });
                         });
-                        messages.sort((a, b) => {
-                            const aTime = a.timestamp?.toMillis() || 0;
-                            const bTime = b.timestamp?.toMillis() || 0;
-                            return aTime - bTime;
-                        });
+                        messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
                         const lastMessages = messages.slice(-100);
-                        lastMessages.forEach(message => displayMessage(message, container));
+                        lastMessages.forEach(msg => displayMessage(msg, container));
                         scrollToBottom();
 
-                        // Check for new messages to increment unread counter and notify
-                        messages.slice(-100).forEach(message => {
-                            if (message.userId !== currentUser.id) {
-                                // If this message is new and not from us, and not already counted? This is tricky because snapshot gives all.
-                                // We'll use a simple approach: after rendering, we don't increment here because snapshot includes all.
-                                // Instead, we'll handle new messages in the message listener where we can detect if it's new.
-                            }
-                        });
+                        // Detect new messages (after first render) for unread/notifications
+                        if (knownMessageIds !== null) {
+                            lastMessages.forEach(msg => {
+                                if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
+                                    if (currentChat !== 'global') {
+                                        unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                        updateUnreadBadge('global');
+                                        showNotification('New message in Global Chat', msg.content, msg.userAvatar);
+                                    }
+                                }
+                            });
+                        }
+                        // Refresh known IDs
+                        knownMessageIds = new Set(lastMessages.map(m => m.id));
                     }, error => {
                         console.error('Error loading messages:', error);
                         showToast('Error loading messages: ' + error.message, 'error');
                     });
-                messageListeners[chatId] = unsubscribe;
 
-                // Also listen for new messages to update unread and notifications
-                // We'll add a separate listener for new messages only (not the full snapshot)
-                const newMessagesRef = db.collection('messages').orderBy('timestamp', 'desc').limit(1);
-                const newUnsubscribe = newMessagesRef.onSnapshot(snapshot => {
-                    snapshot.docChanges().forEach(change => {
-                        if (change.type === 'added') {
-                            const msg = change.doc.data();
-                            if (msg.userId !== currentUser.id && currentChat !== 'global') {
-                                // New message in global chat not currently viewed
-                                unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                updateUnreadBadge('global');
-                                // Show notification
-                                showNotification('New message in Global Chat', msg.content, msg.userAvatar);
-                            }
-                        }
-                    });
-                });
-                // We need to store this unsubscribe too
-                messageListeners[chatId + '_new'] = newUnsubscribe;
+                messageListeners[chatId] = unsubscribe;
 
             } else {
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
+                let firstLoad = true;
                 messagesRef.on('value', snapshot => {
                     container.innerHTML = '';
                     const messages = [];
-                    snapshot.forEach(child => {
-                        messages.push({ id: child.key, ...child.val() });
-                    });
-                    messages.forEach(message => displayMessage(message, container, true));
+                    snapshot.forEach(child => messages.push({ id: child.key, ...child.val() }));
+                    messages.forEach(msg => displayMessage(msg, container, true));
                     scrollToBottom();
+
+                    // After first load, subsequent 'value' events carry deltas
+                    // We don't need a separate child_added listener anymore
+                    firstLoad = false;
                 }, error => {
                     console.error('Error loading messages:', error);
                     showToast('Error loading messages: ' + error.message, 'error');
                 });
                 messageListeners[chatId] = () => messagesRef.off();
 
-                // For private chats, we need to listen for new messages separately
+                // Lightweight listener for new private messages (unread + notifications)
+                // Uses child_added on just the last 1 item to avoid re-reading all messages
                 const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
+                let privateListenerReady = false;
                 newPrivateRef.on('child_added', snapshot => {
+                    if (!privateListenerReady) { privateListenerReady = true; return; } // skip initial load event
                     const msg = snapshot.val();
                     if (msg.userId !== currentUser.id && currentChat !== chatId) {
                         unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
                         updateUnreadBadge(chatId);
-                        // Get sender name
-                        db.collection('users').doc(msg.userId).get().then(userDoc => {
-                            if (userDoc.exists) {
-                                showNotification(`Message from ${userDoc.data().username}`, msg.content, userDoc.data().avatar);
-                            }
+                        // Use user cache instead of a Firestore read
+                        getCachedUser(msg.userId).then(userData => {
+                            if (userData) showNotification(`Message from ${userData.username}`, msg.content, userData.avatar);
                         });
                     }
                 });
@@ -1881,17 +1881,16 @@
             const isOwn = message.userId === currentUser.id;
             const isSystem = message.type === 'system';
             const isBroadcast = message.type === 'broadcast';
-            
+
             let className = 'message';
             if (isOwn && !isSystem && !isBroadcast) className += ' own';
             if (isSystem) className += ' system';
             if (isBroadcast) className += ' admin-broadcast';
             if (isPrivate && !isSystem) className += ' private';
-            
+
             div.className = className;
 
             let content = '';
-            
             if (!isSystem) {
                 content += `
                     <div class="message-header">
@@ -1906,13 +1905,11 @@
             let messageContent = sanitizeHTML(message.content);
             const urlRegex = /(https?:\/\/[^\s]+)/g;
             messageContent = messageContent.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">$1</a>');
-            
             content += `<div class="message-content">${messageContent}</div>`;
 
             if (!isSystem) {
                 const canEdit = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
                 const canDelete = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
-
                 content += `
                     <div class="message-footer">
                         <span>${formatTimestamp(message.timestamp)}</span>
@@ -1933,15 +1930,12 @@
         function isWithinEditTime(timestamp) {
             if (!timestamp) return false;
             const messageTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            const now = new Date();
-            const diff = now - messageTime;
-            return diff < 7200000;
+            return (new Date() - messageTime) < 7200000;
         }
 
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const content = input.value.trim();
-
             if (!content) return;
 
             try {
@@ -1950,20 +1944,20 @@
                     username: currentUser.username,
                     userAvatar: currentUser.avatar,
                     isAdmin: currentUser.isAdmin || false,
-                    content: content,
+                    content,
                     type: 'normal'
                 };
 
                 if (editingMessageId) {
                     if (currentChat === 'global') {
                         await db.collection('messages').doc(editingMessageId).update({
-                            content: content,
+                            content,
                             edited: true,
                             editedAt: firebase.firestore.FieldValue.serverTimestamp()
                         });
                     } else {
                         await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({
-                            content: content,
+                            content,
                             edited: true,
                             editedAt: firebase.database.ServerValue.TIMESTAMP
                         });
@@ -1989,7 +1983,6 @@
 
         function editMessage(messageId, chatId, isPrivate) {
             editingMessageId = messageId;
-            
             if (isPrivate) {
                 rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).once('value', snapshot => {
                     const message = snapshot.val();
@@ -2023,9 +2016,7 @@
         }
 
         function handleMessageKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
+            if (event.key === 'Enter') sendMessage();
         }
 
         function scrollToBottom() {
@@ -2033,17 +2024,20 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        // Debounced search to avoid a Firestore read on every keystroke
+        function searchUsersDebounced() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(searchUsers, 300);
+        }
+
         async function searchUsers() {
             const query = document.getElementById('userSearch').value.toLowerCase().trim();
-            
-            if (!query) {
-                loadChatList();
-                return;
-            }
+            if (!query) { loadChatList(); return; }
 
-            const usersSnapshot = await db.collection('users').get();
+            // Use cache — no new Firestore read required
+            const allUsers = await getCachedUsers();
             const chatList = document.getElementById('chatList');
-            
+
             chatList.innerHTML = `
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
@@ -2054,71 +2048,51 @@
                 </div>
             `;
 
-            usersSnapshot.forEach(doc => {
-                if (doc.id === currentUser.id) return;
-                
-                const userData = doc.data();
-                if (userData.username.toLowerCase().includes(query)) {
-                    const chatId = [currentUser.id, doc.id].sort().join('_');
-                    const chatItem = document.createElement('div');
-                    chatItem.className = 'chat-item';
-                    chatItem.onclick = () => startPrivateChat(doc.id);
-                    chatItem.innerHTML = `
-                        <div class="avatar">${userData.avatar}</div>
-                        <div class="chat-item-info">
-                            <div class="chat-item-name">${sanitizeHTML(userData.username)}</div>
-                            <div class="chat-item-preview">Start private chat</div>
-                        </div>
-                    `;
-                    chatList.appendChild(chatItem);
-                }
+            allUsers.forEach(userData => {
+                if (userData.id === currentUser.id) return;
+                if (!userData.username.toLowerCase().includes(query)) return;
+
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-item';
+                chatItem.onclick = () => startPrivateChat(userData.id);
+                chatItem.innerHTML = `
+                    <div class="avatar">${userData.avatar}</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">${sanitizeHTML(userData.username)}</div>
+                        <div class="chat-item-preview">Start private chat</div>
+                    </div>
+                `;
+                chatList.appendChild(chatItem);
             });
         }
 
         async function startPrivateChat(otherUserId) {
             const chatId = [currentUser.id, otherUserId].sort().join('_');
-            
             const chatRef = rtdb.ref(`privateChats/${chatId}`);
             const snapshot = await chatRef.once('value');
-            
             if (!snapshot.exists()) {
                 await chatRef.set({
                     participants: [currentUser.id, otherUserId],
                     createdAt: firebase.database.ServerValue.TIMESTAMP
                 });
-
                 await rtdb.ref(`privateChats/${chatId}/messages`).push({
                     type: 'system',
                     content: 'Private chat started',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
             }
-
             selectChat(chatId);
             loadChatList();
         }
 
         // ==================== ADMIN FUNCTIONS ====================
-        
         async function loadIPTracking() {
             const listDiv = document.getElementById('ipTrackingList');
             listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Loading...</p>';
 
             try {
-                const usersSnapshot = await db.collection('users').get();
-                const users = [];
-
-                usersSnapshot.forEach(doc => {
-                    const userData = doc.data();
-                    users.push({
-                        id: doc.id,
-                        username: userData.username,
-                        ip: userData.lastIP || 'Unknown',
-                        avatar: userData.avatar,
-                        isAdmin: userData.isAdmin,
-                        lastSeen: userData.lastSeen
-                    });
-                });
+                // Reuse cached users — avoids a fresh Firestore scan
+                const users = await getCachedUsers();
 
                 users.sort((a, b) => {
                     const aTime = a.lastSeen ? a.lastSeen.toMillis() : 0;
@@ -2127,7 +2101,6 @@
                 });
 
                 listDiv.innerHTML = '';
-
                 if (users.length === 0) {
                     listDiv.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No users found</p>';
                     return;
@@ -2137,9 +2110,7 @@
                     const div = document.createElement('div');
                     div.className = 'user-item';
                     div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.5rem;';
-                    
-                    const isBlocked = checkIfIPBlocked(user.ip);
-                    
+                    const isBlocked = checkIfIPBlocked(user.ip || 'Unknown');
                     div.innerHTML = `
                         <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1;">
                             <span class="avatar">${user.avatar}</span>
@@ -2149,13 +2120,13 @@
                                     ${user.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
                                 </div>
                                 <div style="font-size: 0.875rem; color: var(--text-secondary);">
-                                    IP: <code style="background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace;">${user.ip}</code>
+                                    IP: <code style="background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-family: monospace;">${user.ip || 'Unknown'}</code>
                                 </div>
                                 ${user.lastSeen ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem;">Last seen: ${formatTimestamp(user.lastSeen)}</div>` : ''}
                             </div>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
-                            ${user.ip !== 'Unknown' ? `
+                            ${user.ip && user.ip !== 'Unknown' ? `
                                 <button class="btn-small ${isBlocked ? '' : 'btn-danger'}" onclick="toggleIPBan('${user.ip}', '${user.username}')">
                                     ${isBlocked ? '🔓 Unban IP' : '🚫 Ban IP'}
                                 </button>
@@ -2168,8 +2139,7 @@
                 document.getElementById('ipSearchInput').oninput = function() {
                     const searchTerm = this.value.toLowerCase();
                     Array.from(listDiv.children).forEach(item => {
-                        const text = item.textContent.toLowerCase();
-                        item.style.display = text.includes(searchTerm) ? '' : 'none';
+                        item.style.display = item.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
                     });
                 };
 
@@ -2178,8 +2148,6 @@
                 listDiv.innerHTML = '<p style="text-align: center; color: var(--danger);">Error loading IP data</p>';
             }
         }
-
-        let cachedBlockedIPs = [];
 
         async function loadBlockedIPsCache() {
             const doc = await db.collection('admin').doc('blockedIPs').get();
@@ -2195,10 +2163,8 @@
                 showLoading();
                 const blockedRef = db.collection('admin').doc('blockedIPs');
                 const doc = await blockedRef.get();
-                
                 let ips = doc.exists ? (doc.data().ips || []) : [];
                 const isCurrentlyBlocked = ips.includes(ip);
-                
                 if (isCurrentlyBlocked) {
                     ips = ips.filter(i => i !== ip);
                     await blockedRef.set({ ips }, { merge: true });
@@ -2210,7 +2176,6 @@
                         showToast(`IP ${ip} banned (${username})`, 'warning');
                     }
                 }
-
                 await loadBlockedIPsCache();
                 await loadIPTracking();
                 await loadBlockedIPs();
@@ -2235,7 +2200,6 @@
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
             event.target.classList.add('active');
             document.getElementById(tabName + 'Tab').classList.add('active');
         }
@@ -2243,14 +2207,11 @@
         function initializeEmojiPicker() {
             const grid = document.getElementById('emojiGrid');
             grid.innerHTML = '';
-            
             EMOJIS.forEach(emoji => {
                 const btn = document.createElement('button');
                 btn.className = 'emoji-btn';
                 btn.textContent = emoji;
-                if (emoji === currentUser.avatar) {
-                    btn.classList.add('selected');
-                }
+                if (emoji === currentUser.avatar) btn.classList.add('selected');
                 btn.onclick = () => selectEmoji(emoji);
                 grid.appendChild(btn);
             });
@@ -2258,16 +2219,12 @@
 
         async function selectEmoji(emoji) {
             try {
-                await db.collection('users').doc(currentUser.id).update({
-                    avatar: emoji
-                });
-                
+                await db.collection('users').doc(currentUser.id).update({ avatar: emoji });
                 currentUser.avatar = emoji;
                 document.getElementById('userAvatar').textContent = emoji;
-                
-                document.querySelectorAll('.emoji-btn').forEach(btn => {
-                    btn.classList.remove('selected');
-                });
+                // Update cache
+                if (usersCache[currentUser.id]) usersCache[currentUser.id].avatar = emoji;
+                document.querySelectorAll('.emoji-btn').forEach(btn => btn.classList.remove('selected'));
                 event.target.classList.add('selected');
             } catch (error) {
                 console.error('Error updating avatar:', error);
@@ -2277,16 +2234,12 @@
         function initializeThemeSelector() {
             const selector = document.getElementById('themeSelector');
             selector.innerHTML = '';
-            
             const savedTheme = localStorage.getItem('theme') || 'light';
-            
             THEMES.forEach(theme => {
                 const btn = document.createElement('button');
                 btn.className = 'theme-btn';
                 btn.textContent = theme.charAt(0).toUpperCase() + theme.slice(1);
-                if (theme === savedTheme) {
-                    btn.classList.add('active');
-                }
+                if (theme === savedTheme) btn.classList.add('active');
                 btn.onclick = () => selectTheme(theme);
                 selector.appendChild(btn);
             });
@@ -2295,10 +2248,7 @@
         function selectTheme(theme) {
             applyTheme(theme);
             localStorage.setItem('theme', theme);
-            
-            document.querySelectorAll('.theme-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
         }
 
@@ -2308,18 +2258,15 @@
 
         // ==================== ADMIN PANEL ====================
         async function showAdminPanel() {
-            if (!currentUser.isAdmin) {
-                showToast('Access denied', 'error');
-                return;
-            }
-
+            if (!currentUser.isAdmin) { showToast('Access denied', 'error'); return; }
             document.getElementById('adminModal').classList.remove('hidden');
-            await loadAdminStats();
-            await loadAdminUsers();
-            await loadBlockedIPsCache();
-            await loadIPTracking();
-            await loadBlockedIPs();
-            await loadMaintenanceStatus();
+            // Run all admin data loads in parallel to minimize latency
+            await Promise.all([
+                loadAdminStats(),
+                loadAdminUsers(),
+                loadBlockedIPsCache().then(() => Promise.all([loadIPTracking(), loadBlockedIPs()])),
+                loadMaintenanceStatus()
+            ]);
         }
 
         function closeAdminPanel() {
@@ -2328,31 +2275,28 @@
 
         async function checkMaintenanceStatus() {
             showLoading();
-            const settingsDoc = await db.collection('admin').doc('settings').get();
-            const maintenanceMode = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
-            
+            const maintenanceMode = await getMaintenanceStatus(true);
+            hideLoading();
             if (!maintenanceMode) {
-                hideLoading();
                 location.reload();
             } else {
-                hideLoading();
                 showToast('Still under maintenance, please wait...', 'info');
             }
         }
 
         async function loadAdminStats() {
             try {
-                const usersSnapshot = await db.collection('users').get();
+                // Run all three reads in parallel
+                const [usersSnapshot, statusSnapshot, messagesSnapshot] = await Promise.all([
+                    db.collection('users').get(),
+                    rtdb.ref('status').once('value'),
+                    db.collection('messages').get()
+                ]);
+
                 document.getElementById('totalUsers').textContent = usersSnapshot.size;
-
-                const statusSnapshot = await rtdb.ref('status').once('value');
                 let onlineCount = 0;
-                statusSnapshot.forEach(child => {
-                    if (child.val().online) onlineCount++;
-                });
+                statusSnapshot.forEach(child => { if (child.val().online) onlineCount++; });
                 document.getElementById('onlineUsers').textContent = onlineCount;
-
-                const messagesSnapshot = await db.collection('messages').get();
                 document.getElementById('totalMessages').textContent = messagesSnapshot.size;
             } catch (error) {
                 console.error('Error loading stats:', error);
@@ -2362,11 +2306,9 @@
         async function loadAdminUsers() {
             const userList = document.getElementById('adminUserList');
             userList.innerHTML = '';
-
-            const usersSnapshot = await db.collection('users').get();
-            
-            usersSnapshot.forEach(doc => {
-                const userData = doc.data();
+            // Use cache for admin panel user list
+            const users = await getCachedUsers();
+            users.forEach(userData => {
                 const div = document.createElement('div');
                 div.className = 'user-item';
                 div.innerHTML = `
@@ -2376,33 +2318,27 @@
                         ${userData.isAdmin ? '<span class="badge admin">ADMIN</span>' : ''}
                     </div>
                     <div class="user-actions">
-                        ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${doc.id}')">Make Admin</button>` : ''}
-                        ${userData.isAdmin && doc.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${doc.id}')">Remove Admin</button>` : ''}
-                        ${doc.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${doc.id}')">Delete</button>` : ''}
-                        <!-- New: Set Password button (admin can set plain password) -->
-                        <button class="btn-small btn-secondary" onclick="setUserPassword('${doc.id}')">Set Password</button>
+                        ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${userData.id}')">Make Admin</button>` : ''}
+                        ${userData.isAdmin && userData.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${userData.id}')">Remove Admin</button>` : ''}
+                        ${userData.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${userData.id}')">Delete</button>` : ''}
+                        <button class="btn-small btn-secondary" onclick="setUserPassword('${userData.id}')">Set Password</button>
                     </div>
                 `;
                 userList.appendChild(div);
             });
         }
 
-        // Admin sets a user's password (plain text -> hashed)
         async function setUserPassword(userId) {
             const newPassword = prompt("Enter new plain password for this user:");
             if (!newPassword) return;
-            if (newPassword.length < 3) {
-                alert("Password too short");
-                return;
-            }
+            if (newPassword.length < 3) { alert("Password too short"); return; }
             try {
                 showLoading();
                 const salt = generateSalt();
                 const hashed = await hashPassword(newPassword, salt);
-                await db.collection('users').doc(userId).update({
-                    passwordHash: hashed,
-                    salt: salt
-                });
+                await db.collection('users').doc(userId).update({ passwordHash: hashed, salt });
+                // Update cache
+                if (usersCache[userId]) { usersCache[userId].passwordHash = hashed; usersCache[userId].salt = salt; }
                 showToast("Password updated successfully", "success");
             } catch (error) {
                 showToast("Error: " + error.message, "error");
@@ -2413,9 +2349,8 @@
 
         async function makeAdmin(userId) {
             try {
-                await db.collection('users').doc(userId).update({
-                    isAdmin: true
-                });
+                await db.collection('users').doc(userId).update({ isAdmin: true });
+                if (usersCache[userId]) usersCache[userId].isAdmin = true;
                 showToast('Admin rights granted', 'success');
                 loadAdminUsers();
             } catch (error) {
@@ -2425,9 +2360,8 @@
 
         async function removeAdmin(userId) {
             try {
-                await db.collection('users').doc(userId).update({
-                    isAdmin: false
-                });
+                await db.collection('users').doc(userId).update({ isAdmin: false });
+                if (usersCache[userId]) usersCache[userId].isAdmin = false;
                 showToast('Admin rights revoked', 'success');
                 loadAdminUsers();
             } catch (error) {
@@ -2439,6 +2373,8 @@
             try {
                 await db.collection('users').doc(userId).delete();
                 await rtdb.ref('status/' + userId).remove();
+                // Remove from cache
+                delete usersCache[userId];
                 showToast('User deleted', 'success');
                 loadAdminUsers();
                 loadAdminStats();
@@ -2449,15 +2385,9 @@
 
         async function sendBroadcast() {
             const content = document.getElementById('broadcastMessage').value.trim();
-            
-            if (!content) {
-                showToast('Please enter a message', 'warning');
-                return;
-            }
-
+            if (!content) { showToast('Please enter a message', 'warning'); return; }
             try {
                 showLoading();
-
                 await db.collection('broadcasts').add({
                     type: 'message',
                     message: content,
@@ -2465,7 +2395,6 @@
                     sentBy: currentUser.id,
                     sentByName: currentUser.username
                 });
-
                 document.getElementById('broadcastMessage').value = '';
                 hideLoading();
                 showToast('Broadcast sent!', 'success');
@@ -2478,20 +2407,12 @@
         async function cleanupOldMessages() {
             try {
                 showLoading();
-
-                const messagesSnapshot = await db.collection('messages')
-                    .orderBy('timestamp', 'desc')
-                    .get();
-                
+                const messagesSnapshot = await db.collection('messages').orderBy('timestamp', 'desc').get();
                 const toDelete = [];
                 messagesSnapshot.forEach((doc, index) => {
-                    if (index >= 100) {
-                        toDelete.push(doc.ref.delete());
-                    }
+                    if (index >= 100) toDelete.push(doc.ref.delete());
                 });
-
                 await Promise.all(toDelete);
-
                 hideLoading();
                 showToast('Cleanup completed!', 'success');
                 loadAdminStats();
@@ -2504,14 +2425,10 @@
         async function wipeAllData() {
             try {
                 showLoading();
-
                 const messagesSnapshot = await db.collection('messages').get();
                 const deletions = [];
                 messagesSnapshot.forEach(doc => deletions.push(doc.ref.delete()));
-                await Promise.all(deletions);
-
-                await rtdb.ref('privateChats').remove();
-
+                await Promise.all([...deletions, rtdb.ref('privateChats').remove()]);
                 hideLoading();
                 showToast('All data wiped!', 'warning');
                 loadAdminStats();
@@ -2524,46 +2441,31 @@
         async function toggleMaintenance() {
             const settingsRef = db.collection('admin').doc('settings');
             const settingsDoc = await settingsRef.get();
-            
             const currentState = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
             const newState = !currentState;
-
-            await settingsRef.set({
-                maintenanceMode: newState
-            }, { merge: true });
-
-            document.getElementById('maintenanceText').textContent = 
-                newState ? 'Disable Maintenance' : 'Enable Maintenance';
-
+            await settingsRef.set({ maintenanceMode: newState }, { merge: true });
+            // Invalidate maintenance cache
+            invalidateMaintenanceCache();
+            document.getElementById('maintenanceText').textContent = newState ? 'Disable Maintenance' : 'Enable Maintenance';
             showToast(newState ? 'Maintenance mode enabled' : 'Maintenance mode disabled', 'info');
         }
 
         async function loadMaintenanceStatus() {
-            const settingsDoc = await db.collection('admin').doc('settings').get();
-            const maintenanceMode = settingsDoc.exists ? settingsDoc.data().maintenanceMode : false;
-            
-            document.getElementById('maintenanceText').textContent = 
-                maintenanceMode ? 'Disable Maintenance' : 'Enable Maintenance';
+            const maintenanceMode = await getMaintenanceStatus(true);
+            document.getElementById('maintenanceText').textContent = maintenanceMode ? 'Disable Maintenance' : 'Enable Maintenance';
         }
 
         async function blockIP() {
             const ip = document.getElementById('blockIpInput').value.trim();
-            
-            if (!ip) {
-                showToast('Please enter an IP address', 'warning');
-                return;
-            }
-
+            if (!ip) { showToast('Please enter an IP address', 'warning'); return; }
             try {
                 const blockedRef = db.collection('admin').doc('blockedIPs');
                 const doc = await blockedRef.get();
-                
                 const ips = doc.exists ? (doc.data().ips || []) : [];
                 if (!ips.includes(ip)) {
                     ips.push(ip);
                     await blockedRef.set({ ips }, { merge: true });
                 }
-
                 document.getElementById('blockIpInput').value = '';
                 await loadBlockedIPsCache();
                 loadBlockedIPs();
@@ -2577,15 +2479,12 @@
         async function loadBlockedIPs() {
             const listDiv = document.getElementById('blockedIpList');
             const doc = await db.collection('admin').doc('blockedIPs').get();
-            
             if (!doc.exists || !doc.data().ips || doc.data().ips.length === 0) {
                 listDiv.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.875rem;">No blocked IPs</p>';
                 return;
             }
-
             const ips = doc.data().ips;
             listDiv.innerHTML = '<h4 style="margin-bottom: 0.5rem;">Blocked IPs:</h4>';
-            
             ips.forEach(ip => {
                 const div = document.createElement('div');
                 div.style.cssText = 'display: flex; justify-content: space-between; padding: 0.5rem; background: var(--background); border-radius: 0.25rem; margin-bottom: 0.25rem;';
@@ -2601,7 +2500,6 @@
             try {
                 const blockedRef = db.collection('admin').doc('blockedIPs');
                 const doc = await blockedRef.get();
-                
                 if (doc.exists) {
                     const ips = doc.data().ips.filter(i => i !== ip);
                     await blockedRef.set({ ips }, { merge: true });
@@ -2617,27 +2515,15 @@
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('chatApp').classList.add('hidden');
             document.getElementById('maintenancePage').classList.remove('hidden');
-            
             initFlappyBird();
         }
 
-        // Flappy Bird Game
         function initFlappyBird() {
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
             const scoreDisplay = document.getElementById('gameScore');
 
-            let bird = {
-                x: 50,
-                y: 150,
-                width: 34,
-                height: 24,
-                gravity: 0.5,
-                velocity: 0,
-                jump: -8,
-                rotation: 0
-            };
-
+            let bird = { x: 50, y: 150, width: 34, height: 24, gravity: 0.5, velocity: 0, jump: -8, rotation: 0 };
             let pipes = [];
             let frame = 0;
             let score = 0;
@@ -2655,24 +2541,14 @@
                 const minHeight = 50;
                 const maxHeight = canvas.height - gap - minHeight;
                 const height = Math.random() * (maxHeight - minHeight) + minHeight;
-                
-                pipes.push({
-                    x: canvas.width,
-                    top: height,
-                    bottom: height + gap,
-                    width: 60,
-                    passed: false,
-                    scored: false
-                });
+                pipes.push({ x: canvas.width, top: height, bottom: height + gap, width: 60, passed: false, scored: false });
             }
 
             function drawBackground() {
                 ctx.fillStyle = skyGradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-
                 backgroundX -= 0.5;
                 if (backgroundX <= -100) backgroundX = 0;
-
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
                 for (let i = 0; i < 5; i++) {
                     const x = (backgroundX + i * 150) % canvas.width;
@@ -2682,30 +2558,24 @@
                     ctx.arc(x + 40, 50 + i * 30, 20, 0, Math.PI * 2);
                     ctx.fill();
                 }
-
                 ctx.fillStyle = '#8B7355';
                 ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
                 ctx.fillStyle = '#6B5940';
-                for (let i = 0; i < canvas.width; i += 20) {
-                    ctx.fillRect(i, canvas.height - 45, 15, 5);
-                }
+                for (let i = 0; i < canvas.width; i += 20) ctx.fillRect(i, canvas.height - 45, 15, 5);
             }
 
             function drawBird() {
                 ctx.save();
                 ctx.translate(bird.x + bird.width / 2, bird.y + bird.height / 2);
                 ctx.rotate(bird.rotation);
-
                 ctx.fillStyle = '#FFD700';
                 ctx.beginPath();
                 ctx.ellipse(0, 0, bird.width / 2, bird.height / 2, 0, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.fillStyle = '#FFA500';
                 ctx.beginPath();
                 ctx.ellipse(-5, 5, 8, 6, Math.sin(frame * 0.2) * 0.3, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.fillStyle = 'white';
                 ctx.beginPath();
                 ctx.arc(8, -3, 5, 0, Math.PI * 2);
@@ -2714,7 +2584,6 @@
                 ctx.beginPath();
                 ctx.arc(9, -3, 2, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.fillStyle = '#FF6347';
                 ctx.beginPath();
                 ctx.moveTo(12, 0);
@@ -2722,7 +2591,6 @@
                 ctx.lineTo(18, 2);
                 ctx.closePath();
                 ctx.fill();
-
                 ctx.restore();
             }
 
@@ -2733,16 +2601,12 @@
                     topGradient.addColorStop(1, '#27AE60');
                     ctx.fillStyle = topGradient;
                     ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
-                    
                     ctx.fillStyle = '#229954';
                     ctx.fillRect(pipe.x - 5, pipe.top - 20, pipe.width + 10, 20);
-
                     ctx.fillStyle = topGradient;
                     ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
-                    
                     ctx.fillStyle = '#229954';
                     ctx.fillRect(pipe.x - 5, pipe.bottom, pipe.width + 10, 20);
-
                     if (!pipe.scored && pipe.x + pipe.width < bird.x) {
                         pipe.scored = true;
                         ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
@@ -2759,7 +2623,6 @@
                 ctx.textAlign = 'center';
                 ctx.strokeText(score, canvas.width / 2, 60);
                 ctx.fillText(score, canvas.width / 2, 60);
-
                 ctx.font = 'bold 20px Arial';
                 ctx.strokeText(`Best: ${highScore}`, canvas.width / 2, 90);
                 ctx.fillText(`Best: ${highScore}`, canvas.width / 2, 90);
@@ -2767,106 +2630,58 @@
 
             function update() {
                 if (gameOver) return;
-
                 bird.velocity += bird.gravity;
                 bird.y += bird.velocity;
                 bird.rotation = Math.min(Math.max(bird.velocity * 0.05, -0.5), 0.5);
-
                 const pipeSpeed = 2 + difficulty * 0.3;
-                if (frame % Math.max(60, 90 - difficulty * 5) === 0) {
-                    createPipe();
-                }
-
+                if (frame % Math.max(60, 90 - difficulty * 5) === 0) createPipe();
                 pipes.forEach((pipe, index) => {
                     pipe.x -= pipeSpeed;
-
                     if (!pipe.passed && pipe.x + pipe.width < bird.x) {
                         pipe.passed = true;
                         score++;
                         scoreDisplay.textContent = score;
-                        
                         if (score > highScore) {
                             highScore = score;
                             localStorage.setItem('flappyHighScore', highScore);
                         }
-
-                        if (score % 5 === 0) {
-                            difficulty++;
-                            showToast(`Level ${difficulty}! 🎮`, 'success');
-                        }
+                        if (score % 5 === 0) { difficulty++; showToast(`Level ${difficulty}! 🎮`, 'success'); }
                     }
-
                     if (
                         bird.x < pipe.x + pipe.width &&
                         bird.x + bird.width > pipe.x &&
                         (bird.y < pipe.top || bird.y + bird.height > pipe.bottom)
-                    ) {
-                        endGame();
-                    }
-
-                    if (pipe.x + pipe.width < 0) {
-                        pipes.splice(index, 1);
-                    }
+                    ) endGame();
+                    if (pipe.x + pipe.width < 0) pipes.splice(index, 1);
                 });
-
-                if (bird.y + bird.height > canvas.height - 50 || bird.y < 0) {
-                    endGame();
-                }
-
+                if (bird.y + bird.height > canvas.height - 50 || bird.y < 0) endGame();
                 frame++;
             }
 
             function endGame() {
                 if (gameOver) return;
                 gameOver = true;
-                
                 setTimeout(() => {
-                    const message = score > highScore - 1 ? 
-                        `🏆 New High Score: ${score}!` : 
-                        `Game Over! Score: ${score}`;
+                    const message = score > highScore - 1 ? `🏆 New High Score: ${score}!` : `Game Over! Score: ${score}`;
                     showToast(message, score > highScore - 1 ? 'success' : 'info');
                     resetGame();
                 }, 100);
             }
 
-            function draw() {
-                drawBackground();
-                drawPipes();
-                drawBird();
-                drawScore();
-            }
+            function draw() { drawBackground(); drawPipes(); drawBird(); drawScore(); }
 
-            function gameLoop() {
-                update();
-                draw();
-                requestAnimationFrame(gameLoop);
-            }
+            function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
 
             function resetGame() {
-                bird.y = 150;
-                bird.velocity = 0;
-                bird.rotation = 0;
-                pipes = [];
-                score = 0;
-                frame = 0;
-                gameOver = false;
-                difficulty = 1;
+                bird.y = 150; bird.velocity = 0; bird.rotation = 0;
+                pipes = []; score = 0; frame = 0; gameOver = false; difficulty = 1;
                 scoreDisplay.textContent = score;
             }
 
-            canvas.addEventListener('click', () => {
-                if (!gameOver) {
-                    bird.velocity = bird.jump;
-                }
-            });
-
+            canvas.addEventListener('click', () => { if (!gameOver) bird.velocity = bird.jump; });
             document.addEventListener('keydown', (e) => {
-                if (e.code === 'Space' && !gameOver) {
-                    e.preventDefault();
-                    bird.velocity = bird.jump;
-                }
+                if (e.code === 'Space' && !gameOver) { e.preventDefault(); bird.velocity = bird.jump; }
             });
-
             gameLoop();
         }
 
@@ -2890,7 +2705,6 @@
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
-
             try {
                 await login(username, password);
             } catch (error) {
@@ -2903,17 +2717,8 @@
             const username = document.getElementById('registerUsername').value;
             const password = document.getElementById('registerPassword').value;
             const confirm = document.getElementById('registerConfirmPassword').value;
-
-            if (password !== confirm) {
-                showError('registerError', 'Passwords do not match');
-                return;
-            }
-
-            if (password.length < 6) {
-                showError('registerError', 'Password must be at least 6 characters');
-                return;
-            }
-
+            if (password !== confirm) { showError('registerError', 'Passwords do not match'); return; }
+            if (password.length < 6) { showError('registerError', 'Password must be at least 6 characters'); return; }
             try {
                 await register(username, password);
             } catch (error) {
@@ -2923,11 +2728,10 @@
 
         // ==================== BROADCAST BANNER & URL HANDLING ====================
         let broadcastListener = null;
-        let currentPopupUrl = null; // kept for compatibility, not used
+        let currentPopupUrl = null;
 
         function initBroadcastListener() {
             if (broadcastListener) return;
-            
             broadcastListener = db.collection('broadcasts')
                 .orderBy('timestamp', 'desc')
                 .limit(10)
@@ -2935,36 +2739,22 @@
                     snapshot.forEach(doc => {
                         const broadcast = doc.data();
                         const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
-                        
-                        if (dismissedBroadcasts.includes(doc.id)) {
-                            return;
-                        }
+                        if (dismissedBroadcasts.includes(doc.id)) return;
+                        if (broadcast.targetUsers && !broadcast.targetUsers.includes(currentUser.id)) return;
 
-                        if (broadcast.targetUsers) {
-                            if (!broadcast.targetUsers.includes(currentUser.id)) {
-                                return;
-                            }
-                        }
-                        
                         if (broadcast.type === 'url_redirect') {
-                            // FORCE OPEN THE URL (attempt) – NO TOAST
                             const url = broadcast.url;
-                            // Try multiple methods to bypass popup blocker
                             const win = window.open(url, '_blank');
                             if (!win || win.closed || typeof win.closed === 'undefined') {
-                                // Fallback: create an invisible link and click it
                                 const link = document.createElement('a');
                                 link.href = url;
                                 link.target = '_blank';
                                 link.rel = 'noopener noreferrer';
-                                link.style.position = 'absolute';
-                                link.style.top = '-1000px';
-                                link.style.left = '-1000px';
+                                link.style.cssText = 'position: absolute; top: -1000px; left: -1000px;';
                                 document.body.appendChild(link);
                                 link.click();
                                 setTimeout(() => document.body.removeChild(link), 100);
                             }
-                            // No toast here – removed
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
@@ -2974,9 +2764,7 @@
 
         function showBroadcastBanner(message, id) {
             const banner = document.getElementById('broadcastBanner');
-            const text = document.getElementById('broadcastText');
-            
-            text.textContent = message;
+            document.getElementById('broadcastText').textContent = message;
             banner.classList.remove('hidden');
             banner.dataset.broadcastId = id;
         }
@@ -2984,13 +2772,11 @@
         function dismissBroadcast() {
             const banner = document.getElementById('broadcastBanner');
             const broadcastId = banner.dataset.broadcastId;
-            
             if (broadcastId) {
                 const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                 dismissed.push(broadcastId);
                 localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
             }
-            
             banner.classList.add('hidden');
         }
 
@@ -3009,30 +2795,21 @@
         async function sendUrlToAll() {
             const url = document.getElementById('redirectUrl').value.trim();
             const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link';
-            
-            if (!url) {
-                showToast('Please enter a URL', 'warning');
-                return;
-            }
-
+            if (!url) { showToast('Please enter a URL', 'warning'); return; }
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 showToast('URL must start with http:// or https://', 'error');
                 return;
             }
-
             try {
                 showLoading();
-                
-                // Store broadcast record (will trigger force open on each client)
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
-                    url: url,
-                    message: message,
+                    url,
+                    message,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     sentBy: currentUser.id,
                     sentByName: currentUser.username
                 });
-
                 hideLoading();
                 closeUrlRedirect();
                 showToast('URL sent – will attempt to open for all users', 'success');
@@ -3046,25 +2823,21 @@
             const userList = document.getElementById('urlUserList');
             userList.classList.remove('hidden');
             userList.innerHTML = '<p style="text-align: center;">Loading users...</p>';
-
             try {
-                const usersSnapshot = await db.collection('users').get();
+                // Use cache
+                const users = await getCachedUsers();
                 userList.innerHTML = '<h4 style="margin-bottom: 0.5rem;">Select Users:</h4>';
-
-                usersSnapshot.forEach(doc => {
-                    if (doc.id === currentUser.id) return;
-                    
-                    const userData = doc.data();
+                users.forEach(userData => {
+                    if (userData.id === currentUser.id) return;
                     const div = document.createElement('div');
                     div.style.cssText = 'display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: var(--background); border-radius: 0.5rem; margin-bottom: 0.25rem;';
                     div.innerHTML = `
-                        <input type="checkbox" id="urluser-${doc.id}" value="${doc.id}">
+                        <input type="checkbox" id="urluser-${userData.id}" value="${userData.id}">
                         <span class="avatar">${userData.avatar}</span>
-                        <label for="urluser-${doc.id}" style="flex: 1; cursor: pointer;">${sanitizeHTML(userData.username)}</label>
+                        <label for="urluser-${userData.id}" style="flex: 1; cursor: pointer;">${sanitizeHTML(userData.username)}</label>
                     `;
                     userList.appendChild(div);
                 });
-
                 const sendBtn = document.createElement('button');
                 sendBtn.className = 'btn';
                 sendBtn.textContent = 'Send to Selected';
@@ -3079,32 +2852,21 @@
         async function sendUrlToSelected() {
             const url = document.getElementById('redirectUrl').value.trim();
             const message = document.getElementById('redirectMessage').value.trim() || 'Admin shared a link';
-            
-            if (!url) {
-                showToast('Please enter a URL', 'warning');
-                return;
-            }
-
+            if (!url) { showToast('Please enter a URL', 'warning'); return; }
             const checkboxes = document.querySelectorAll('#urlUserList input[type="checkbox"]:checked');
-            if (checkboxes.length === 0) {
-                showToast('Please select at least one user', 'warning');
-                return;
-            }
-
+            if (checkboxes.length === 0) { showToast('Please select at least one user', 'warning'); return; }
             try {
                 showLoading();
                 const selectedUsers = Array.from(checkboxes).map(cb => cb.value);
-
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
-                    url: url,
-                    message: message,
+                    url,
+                    message,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     sentBy: currentUser.id,
                     sentByName: currentUser.username,
                     targetUsers: selectedUsers
                 });
-
                 hideLoading();
                 closeUrlRedirect();
                 showToast(`URL will attempt to open for ${selectedUsers.length} user(s)`, 'success');
@@ -3114,7 +2876,7 @@
             }
         }
 
-        // Dummy functions kept for compatibility
+        // Kept for compatibility
         function showUrlPopup(url, message, broadcastId) {}
         function openPopupUrl() {}
         function closeUrlPopup() {}
@@ -3128,9 +2890,7 @@
         });
 
         window.addEventListener('beforeunload', () => {
-            if (currentUser) {
-                setUserOnline(currentUser.id, false);
-            }
+            if (currentUser) setUserOnline(currentUser.id, false);
         });
     </script>
 </body>
