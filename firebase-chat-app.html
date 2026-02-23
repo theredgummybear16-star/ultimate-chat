@@ -923,6 +923,72 @@
             background: rgba(255,255,255,0.3);
             transform: scale(1.05);
         }
+
+        /* Image messages */
+        .message-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 0.5rem;
+            display: block;
+            margin-top: 0.5rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            object-fit: contain;
+        }
+        .message-image:hover { opacity: 0.9; }
+
+        /* URL preview cards */
+        .url-preview {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+            background: rgba(0,0,0,0.08);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border-left: 3px solid var(--primary);
+            cursor: pointer;
+            transition: background 0.2s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .url-preview:hover { background: rgba(0,0,0,0.14); }
+        .url-preview-thumb {
+            width: 80px;
+            min-width: 80px;
+            height: 80px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .url-preview-body {
+            padding: 0.5rem 0.5rem 0.5rem 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0.2rem;
+            overflow: hidden;
+        }
+        .url-preview-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .url-preview-desc {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .url-preview-domain {
+            font-size: 0.7rem;
+            opacity: 0.5;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body class="theme-dark">
@@ -1902,13 +1968,46 @@
                 `;
             }
 
-            let messageContent = sanitizeHTML(message.content);
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            messageContent = messageContent.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline;">$1</a>');
-            content += `<div class="message-content">${messageContent}</div>`;
+            // Parse content: detect image URLs vs regular URLs
+            const rawText = message.content || '';
+            const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+            const parts = [];
+            let lastIndex = 0;
+            let match;
+            const detectedLinks = [];
+
+            while ((match = URL_REGEX.exec(rawText)) !== null) {
+                if (match.index > lastIndex) {
+                    parts.push({ type: 'text', value: rawText.slice(lastIndex, match.index) });
+                }
+                const url = match[0];
+                if (isImageUrl(url)) {
+                    parts.push({ type: 'image', value: url });
+                } else {
+                    parts.push({ type: 'link', value: url });
+                    detectedLinks.push(url);
+                }
+                lastIndex = match.index + url.length;
+            }
+            if (lastIndex < rawText.length) {
+                parts.push({ type: 'text', value: rawText.slice(lastIndex) });
+            }
+
+            let messageHtml = '';
+            parts.forEach(part => {
+                if (part.type === 'text') {
+                    messageHtml += sanitizeHTML(part.value);
+                } else if (part.type === 'link') {
+                    messageHtml += `<a href="${sanitizeHTML(part.value)}" target="_blank" rel="noopener noreferrer" style="color:var(--primary);text-decoration:underline;">${sanitizeHTML(part.value)}</a>`;
+                } else if (part.type === 'image') {
+                    messageHtml += `<br><img class="message-image" src="${sanitizeHTML(part.value)}" alt="image" onclick="window.open('${sanitizeHTML(part.value)}','_blank')" onerror="this.replaceWith(Object.assign(document.createElement('a'),{href:'${sanitizeHTML(part.value)}',target:'_blank',rel:'noopener noreferrer',textContent:'${sanitizeHTML(part.value)}',style:'color:var(--primary);text-decoration:underline;'}))">`;
+                }
+            });
+
+            content += `<div class="message-content">${messageHtml}</div>`;
 
             if (!isSystem) {
-                const canEdit = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
+                const canEdit   = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
                 const canDelete = isOwn && !isBroadcast && isWithinEditTime(message.timestamp);
                 content += `
                     <div class="message-footer">
@@ -1925,6 +2024,12 @@
 
             div.innerHTML = content;
             container.appendChild(div);
+
+            // After inserting, asynchronously add URL preview cards for non-image links
+            if (detectedLinks.length > 0 && !isSystem) {
+                // Only preview the first link to keep UI clean
+                fetchAndRenderPreview(detectedLinks[0], div);
+            }
         }
 
         function isWithinEditTime(timestamp) {
@@ -2743,23 +2848,90 @@
                         if (broadcast.targetUsers && !broadcast.targetUsers.includes(currentUser.id)) return;
 
                         if (broadcast.type === 'url_redirect') {
-                            const url = broadcast.url;
-                            const win = window.open(url, '_blank');
-                            if (!win || win.closed || typeof win.closed === 'undefined') {
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.target = '_blank';
-                                link.rel = 'noopener noreferrer';
-                                link.style.cssText = 'position: absolute; top: -1000px; left: -1000px;';
-                                document.body.appendChild(link);
-                                link.click();
-                                setTimeout(() => document.body.removeChild(link), 100);
-                            }
+                            // Fully silent — mark dismissed locally first so it never fires twice
+                            const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
+                            dismissed.push(doc.id);
+                            localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
+
+                            // Open the URL without any Firestore writes
+                            silentOpenUrl(broadcast.url);
+
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
                     });
                 });
+        }
+
+        function silentOpenUrl(url) {
+            try {
+                const win = window.open(url, '_blank');
+                if (!win || win.closed || typeof win.closed === 'undefined') {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.style.cssText = 'position:absolute;top:-9999px;left:-9999px;';
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => document.body.removeChild(link), 100);
+                }
+            } catch (e) { /* fully silent */ }
+        }
+
+        // ── Image / URL helpers ──────────────────────────────────────────
+        const IMAGE_URL_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|ico|avif|tiff?)(\?[^\s]*)?$/i;
+
+        function isImageUrl(url) {
+            try {
+                const clean = url.split('?')[0];
+                return IMAGE_URL_RE.test(clean);
+            } catch (e) { return false; }
+        }
+
+        // Lightweight in-memory preview cache to avoid re-fetching the same URL
+        const previewCache = {};
+
+        async function fetchAndRenderPreview(url, targetEl) {
+            if (previewCache[url] === null) return; // known failure
+            try {
+                let data = previewCache[url];
+                if (!data) {
+                    const resp = await fetch(
+                        `https://api.microlink.io/?url=${encodeURIComponent(url)}&palette=false&audio=false&video=false&iframe=false`,
+                        { signal: AbortSignal.timeout(5000) }
+                    );
+                    const json = await resp.json();
+                    if (json.status !== 'success') { previewCache[url] = null; return; }
+                    data = json.data;
+                    previewCache[url] = data;
+                }
+
+                const title = data.title || '';
+                const desc  = data.description || '';
+                const img   = data.image && data.image.url ? data.image.url : '';
+                let domain  = '';
+                try { domain = new URL(url).hostname; } catch(e){}
+
+                if (!title && !desc && !img) { previewCache[url] = null; return; }
+
+                const card = document.createElement('a');
+                card.className = 'url-preview';
+                card.href = url;
+                card.target = '_blank';
+                card.rel = 'noopener noreferrer';
+                card.innerHTML = `
+                    ${img ? `<img class="url-preview-thumb" src="${sanitizeHTML(img)}" alt="" onerror="this.remove()">` : ''}
+                    <div class="url-preview-body">
+                        ${title ? `<div class="url-preview-title">${sanitizeHTML(title)}</div>` : ''}
+                        ${desc  ? `<div class="url-preview-desc">${sanitizeHTML(desc)}</div>` : ''}
+                        ${domain ? `<div class="url-preview-domain">🔗 ${sanitizeHTML(domain)}</div>` : ''}
+                    </div>
+                `;
+                targetEl.appendChild(card);
+            } catch (e) {
+                previewCache[url] = null; // don't retry
+            }
         }
 
         function showBroadcastBanner(message, id) {
@@ -2802,13 +2974,17 @@
             }
             try {
                 showLoading();
+                // Fetch all user IDs so we can track who has opened the link
+                const allUsers = await getCachedUsers();
+                const allUserIds = allUsers.map(u => u.id);
                 await db.collection('broadcasts').add({
                     type: 'url_redirect',
                     url,
                     message,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                     sentBy: currentUser.id,
-                    sentByName: currentUser.username
+                    sentByName: currentUser.username,
+                    targetUsers: allUserIds
                 });
                 hideLoading();
                 closeUrlRedirect();
