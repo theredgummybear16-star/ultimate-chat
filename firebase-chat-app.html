@@ -1042,7 +1042,8 @@
                 </div>
             </div>
 
-            <div class="search-box">
+            <!-- USER SEARCH DISABLED (private chats & groups feature hidden) -->
+            <div class="search-box hidden">
                 <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsersDebounced()">
             </div>
 
@@ -1057,7 +1058,8 @@
             </div>
 
             <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
-                <button class="btn" onclick="showCreateGroupModal()">➕ Create Group</button>
+                <!-- CREATE GROUP DISABLED (feature hidden) -->
+                <!-- <button class="btn" onclick="showCreateGroupModal()">➕ Create Group</button> -->
                 <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -1749,6 +1751,8 @@
 
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
+            // Only global chat and announcements are active.
+            // Groups and DMs code is preserved below but disabled.
             chatList.innerHTML = `
                 <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
@@ -1770,6 +1774,12 @@
                 </div>
             `;
 
+            updateUnreadBadge();
+
+            /* ================================================================
+             * DISABLED: Groups and Direct Messages (code kept, not active)
+             * To re-enable, remove the block-comment markers around this section.
+             * ================================================================
             try {
                 // Load groups
                 const groupsSnapshot = await db.collection('groups').where('members', 'array-contains', currentUser.id).get();
@@ -1800,7 +1810,7 @@
                     });
                 }
 
-                // Load users
+                // Load users for DMs
                 const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
 
                 const chatsRef = rtdb.ref('privateChats');
@@ -1832,7 +1842,6 @@
                     chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
                     chatItem.onclick = () => hasChat ? selectChat(chatId) : startPrivateChat(userData.id);
 
-                    // Determine badge for user
                     let userBadge = '';
                     if (isOwnerUser(userData.username)) {
                         userBadge = '<span class="badge owner" style="font-size:0.6rem;">⭐ OWNER</span>';
@@ -1866,6 +1875,8 @@
                 console.error('Error loading chat list:', error);
                 showToast('Error loading users: ' + error.message, 'error');
             }
+            * END DISABLED SECTION
+            * =============================================================== */
         }
 
         function selectChat(chatId) {
@@ -2233,6 +2244,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        /* DISABLED: searchUsers / searchUsersDebounced (DMs feature hidden, code preserved)
         function searchUsersDebounced() {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(searchUsers, 300);
@@ -2268,7 +2280,13 @@
                 chatList.appendChild(chatItem);
             });
         }
+        END DISABLED */
 
+        // Stub so any lingering onkeyup calls don't error
+        function searchUsersDebounced() {}
+        function searchUsers() {}
+
+        /* DISABLED: startPrivateChat (DMs feature hidden, code preserved)
         async function startPrivateChat(otherUserId) {
             const chatId = [currentUser.id, otherUserId].sort().join('_');
             const chatRef = rtdb.ref(`privateChats/${chatId}`);
@@ -2284,9 +2302,13 @@
             selectChat(chatId);
             loadChatList();
         }
+        END DISABLED */
+        function startPrivateChat(otherUserId) {
+            showToast('Direct messages are currently disabled', 'info');
+        }
 
-        // ==================== GROUPS ====================
-        async function showCreateGroupModal() {
+        /* DISABLED: Groups feature (code preserved, not active)
+        async function showCreateGroupModal_DISABLED() {
             document.getElementById('createGroupModal').classList.remove('hidden');
             document.getElementById('groupNameInput').value = '';
             document.getElementById('groupEmojiInput').value = '👥';
@@ -2306,37 +2328,31 @@
             });
         }
 
-        function closeCreateGroupModal() {
+        function closeCreateGroupModal_DISABLED() {
             document.getElementById('createGroupModal').classList.add('hidden');
         }
 
-        async function createGroup() {
+        async function createGroup_DISABLED() {
             const name = document.getElementById('groupNameInput').value.trim();
             const emoji = document.getElementById('groupEmojiInput').value.trim() || '👥';
             if (!name) { showToast('Please enter a group name', 'warning'); return; }
-
             const checkboxes = document.querySelectorAll('#groupMemberList input[name="groupMember"]:checked');
             if (checkboxes.length < 2) { showToast('Please select at least 2 members', 'warning'); return; }
-
             const memberIds = [currentUser.id, ...Array.from(checkboxes).map(cb => cb.value)];
-
             try {
                 showLoading();
                 const groupRef = await db.collection('groups').add({
-                    name,
-                    emoji,
-                    members: memberIds,
+                    name, emoji, members: memberIds,
                     createdBy: currentUser.id,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
-                // System message in RTDB
                 await rtdb.ref(`groupChats/${groupRef.id}/messages`).push({
                     type: 'system',
                     content: `Group "${name}" created by ${currentUser.username}`,
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
                 hideLoading();
-                closeCreateGroupModal();
+                closeCreateGroupModal_DISABLED();
                 showToast(`Group "${name}" created!`, 'success');
                 await loadChatList();
                 selectChat('group_' + groupRef.id);
@@ -2345,6 +2361,12 @@
                 showToast('Error creating group: ' + error.message, 'error');
             }
         }
+        END DISABLED */
+
+        // Stubs so modal buttons don't error
+        function showCreateGroupModal() { showToast('Groups are currently disabled', 'info'); }
+        function closeCreateGroupModal() { document.getElementById('createGroupModal').classList.add('hidden'); }
+        function createGroup() { showToast('Groups are currently disabled', 'info'); }
 
         // ==================== SETTINGS ====================
         function showSettings() {
