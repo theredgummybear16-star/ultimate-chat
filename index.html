@@ -765,7 +765,7 @@ function _showLogin() { _hide('loadingOverlay'); _show('loginPage'); }
 // ============================================================
 // ⚠️  CONFIGURATION — Replace with your Supabase project details
 // ============================================================
-const SUPABASE_URL = 'https://xwealghjsjitdetsnluy.supabase.co';
+const SUPABASE_URL = 'https://xwealghjsjitdetsnluy._sb.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3ZWFsZ2hqc2ppdGRldHNubHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzNDcsImV4cCI6MjA4NzUzMjM0N30.KUvGJwDZIuGNBoEk7KbXv7fAOmvqH-iVHNL9_6d_nNM';
 // ============================================================
 
@@ -776,7 +776,7 @@ if (!window.supabase) {
   throw new Error('Supabase SDK missing');
 }
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ===== STATE =====
 let currentUser = null;
@@ -802,7 +802,7 @@ window.addEventListener('load', async () => {
   applyTheme(localStorage.getItem('theme') || 'dark');
 
   try {
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await _sb.auth.getSession();
     clearTimeout(_hardTimeout);
     if (error) throw error;
     const session = data && data.session;
@@ -828,7 +828,7 @@ async function doLogin() {
   if (!email || !password) return showAuthError('loginError', 'Please fill in all fields.');
 
   setLoading('loginBtn', true);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
   setLoading('loginBtn', false);
 
   if (error) return showAuthError('loginError', error.message);
@@ -850,13 +850,13 @@ async function doRegister() {
   setLoading('registerBtn', true);
 
   // Check username not taken
-  const { data: existing } = await supabase.from('profiles').select('id').eq('username', username).single();
+  const { data: existing } = await _sb.from('profiles').select('id').eq('username', username).single();
   if (existing) {
     setLoading('registerBtn', false);
     return showAuthError('registerError', 'Username already taken.');
   }
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await _sb.auth.signUp({ email, password });
   if (error) { setLoading('registerBtn', false); return showAuthError('registerError', error.message); }
 
   // data.user can be null if email confirmation is required
@@ -866,7 +866,7 @@ async function doRegister() {
   }
 
   // Create profile
-  const { error: profileError } = await supabase.from('profiles').insert({
+  const { error: profileError } = await _sb.from('profiles').insert({
     id: data.user.id,
     username,
     avatar: '😀',
@@ -886,13 +886,13 @@ async function doRegister() {
 }
 
 async function doLogout() {
-  if (presenceChannel) await supabase.removeChannel(presenceChannel);
-  await supabase.from('profiles').update({ status: 'offline' }).eq('id', currentUser.id);
-  await supabase.auth.signOut();
+  if (presenceChannel) await _sb.removeChannel(presenceChannel);
+  await _sb.from('profiles').update({ status: 'offline' }).eq('id', currentUser.id);
+  await _sb.auth.signOut();
   currentUser = null; currentProfile = null; currentChat = 'global';
   allUsers = [];
-  if (messageSubscription) supabase.removeChannel(messageSubscription);
-  if (broadcastSubscription) supabase.removeChannel(broadcastSubscription);
+  if (messageSubscription) _sb.removeChannel(messageSubscription);
+  if (broadcastSubscription) _sb.removeChannel(broadcastSubscription);
   hide('chatApp');
   show('loginPage');
   el('loginEmail').value = '';
@@ -903,13 +903,13 @@ async function doLogout() {
 // ===== PROFILE =====
 async function loadProfile() {
   try {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+    const { data, error } = await _sb.from('profiles').select('*').eq('id', currentUser.id).single();
     if (data) {
       currentProfile = data;
     } else {
       // Create profile if missing (new user via Google OAuth etc)
       const username = (currentUser.user_metadata?.username) || currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g,'_');
-      const { error: insertError } = await supabase.from('profiles').insert({ id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' });
+      const { error: insertError } = await _sb.from('profiles').insert({ id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' });
       if (insertError) console.error('Profile create error:', insertError);
       currentProfile = { id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' };
     }
@@ -927,7 +927,7 @@ async function enterApp() {
     hide('registerPage');
 
     // Update status to online (non-blocking, ignore errors)
-    supabase.from('profiles').update({ status: 'online' }).eq('id', currentUser.id).then();
+    _sb.from('profiles').update({ status: 'online' }).eq('id', currentUser.id).then();
 
     // Update UI
     el('sidebarAvatar').textContent = currentProfile.avatar || '😀';
@@ -961,7 +961,7 @@ async function enterApp() {
 
 // ===== USERS =====
 async function loadUsers() {
-  const { data } = await supabase.from('profiles').select('*').order('username');
+  const { data } = await _sb.from('profiles').select('*').order('username');
   if (data) {
     allUsers = data;
     renderUserList(data);
@@ -1048,7 +1048,7 @@ async function switchChat(chatId, dmUser = null) {
 
   // Unsubscribe old message channel
   if (messageSubscription) {
-    await supabase.removeChannel(messageSubscription);
+    await _sb.removeChannel(messageSubscription);
     messageSubscription = null;
   }
 
@@ -1059,7 +1059,7 @@ async function switchChat(chatId, dmUser = null) {
   await loadMessages(chatId);
 
   // Subscribe to new messages
-  messageSubscription = supabase.channel('msgs-' + chatId)
+  messageSubscription = _sb.channel('msgs-' + chatId)
     .on('postgres_changes', {
       event: 'INSERT', schema: 'public', table: 'messages',
       filter: `chat_id=eq.${chatId}`
@@ -1194,7 +1194,7 @@ async function sendMessage() {
   input.value = '';
   input.style.height = 'auto';
 
-  const { error } = await supabase.from('messages').insert({
+  const { error } = await _sb.from('messages').insert({
     user_id: currentUser.id,
     username: currentProfile.username,
     chat_id: currentChat,
@@ -1208,7 +1208,7 @@ async function sendMessage() {
 }
 
 async function deleteMessage(msgId) {
-  await supabase.from('messages').delete().eq('id', msgId);
+  await _sb.from('messages').delete().eq('id', msgId);
   const el2 = document.querySelector(`[data-msg-id="${msgId}"]`);
   if (el2) el2.remove();
   toast('Message deleted.', 'info');
@@ -1216,7 +1216,7 @@ async function deleteMessage(msgId) {
 
 // ===== SUBSCRIPTIONS =====
 function subscribePresence() {
-  presenceChannel = supabase.channel('presence-room', {
+  presenceChannel = _sb.channel('presence-room', {
     config: { presence: { key: currentUser.id } }
   });
 
@@ -1232,7 +1232,7 @@ function subscribePresence() {
 }
 
 function subscribeBroadcasts() {
-  broadcastSubscription = supabase.channel('broadcasts-channel')
+  broadcastSubscription = _sb.channel('broadcasts-channel')
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'broadcasts'
     }, payload => {
@@ -1261,7 +1261,7 @@ function subscribeBroadcasts() {
     .subscribe();
 
   // Check for existing active broadcast on load
-  supabase.from('broadcasts').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1).then(({ data }) => {
+  _sb.from('broadcasts').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1).then(({ data }) => {
     if (data && data.length > 0) {
       const b = data[0];
       if (b.type === 'message') showBroadcast(b.message);
@@ -1320,7 +1320,7 @@ async function changeUsername() {
   if (!newName || newName.length < 2) return toast('Username must be at least 2 characters', 'error');
   if (!/^[a-zA-Z0-9_.-]+$/.test(newName)) return toast('Invalid characters in username', 'error');
 
-  const { data: existing } = await supabase.from('profiles').select('id').eq('username', newName).neq('id', currentUser.id).single();
+  const { data: existing } = await _sb.from('profiles').select('id').eq('username', newName).neq('id', currentUser.id).single();
   if (existing) return toast('Username already taken', 'error');
 
   await updateProfile({ username: newName });
@@ -1329,7 +1329,7 @@ async function changeUsername() {
 }
 
 async function updateProfile(updates) {
-  const { error } = await supabase.from('profiles').update(updates).eq('id', currentUser.id);
+  const { error } = await _sb.from('profiles').update(updates).eq('id', currentUser.id);
   if (!error) {
     Object.assign(currentProfile, updates);
     el('sidebarAvatar').textContent = currentProfile.avatar;
@@ -1341,7 +1341,7 @@ async function updateProfile(updates) {
 // ===== ADMIN PANEL =====
 async function showAdminPanel() {
   // Load all users for admin panel
-  const { data } = await supabase.from('profiles').select('*').order('username');
+  const { data } = await _sb.from('profiles').select('*').order('username');
   const list = el('adminUserList');
   list.innerHTML = '';
 
@@ -1368,7 +1368,7 @@ async function showAdminPanel() {
 }
 
 async function setUserRole(userId, role) {
-  await supabase.from('profiles').update({ role }).eq('id', userId);
+  await _sb.from('profiles').update({ role }).eq('id', userId);
   toast(`User role updated to ${role}`, 'success');
   showAdminPanel();
 }
@@ -1377,38 +1377,38 @@ async function sendBroadcast() {
   const msg = val('broadcastInput').trim();
   if (!msg) return;
   // Clear old active broadcasts
-  await supabase.from('broadcasts').update({ active: false }).eq('active', true);
-  await supabase.from('broadcasts').insert({ message: msg, type: 'message', active: true });
+  await _sb.from('broadcasts').update({ active: false }).eq('active', true);
+  await _sb.from('broadcasts').insert({ message: msg, type: 'message', active: true });
   el('broadcastInput').value = '';
   toast('Broadcast sent!', 'success');
 }
 
 async function clearBroadcast() {
-  await supabase.from('broadcasts').update({ active: false }).eq('active', true);
+  await _sb.from('broadcasts').update({ active: false }).eq('active', true);
   toast('Broadcast cleared.', 'info');
 }
 
 async function adminAction(action) {
   if (action === 'reload') {
-    await supabase.from('broadcasts').update({ active: false }).eq('active', true);
-    await supabase.from('broadcasts').insert({ message: 'Server reload requested', type: 'reload', active: true });
+    await _sb.from('broadcasts').update({ active: false }).eq('active', true);
+    await _sb.from('broadcasts').insert({ message: 'Server reload requested', type: 'reload', active: true });
     toast('Reload signal sent to all users.', 'success');
   } else if (action === 'maintenance') {
-    await supabase.from('broadcasts').update({ active: false }).eq('active', true);
-    await supabase.from('broadcasts').insert({ message: 'Maintenance mode', type: 'maintenance', active: true });
+    await _sb.from('broadcasts').update({ active: false }).eq('active', true);
+    await _sb.from('broadcasts').insert({ message: 'Maintenance mode', type: 'maintenance', active: true });
     toast('Maintenance mode activated.', 'warning');
   }
 }
 
 async function triggerIdiot(userId) {
   // Store a notification in a special broadcasts row targeting a user
-  await supabase.from('broadcasts').insert({ message: `idiot:${userId}`, type: 'idiot_target', active: true });
+  await _sb.from('broadcasts').insert({ message: `idiot:${userId}`, type: 'idiot_target', active: true });
   toast('🤡 Done!', 'success');
 }
 
 async function clearAllMessages() {
   if (!confirm('Are you sure? This will delete ALL messages in the current channel.')) return;
-  await supabase.from('messages').delete().eq('chat_id', currentChat);
+  await _sb.from('messages').delete().eq('chat_id', currentChat);
   await switchChat(currentChat);
   toast('All messages cleared.', 'success');
 }
@@ -1744,7 +1744,7 @@ alter publication supabase_realtime add table profiles;
 
 =======================================================================
   DEPLOY STEPS:
-  1. Go to https://supabase.com → create a new project (free)
+  1. Go to https://_sb.com → create a new project (free)
   2. Go to SQL Editor → run the SQL above
   3. Go to Project Settings → API → copy:
      - "Project URL"     → paste as SUPABASE_URL above
