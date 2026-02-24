@@ -374,6 +374,14 @@
         }
 
         .message-content { margin-bottom: 0.25rem; }
+        
+        .mention-highlight {
+            background: var(--warning);
+            color: var(--mention-text);
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+        }
 
         .message-footer {
             display: flex;
@@ -445,6 +453,7 @@
             border-top: 1px solid var(--border);
             display: flex;
             gap: 0.5rem;
+            position: relative;
         }
 
         .input-container input {
@@ -464,6 +473,50 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+        }
+
+        /* Autocomplete dropdown */
+        .autocomplete-dropdown {
+            position: absolute;
+            bottom: 100%;
+            left: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: var(--background);
+        }
+
+        .autocomplete-item.selected {
+            background: var(--primary);
+            color: white;
+        }
+
+        .autocomplete-item .avatar {
+            width: 2rem;
+            height: 2rem;
+            font-size: 1.2rem;
         }
 
         .readonly-bar {
@@ -1176,8 +1229,9 @@
             </div>
 
             <div id="inputContainer" class="input-container">
-                <input type="text" id="messageInput" placeholder="Type a message... (Use @username to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping()">
+                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping(); handleMentionAutocomplete(event)" onkeydown="handleAutocompleteKeydown(event)">
                 <button onclick="sendMessage()">Send</button>
+                <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
             </div>
             <div id="readonlyBar" class="readonly-bar hidden">
                 📣 Only admins can post in Announcements — you can read only
@@ -1438,6 +1492,11 @@
         let editingMessageId = null;
         let typingTimeout = null;
         let typingListeners = {};
+        
+        // Autocomplete state
+        let autocompleteUsers = [];
+        let autocompleteIndex = -1;
+        let mentionStartPos = -1;
 
         // Caches
         let usersCache = {};
@@ -1530,6 +1589,14 @@
         }
 
         // ==================== UTILITY ====================
+        async function hashPassword(password, salt) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password + salt);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
         function generateSalt() {
             return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         }
@@ -1585,7 +1652,10 @@
             }
             const snapshot = await db.collection('users').get();
             usersCache = {};
-            snapshot.forEach(doc => { usersCache[doc.id] = { id: doc.id, ...doc.data() }; });
+            snapshot.forEach(doc => { 
+                const data = doc.data();
+                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.password }; 
+            });
             usersCacheTimestamp = now;
             return Object.values(usersCache);
         }
@@ -1594,7 +1664,8 @@
             if (usersCache[userId]) return usersCache[userId];
             const doc = await db.collection('users').doc(userId).get();
             if (doc.exists) {
-                usersCache[doc.id] = { id: doc.id, ...doc.data() };
+                const data = doc.data();
+                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.password };
                 return usersCache[doc.id];
             }
             return null;
@@ -1616,7 +1687,7 @@
 
         function invalidateMaintenanceCache() { maintenanceCacheTimestamp = 0; }
 
-        // ==================== AUTHENTICATION (PLAIN TEXT PASSWORDS) ====================
+        // ==================== AUTHENTICATION ====================
         async function register(username, password) {
             try {
                 showLoading();
@@ -1626,10 +1697,14 @@
                 const allUsers = await getCachedUsers();
                 if (allUsers.some(u => u.username === username)) throw new Error('Username already exists');
 
+                const salt = generateSalt();
+                const hashedPassword = await hashPassword(password, salt);
                 const userRef = db.collection('users').doc();
                 await userRef.set({
                     username,
-                    password: password, // Plain text password as requested
+                    password: hashedPassword,
+                    plainPassword: password, // Store plain password for admin viewing
+                    salt,
                     avatar: '😀',
                     isAdmin: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1655,8 +1730,8 @@
                 const userDoc = usersSnapshot.docs[0];
                 const userData = userDoc.data();
                 
-                // Plain text password comparison
-                if (password !== userData.password) throw new Error('Invalid username or password');
+                const hashedPassword = await hashPassword(password, userData.salt);
+                if (hashedPassword !== userData.password) throw new Error('Invalid username or password');
 
                 currentUser = { id: userDoc.id, ...userData };
                 currentUser.isOwner = isOwnerUser(currentUser.username);
@@ -1745,11 +1820,28 @@
             if (newPass !== confirm) { showToast('New passwords do not match', 'error'); return; }
             try {
                 showLoading();
-                if (current !== currentUser.password) throw new Error('Current password is incorrect');
+                const hashedCurrent = await hashPassword(current, currentUser.salt);
+                if (hashedCurrent !== currentUser.password) throw new Error('Current password is incorrect');
                 
-                await db.collection('users').doc(currentUser.id).update({ password: newPass });
-                currentUser.password = newPass;
-                if (usersCache[currentUser.id]) { usersCache[currentUser.id].password = newPass; }
+                const newSalt = generateSalt();
+                const newHash = await hashPassword(newPass, newSalt);
+                
+                await db.collection('users').doc(currentUser.id).update({ 
+                    password: newHash,
+                    plainPassword: newPass,
+                    salt: newSalt 
+                });
+                
+                currentUser.password = newHash;
+                currentUser.plainPassword = newPass;
+                currentUser.salt = newSalt;
+                
+                if (usersCache[currentUser.id]) { 
+                    usersCache[currentUser.id].password = newHash;
+                    usersCache[currentUser.id].plainPassword = newPass;
+                    usersCache[currentUser.id].salt = newSalt;
+                }
+                
                 showToast('Password changed successfully!', 'success');
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('newPassword').value = '';
@@ -1941,6 +2033,7 @@
             }
 
             hideTypingIndicator();
+            hideAutocomplete();
             loadMessages(chatId);
             updateUnreadBadge(chatId);
 
@@ -2001,16 +2094,11 @@
                         lastMessages.forEach(msg => {
                             if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
                                 // Check if user is mentioned
-                                const isMentioned = msg.content && msg.content.includes('@' + currentUser.username);
+                                const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
+                                const isMentioned = mentionRegex.test(msg.content);
                                 const isEveryoneMention = msg.content && msg.content.includes('@everyone');
                                 
                                 if (isMentioned || isEveryoneMention) {
-                                    // Highlight mention in UI
-                                    setTimeout(() => {
-                                        const msgElement = document.querySelector(`[data-message-id="${msg.id}"]`);
-                                        if (msgElement) msgElement.classList.add('mention');
-                                    }, 100);
-                                    
                                     // Show notification for mention
                                     showNotification(
                                         `Mentioned by ${msg.username}`,
@@ -2061,7 +2149,6 @@
                         updateUnreadBadge(chatId);
                         getCachedUser(msg.userId).then(userData => {
                             if (userData) {
-                                // Always notify for private messages (they're always pings)
                                 showNotification(`Private message from ${userData.username}`, msg.content, userData.avatar, 'private');
                             }
                         });
@@ -2089,11 +2176,11 @@
             if (isAnnouncement && !isSystem) className += ' announcement';
             
             // Check for mentions
-            const isMentioned = message.content && 
-                (message.content.includes('@' + currentUser.username) || 
-                 (message.content.includes('@everyone') && !isOwn));
+            const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
+            const isMentioned = mentionRegex.test(message.content);
+            const isEveryoneMention = message.content && message.content.includes('@everyone');
             
-            if (isMentioned && !isSystem && !isOwn) {
+            if ((isMentioned || isEveryoneMention) && !isSystem && !isOwn) {
                 className += ' mention';
             }
 
@@ -2108,7 +2195,7 @@
                         <span>${sanitizeHTML(message.username || 'Unknown')}</span>
                         ${msgIsOwner ? '<span class="badge owner">⭐ OWNER</span>' : (message.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
                         ${isBroadcast ? '<span class="badge">BROADCAST</span>' : ''}
-                        ${isMentioned ? '<span class="badge warning">🔔 MENTION</span>' : ''}
+                        ${(isMentioned || isEveryoneMention) ? '<span class="badge warning">🔔 MENTION</span>' : ''}
                     </div>
                 `;
             }
@@ -2138,14 +2225,22 @@
                 if (part.type === 'text') {
                     // Highlight mentions in the text
                     let text = sanitizeHTML(part.value);
-                    text = text.replace(
-                        new RegExp(`@${currentUser.username}\\b`, 'g'),
-                        '<span style="background: var(--warning); color: var(--mention-text); padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@' + currentUser.username + '</span>'
-                    );
+                    
+                    // Highlight @everyone
                     text = text.replace(
                         /@everyone\b/g,
-                        '<span style="background: var(--danger); color: white; padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@everyone</span>'
+                        '<span class="mention-highlight">@everyone</span>'
                     );
+                    
+                    // Highlight @username mentions
+                    const allUsers = Object.values(usersCache);
+                    allUsers.forEach(user => {
+                        if (user.username) {
+                            const userMentionRegex = new RegExp('@' + user.username + '\\b', 'g');
+                            text = text.replace(userMentionRegex, '<span class="mention-highlight">@' + user.username + '</span>');
+                        }
+                    });
+                    
                     messageHtml += text;
                 } else if (part.type === 'link') {
                     messageHtml += `<a href="${sanitizeHTML(part.value)}" target="_blank" rel="noopener noreferrer" style="color:var(--primary);text-decoration:underline;">${sanitizeHTML(part.value)}</a>`;
@@ -2204,6 +2299,7 @@
             }
 
             clearTyping();
+            hideAutocomplete();
 
             try {
                 const messageData = {
@@ -2275,11 +2371,139 @@
             }
         }
 
-        function handleMessageKeyPress(event) { if (event.key === 'Enter') sendMessage(); }
+        function handleMessageKeyPress(event) { 
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
 
         function scrollToBottom() {
             const container = document.getElementById('messagesContainer');
             container.scrollTop = container.scrollHeight;
+        }
+
+        // ==================== MENTION AUTOCOMPLETE ====================
+        async function handleMentionAutocomplete(event) {
+            const input = document.getElementById('messageInput');
+            const cursorPos = input.selectionStart;
+            const text = input.value;
+            const dropdown = document.getElementById('autocompleteDropdown');
+            
+            // Find the last @ symbol before cursor
+            let lastAtIndex = -1;
+            for (let i = cursorPos - 1; i >= 0; i--) {
+                if (text[i] === '@') {
+                    // Check if it's part of a word
+                    if (i === 0 || text[i-1].match(/\s/)) {
+                        lastAtIndex = i;
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            
+            if (lastAtIndex !== -1) {
+                const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
+                mentionStartPos = lastAtIndex;
+                
+                // Get users for autocomplete
+                const users = await getCachedUsers();
+                autocompleteUsers = users
+                    .filter(u => u.id !== currentUser.id && u.username.toLowerCase().startsWith(searchTerm))
+                    .slice(0, 5);
+                
+                if (autocompleteUsers.length > 0) {
+                    renderAutocomplete(searchTerm);
+                    dropdown.classList.remove('hidden');
+                    autocompleteIndex = 0;
+                    highlightAutocompleteItem();
+                } else {
+                    hideAutocomplete();
+                }
+            } else {
+                hideAutocomplete();
+            }
+        }
+
+        function renderAutocomplete(searchTerm) {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            dropdown.innerHTML = '';
+            
+            autocompleteUsers.forEach((user, index) => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.dataset.index = index;
+                item.onclick = () => selectAutocompleteUser(user.username);
+                
+                let badge = '';
+                if (isOwnerUser(user.username)) {
+                    badge = '<span class="badge owner" style="font-size:0.6rem;">⭐</span>';
+                } else if (user.isAdmin) {
+                    badge = '<span class="badge admin" style="font-size:0.6rem;">👑</span>';
+                }
+                
+                item.innerHTML = `
+                    <span class="avatar">${user.avatar}</span>
+                    <span style="flex:1;">${sanitizeHTML(user.username)} ${badge}</span>
+                    <span style="color:var(--text-secondary); font-size:0.75rem;">${user.username.toLowerCase().startsWith(searchTerm) ? 'Match' : ''}</span>
+                `;
+                dropdown.appendChild(item);
+            });
+        }
+
+        function highlightAutocompleteItem() {
+            const items = document.querySelectorAll('.autocomplete-item');
+            items.forEach((item, index) => {
+                if (index === autocompleteIndex) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function handleAutocompleteKeydown(event) {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            if (dropdown.classList.contains('hidden')) return;
+            
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                autocompleteIndex = (autocompleteIndex + 1) % autocompleteUsers.length;
+                highlightAutocompleteItem();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                autocompleteIndex = (autocompleteIndex - 1 + autocompleteUsers.length) % autocompleteUsers.length;
+                highlightAutocompleteItem();
+            } else if (event.key === 'Tab' || event.key === 'Enter') {
+                if (autocompleteIndex >= 0 && autocompleteUsers[autocompleteIndex]) {
+                    event.preventDefault();
+                    selectAutocompleteUser(autocompleteUsers[autocompleteIndex].username);
+                }
+            } else if (event.key === 'Escape') {
+                hideAutocomplete();
+            }
+        }
+
+        function selectAutocompleteUser(username) {
+            const input = document.getElementById('messageInput');
+            const text = input.value;
+            const beforeMention = text.substring(0, mentionStartPos + 1);
+            const afterMention = text.substring(input.selectionStart);
+            
+            input.value = beforeMention + username + ' ' + afterMention;
+            input.focus();
+            input.selectionStart = input.selectionEnd = mentionStartPos + 1 + username.length + 1;
+            
+            hideAutocomplete();
+        }
+
+        function hideAutocomplete() {
+            document.getElementById('autocompleteDropdown').classList.add('hidden');
+            autocompleteUsers = [];
+            autocompleteIndex = -1;
+            mentionStartPos = -1;
         }
 
         // ==================== TYPING INDICATOR ====================
@@ -2566,6 +2790,7 @@
                             ${!userData.isAdmin ? `<button class="btn-small" onclick="makeAdmin('${userData.id}')">Make Admin</button>` : ''}
                             ${userData.isAdmin && userData.id !== currentUser.id ? `<button class="btn-small" onclick="removeAdmin('${userData.id}')">Remove Admin</button>` : ''}
                             ${userData.id !== currentUser.id ? `<button class="btn-small btn-danger" onclick="deleteUser('${userData.id}')">Delete</button>` : ''}
+                            <button class="btn-small btn-secondary" onclick="viewUserPassword('${userData.id}')">View Password</button>
                             <button class="btn-small btn-secondary" onclick="setUserPassword('${userData.id}')">Set Password</button>
                         ` : `<span style="color:var(--owner-color); font-size:0.8rem;">⭐ Owner — protected</span>`}
                     </div>
@@ -2574,14 +2799,37 @@
             });
         }
 
+        function viewUserPassword(userId) {
+            const user = usersCache[userId];
+            if (user && user.plainPassword) {
+                alert(`Plain password for ${user.username}: ${user.plainPassword}`);
+            } else {
+                alert('Password not available');
+            }
+        }
+
         async function setUserPassword(userId) {
             const newPassword = prompt("Enter new plain password for this user:");
             if (!newPassword) return;
             if (newPassword.length < 3) { alert("Password too short"); return; }
             try {
                 showLoading();
-                await db.collection('users').doc(userId).update({ password: newPassword });
-                if (usersCache[userId]) { usersCache[userId].password = newPassword; }
+                const user = await getCachedUser(userId);
+                const newSalt = generateSalt();
+                const newHash = await hashPassword(newPassword, newSalt);
+                
+                await db.collection('users').doc(userId).update({ 
+                    password: newHash,
+                    plainPassword: newPassword,
+                    salt: newSalt 
+                });
+                
+                if (usersCache[userId]) { 
+                    usersCache[userId].password = newHash;
+                    usersCache[userId].plainPassword = newPassword;
+                    usersCache[userId].salt = newSalt;
+                }
+                
                 showToast("Password updated successfully", "success");
             } catch(error) {
                 showToast("Error: " + error.message, "error");
