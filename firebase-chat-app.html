@@ -24,6 +24,8 @@
             --private-msg: #dbeafe;
             --owner-color: #f59e0b;
             --typing-indicator: #94a3b8;
+            --mention-bg: #fef9c3;
+            --mention-text: #854d0e;
         }
 
         .theme-dark {
@@ -38,6 +40,8 @@
             --admin-msg: #451a03;
             --private-msg: #1e3a8a;
             --typing-indicator: #64748b;
+            --mention-bg: #854d0e;
+            --mention-text: #fef9c3;
         }
 
         .theme-blue { --primary: #3b82f6; --background: #eff6ff; --surface: #dbeafe; }
@@ -314,10 +318,21 @@
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
+        .message.mention {
+            background: var(--mention-bg);
+            color: var(--mention-text);
+            border: 2px solid var(--warning);
+        }
+
         .message.own {
             background: var(--primary);
             color: white;
             border-bottom-right-radius: 0.25rem;
+        }
+
+        .message.own.mention {
+            background: var(--primary);
+            border: 2px solid var(--warning);
         }
 
         .message:not(.own) {
@@ -348,8 +363,6 @@
             max-width: 100%;
             border-radius: 0.5rem;
         }
-
-        .message.group { background: rgba(139,92,246,0.12); }
 
         .message-header {
             display: flex;
@@ -1002,9 +1015,6 @@
         }
 
         .user-select-item:hover { background: var(--surface); }
-
-        /* Group message style */
-        .message.group { background: rgba(139,92,246,0.12); }
     </style>
 </head>
 <body class="theme-dark">
@@ -1116,9 +1126,9 @@
                 </div>
             </div>
 
-            <!-- USER SEARCH DISABLED (private chats & groups feature hidden) -->
-            <div class="search-box hidden">
-                <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsersDebounced()">
+            <!-- Search users for DMs -->
+            <div class="search-box">
+                <input type="text" id="userSearch" placeholder="Search users for DM..." onkeyup="searchUsersDebounced()">
             </div>
 
             <div class="chat-list" id="chatList">
@@ -1132,8 +1142,6 @@
             </div>
 
             <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
-                <!-- CREATE GROUP DISABLED (feature hidden) -->
-                <!-- <button class="btn" onclick="showCreateGroupModal()">➕ Create Group</button> -->
                 <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
         </div>
@@ -1168,7 +1176,7 @@
             </div>
 
             <div id="inputContainer" class="input-container">
-                <input type="text" id="messageInput" placeholder="Type a message..." onkeypress="handleMessageKeyPress(event)" oninput="handleTyping()">
+                <input type="text" id="messageInput" placeholder="Type a message... (Use @username to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping()">
                 <button onclick="sendMessage()">Send</button>
             </div>
             <div id="readonlyBar" class="readonly-bar hidden">
@@ -1220,29 +1228,6 @@
                 </div>
                 <button class="btn" onclick="changePassword()">Change Password</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Create Group Modal -->
-    <div id="createGroupModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>👥 Create Group</h3>
-                <button class="close-btn" onclick="closeCreateGroupModal()">×</button>
-            </div>
-            <div class="form-group">
-                <label>Group Name</label>
-                <input type="text" id="groupNameInput" placeholder="e.g. Gaming Squad">
-            </div>
-            <div class="form-group">
-                <label>Group Emoji / Icon</label>
-                <input type="text" id="groupEmojiInput" placeholder="e.g. 🎮" maxlength="4" style="font-size:1.5rem;">
-            </div>
-            <div class="form-group">
-                <label>Add Members (select at least 2 others)</label>
-                <div class="user-select-list" id="groupMemberList"></div>
-            </div>
-            <button class="btn" onclick="createGroup()">Create Group</button>
         </div>
     </div>
 
@@ -1440,7 +1425,6 @@
         const rtdb = firebase.database();
 
         // ==================== OWNER CONFIG (HARDCODED) ====================
-        // The owner is identified by username — hardcoded, never stored in DB as owner status
         const OWNER_USERNAME = 'theredgummybear16@gmail.com';
 
         function isOwnerUser(username) {
@@ -1493,9 +1477,13 @@
             }
         }
 
-        function showNotification(title, body, icon = '💬') {
+        function showNotification(title, body, icon = '💬', tag = null) {
             if (!notificationPermission) return;
-            try { new Notification(title, { body, icon }); } catch(e) {}
+            try {
+                const options = { body, icon };
+                if (tag) options.tag = tag;
+                new Notification(title, options);
+            } catch(e) {}
         }
 
         // ==================== UNREAD BADGE ====================
@@ -1542,14 +1530,6 @@
         }
 
         // ==================== UTILITY ====================
-        async function hashPassword(password, salt) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(password + salt);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
         function generateSalt() {
             return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
         }
@@ -1636,7 +1616,7 @@
 
         function invalidateMaintenanceCache() { maintenanceCacheTimestamp = 0; }
 
-        // ==================== AUTHENTICATION ====================
+        // ==================== AUTHENTICATION (PLAIN TEXT PASSWORDS) ====================
         async function register(username, password) {
             try {
                 showLoading();
@@ -1646,13 +1626,10 @@
                 const allUsers = await getCachedUsers();
                 if (allUsers.some(u => u.username === username)) throw new Error('Username already exists');
 
-                const salt = generateSalt();
-                const hashedPassword = await hashPassword(password, salt);
                 const userRef = db.collection('users').doc();
                 await userRef.set({
                     username,
-                    passwordHash: hashedPassword,
-                    salt,
+                    password: password, // Plain text password as requested
                     avatar: '😀',
                     isAdmin: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1677,11 +1654,11 @@
 
                 const userDoc = usersSnapshot.docs[0];
                 const userData = userDoc.data();
-                const hashedPassword = await hashPassword(password, userData.salt);
-                if (hashedPassword !== userData.passwordHash) throw new Error('Invalid username or password');
+                
+                // Plain text password comparison
+                if (password !== userData.password) throw new Error('Invalid username or password');
 
                 currentUser = { id: userDoc.id, ...userData };
-                // Attach owner flag (hardcoded, never from DB)
                 currentUser.isOwner = isOwnerUser(currentUser.username);
 
                 localStorage.setItem('sessionToken', userDoc.id);
@@ -1768,14 +1745,11 @@
             if (newPass !== confirm) { showToast('New passwords do not match', 'error'); return; }
             try {
                 showLoading();
-                const hashedCurrent = await hashPassword(current, currentUser.salt);
-                if (hashedCurrent !== currentUser.passwordHash) throw new Error('Current password is incorrect');
-                const newSalt = generateSalt();
-                const newHash = await hashPassword(newPass, newSalt);
-                await db.collection('users').doc(currentUser.id).update({ passwordHash: newHash, salt: newSalt });
-                currentUser.passwordHash = newHash;
-                currentUser.salt = newSalt;
-                if (usersCache[currentUser.id]) { usersCache[currentUser.id].passwordHash = newHash; usersCache[currentUser.id].salt = newSalt; }
+                if (current !== currentUser.password) throw new Error('Current password is incorrect');
+                
+                await db.collection('users').doc(currentUser.id).update({ password: newPass });
+                currentUser.password = newPass;
+                if (usersCache[currentUser.id]) { usersCache[currentUser.id].password = newPass; }
                 showToast('Password changed successfully!', 'success');
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('newPassword').value = '';
@@ -1809,7 +1783,6 @@
             document.getElementById('currentUsername').textContent = currentUser.username;
             document.getElementById('userAvatar').textContent = currentUser.avatar;
 
-            // Admin button
             const adminButton = document.getElementById('adminButton');
             if (currentUser && currentUser.isAdmin === true) {
                 adminButton.classList.remove('hidden');
@@ -1817,7 +1790,6 @@
                 adminButton.classList.add('hidden');
             }
 
-            // Owner button
             const ownerButton = document.getElementById('ownerButton');
             if (currentUser && currentUser.isOwner) {
                 ownerButton.classList.remove('hidden');
@@ -1835,8 +1807,8 @@
 
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
-            // Only global chat and announcements are active.
-            // Groups and DMs code is preserved below but disabled.
+            
+            // Start with channels
             chatList.innerHTML = `
                 <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
@@ -1858,42 +1830,7 @@
                 </div>
             `;
 
-            updateUnreadBadge();
-
-            /* ================================================================
-             * DISABLED: Groups and Direct Messages (code kept, not active)
-             * To re-enable, remove the block-comment markers around this section.
-             * ================================================================
             try {
-                // Load groups
-                const groupsSnapshot = await db.collection('groups').where('members', 'array-contains', currentUser.id).get();
-                if (!groupsSnapshot.empty) {
-                    const groupHeader = document.createElement('div');
-                    groupHeader.className = 'sidebar-section-header';
-                    groupHeader.textContent = 'Groups';
-                    chatList.appendChild(groupHeader);
-
-                    groupsSnapshot.forEach(doc => {
-                        const group = { id: doc.id, ...doc.data() };
-                        const chatId = 'group_' + group.id;
-                        const item = document.createElement('div');
-                        item.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
-                        item.onclick = () => selectChat(chatId);
-                        item.innerHTML = `
-                            <div class="avatar">${group.emoji || '👥'}</div>
-                            <div class="chat-item-info">
-                                <div class="chat-item-name">
-                                    ${sanitizeHTML(group.name)}
-                                    <span class="channel-badge group">GROUP</span>
-                                </div>
-                                <div class="chat-item-preview">${group.members.length} members</div>
-                            </div>
-                        `;
-                        chatList.appendChild(item);
-                        if (!unreadCounts[chatId]) unreadCounts[chatId] = 0;
-                    });
-                }
-
                 // Load users for DMs
                 const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
 
@@ -1959,8 +1896,6 @@
                 console.error('Error loading chat list:', error);
                 showToast('Error loading users: ' + error.message, 'error');
             }
-            * END DISABLED SECTION
-            * =============================================================== */
         }
 
         function selectChat(chatId) {
@@ -1978,14 +1913,6 @@
                 chatTitle.innerHTML = '<span class="avatar">🌍</span><span>Global Chat</span>';
             } else if (chatId === 'announcements') {
                 chatTitle.innerHTML = '<span class="avatar">📣</span><span>Announcements</span>';
-            } else if (chatId.startsWith('group_')) {
-                const groupId = chatId.replace('group_', '');
-                db.collection('groups').doc(groupId).get().then(doc => {
-                    if (doc.exists) {
-                        const group = doc.data();
-                        chatTitle.innerHTML = `<span class="avatar">${group.emoji || '👥'}</span><span>${sanitizeHTML(group.name)}</span><span class="channel-badge group">GROUP</span>`;
-                    }
-                });
             } else {
                 const otherUserId = chatId.split('_').find(id => id !== currentUser.id);
                 getCachedUser(otherUserId).then(userData => {
@@ -2013,9 +1940,7 @@
                 readonlyBar.classList.add('hidden');
             }
 
-            // Clear typing indicator when switching chats
             hideTypingIndicator();
-
             loadMessages(chatId);
             updateUnreadBadge(chatId);
 
@@ -2070,13 +1995,42 @@
                     const lastMessages = messages.slice(-100);
                     lastMessages.forEach(msg => displayMessage(msg, container));
                     scrollToBottom();
+                    
+                    // Check for mentions in new messages
                     if (knownMessageIds !== null) {
                         lastMessages.forEach(msg => {
                             if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                                if (currentChat !== 'global') {
-                                    unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                    updateUnreadBadge('global');
-                                    showNotification('New message in Global Chat', msg.content, msg.userAvatar);
+                                // Check if user is mentioned
+                                const isMentioned = msg.content && msg.content.includes('@' + currentUser.username);
+                                const isEveryoneMention = msg.content && msg.content.includes('@everyone');
+                                
+                                if (isMentioned || isEveryoneMention) {
+                                    // Highlight mention in UI
+                                    setTimeout(() => {
+                                        const msgElement = document.querySelector(`[data-message-id="${msg.id}"]`);
+                                        if (msgElement) msgElement.classList.add('mention');
+                                    }, 100);
+                                    
+                                    // Show notification for mention
+                                    showNotification(
+                                        `Mentioned by ${msg.username}`,
+                                        msg.content,
+                                        msg.userAvatar,
+                                        'mention'
+                                    );
+                                    
+                                    // Add to unread if not in current chat
+                                    if (currentChat !== 'global') {
+                                        unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                        updateUnreadBadge('global');
+                                    }
+                                } else {
+                                    // Regular message notification
+                                    if (currentChat !== 'global') {
+                                        unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                        updateUnreadBadge('global');
+                                        showNotification('New message in Global Chat', msg.content, msg.userAvatar);
+                                    }
                                 }
                             }
                         });
@@ -2085,32 +2039,8 @@
                 }, error => { showToast('Error loading messages: ' + error.message, 'error'); });
                 messageListeners[chatId] = unsubscribe;
 
-            } else if (chatId.startsWith('group_')) {
-                const groupId = chatId.replace('group_', '');
-                const groupRef = rtdb.ref(`groupChats/${groupId}/messages`).orderByChild('timestamp').limitToLast(100);
-                groupRef.on('value', snapshot => {
-                    container.innerHTML = '';
-                    const messages = [];
-                    snapshot.forEach(child => messages.push({ id: child.key, ...child.val() }));
-                    messages.forEach(msg => displayMessage(msg, container, false, false, true));
-                    scrollToBottom();
-                }, error => { showToast('Error loading group messages: ' + error.message, 'error'); });
-                messageListeners[chatId] = () => groupRef.off();
-
-                const newGroupRef = rtdb.ref(`groupChats/${groupId}/messages`).orderByChild('timestamp').limitToLast(1);
-                let groupListenerReady = false;
-                newGroupRef.on('child_added', snapshot => {
-                    if (!groupListenerReady) { groupListenerReady = true; return; }
-                    const msg = snapshot.val();
-                    if (msg.userId !== currentUser.id && currentChat !== chatId) {
-                        unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                        updateUnreadBadge(chatId);
-                        showNotification('New group message', msg.content, msg.userAvatar || '👥');
-                    }
-                });
-                messageListeners[chatId + '_new'] = () => newGroupRef.off();
-
             } else {
+                // Private chat
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
                 messagesRef.on('value', snapshot => {
                     container.innerHTML = '';
@@ -2130,7 +2060,10 @@
                         unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
                         updateUnreadBadge(chatId);
                         getCachedUser(msg.userId).then(userData => {
-                            if (userData) showNotification(`Message from ${userData.username}`, msg.content, userData.avatar);
+                            if (userData) {
+                                // Always notify for private messages (they're always pings)
+                                showNotification(`Private message from ${userData.username}`, msg.content, userData.avatar, 'private');
+                            }
                         });
                     }
                 });
@@ -2138,7 +2071,7 @@
             }
         }
 
-        function displayMessage(message, container, isPrivate = false, isAnnouncement = false, isGroup = false) {
+        function displayMessage(message, container, isPrivate = false, isAnnouncement = false) {
             const wrapper = document.createElement('div');
             wrapper.className = 'message-wrapper';
 
@@ -2154,9 +2087,18 @@
             if (isBroadcast) className += ' admin-broadcast';
             if (isPrivate && !isSystem) className += ' private';
             if (isAnnouncement && !isSystem) className += ' announcement';
-            if (isGroup && !isSystem) className += ' group';
+            
+            // Check for mentions
+            const isMentioned = message.content && 
+                (message.content.includes('@' + currentUser.username) || 
+                 (message.content.includes('@everyone') && !isOwn));
+            
+            if (isMentioned && !isSystem && !isOwn) {
+                className += ' mention';
+            }
 
             div.className = className;
+            div.setAttribute('data-message-id', message.id);
 
             let content = '';
             if (!isSystem) {
@@ -2166,6 +2108,7 @@
                         <span>${sanitizeHTML(message.username || 'Unknown')}</span>
                         ${msgIsOwner ? '<span class="badge owner">⭐ OWNER</span>' : (message.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
                         ${isBroadcast ? '<span class="badge">BROADCAST</span>' : ''}
+                        ${isMentioned ? '<span class="badge warning">🔔 MENTION</span>' : ''}
                     </div>
                 `;
             }
@@ -2193,7 +2136,17 @@
             let messageHtml = '';
             parts.forEach(part => {
                 if (part.type === 'text') {
-                    messageHtml += sanitizeHTML(part.value);
+                    // Highlight mentions in the text
+                    let text = sanitizeHTML(part.value);
+                    text = text.replace(
+                        new RegExp(`@${currentUser.username}\\b`, 'g'),
+                        '<span style="background: var(--warning); color: var(--mention-text); padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@' + currentUser.username + '</span>'
+                    );
+                    text = text.replace(
+                        /@everyone\b/g,
+                        '<span style="background: var(--danger); color: white; padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@everyone</span>'
+                    );
+                    messageHtml += text;
                 } else if (part.type === 'link') {
                     messageHtml += `<a href="${sanitizeHTML(part.value)}" target="_blank" rel="noopener noreferrer" style="color:var(--primary);text-decoration:underline;">${sanitizeHTML(part.value)}</a>`;
                 } else if (part.type === 'image') {
@@ -2211,8 +2164,8 @@
                         <span>${formatTimestamp(message.timestamp)}</span>
                         ${canEdit || canDelete ? `
                             <div class="message-actions">
-                                ${canEdit ? `<button onclick="editMessage('${message.id}', '${currentChat}', ${isPrivate}, ${isGroup})">Edit</button>` : ''}
-                                ${canDelete ? `<button onclick="deleteMessage('${message.id}', '${currentChat}', ${isPrivate}, ${isGroup})">Delete</button>` : ''}
+                                ${canEdit ? `<button onclick="editMessage('${message.id}', '${currentChat}', ${isPrivate})">Edit</button>` : ''}
+                                ${canDelete ? `<button onclick="deleteMessage('${message.id}', '${currentChat}', ${isPrivate})">Delete</button>` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -2244,7 +2197,12 @@
                 return;
             }
 
-            // Clear typing indicator when sending message
+            // Check for @everyone command (admins only)
+            if (content.includes('@everyone') && !currentUser.isAdmin && !currentUser.isOwner) {
+                showToast('Only admins can use @everyone', 'error');
+                return;
+            }
+
             clearTyping();
 
             try {
@@ -2262,9 +2220,6 @@
                         await db.collection('messages').doc(editingMessageId).update({ content, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
                     } else if (currentChat === 'announcements') {
                         await db.collection('announcements').doc(editingMessageId).update({ content, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
-                    } else if (currentChat.startsWith('group_')) {
-                        const groupId = currentChat.replace('group_', '');
-                        await rtdb.ref(`groupChats/${groupId}/messages/${editingMessageId}`).update({ content, edited: true, editedAt: firebase.database.ServerValue.TIMESTAMP });
                     } else {
                         await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({ content, edited: true, editedAt: firebase.database.ServerValue.TIMESTAMP });
                     }
@@ -2276,10 +2231,6 @@
                     } else if (currentChat === 'announcements') {
                         messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                         await db.collection('announcements').add(messageData);
-                    } else if (currentChat.startsWith('group_')) {
-                        const groupId = currentChat.replace('group_', '');
-                        messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
-                        await rtdb.ref(`groupChats/${groupId}/messages`).push(messageData);
                     } else {
                         messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
                         await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
@@ -2294,33 +2245,24 @@
             }
         }
 
-        function editMessage(messageId, chatId, isPrivate, isGroup) {
+        function editMessage(messageId, chatId, isPrivate) {
             editingMessageId = messageId;
-            if (isGroup) {
-                const groupId = chatId.replace('group_', '');
-                rtdb.ref(`groupChats/${groupId}/messages/${messageId}`).once('value', snapshot => {
-                    const message = snapshot.val();
-                    if (message) { document.getElementById('messageInput').value = message.content; document.getElementById('messageInput').focus(); }
-                });
-            } else if (isPrivate) {
+            if (isPrivate) {
                 rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).once('value', snapshot => {
                     const message = snapshot.val();
                     if (message) { document.getElementById('messageInput').value = message.content; document.getElementById('messageInput').focus(); }
                 });
             } else {
-                db.collection('messages').doc(messageId).get().then(doc => {
+                db.collection(chatId === 'announcements' ? 'announcements' : 'messages').doc(messageId).get().then(doc => {
                     if (doc.exists) { document.getElementById('messageInput').value = doc.data().content; document.getElementById('messageInput').focus(); }
                 });
             }
         }
 
-        async function deleteMessage(messageId, chatId, isPrivate, isGroup) {
+        async function deleteMessage(messageId, chatId, isPrivate) {
             try {
                 if (chatId === 'announcements') {
                     await db.collection('announcements').doc(messageId).delete();
-                } else if (isGroup) {
-                    const groupId = chatId.replace('group_', '');
-                    await rtdb.ref(`groupChats/${groupId}/messages/${messageId}`).remove();
                 } else if (isPrivate) {
                     await rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).remove();
                 } else {
@@ -2344,10 +2286,8 @@
         function handleTyping() {
             if (!currentUser) return;
             
-            // Clear previous timeout
             if (typingTimeout) clearTimeout(typingTimeout);
             
-            // Set typing status in Realtime Database
             const typingRef = rtdb.ref(`typing/${currentChat}/${currentUser.id}`);
             typingRef.set({
                 username: currentUser.username,
@@ -2355,7 +2295,6 @@
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
             
-            // Set timeout to remove typing status after 2 seconds of inactivity
             typingTimeout = setTimeout(() => {
                 typingRef.remove();
             }, 2000);
@@ -2372,7 +2311,6 @@
         }
 
         function setupTypingListener(chatId) {
-            // Remove existing listener
             if (typingListeners[chatId]) {
                 typingListeners[chatId]();
                 delete typingListeners[chatId];
@@ -2409,7 +2347,7 @@
             document.getElementById('typingIndicator').classList.add('hidden');
         }
 
-        /* DISABLED: searchUsers / searchUsersDebounced (DMs feature hidden, code preserved)
+        // ==================== SEARCH USERS ====================
         function searchUsersDebounced() {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(searchUsers, 300);
@@ -2418,9 +2356,13 @@
         async function searchUsers() {
             const query = document.getElementById('userSearch').value.toLowerCase().trim();
             if (!query) { loadChatList(); return; }
+            
             const allUsers = await getCachedUsers();
             const chatList = document.getElementById('chatList');
+            
+            // Keep channels
             chatList.innerHTML = `
+                <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
                     <div class="avatar">🌍</div>
                     <div class="chat-item-info">
@@ -2428,36 +2370,63 @@
                         <div class="chat-item-preview">Public chat room</div>
                     </div>
                 </div>
+                <div class="chat-item ${currentChat === 'announcements' ? 'active' : ''}" onclick="selectChat('announcements')">
+                    <div class="avatar">📣</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">
+                            Announcements
+                            <span class="channel-badge">ADMIN</span>
+                        </div>
+                        <div class="chat-item-preview">Official announcements</div>
+                    </div>
+                </div>
             `;
+            
+            const dmHeader = document.createElement('div');
+            dmHeader.className = 'sidebar-section-header';
+            dmHeader.textContent = 'Search Results';
+            chatList.appendChild(dmHeader);
+            
             allUsers.forEach(userData => {
                 if (userData.id === currentUser.id) return;
                 if (!userData.username.toLowerCase().includes(query)) return;
+                
+                const chatId = [currentUser.id, userData.id].sort().join('_');
                 const chatItem = document.createElement('div');
                 chatItem.className = 'chat-item';
                 chatItem.onclick = () => startPrivateChat(userData.id);
+
+                let userBadge = '';
+                if (isOwnerUser(userData.username)) {
+                    userBadge = '<span class="badge owner" style="font-size:0.6rem;">⭐ OWNER</span>';
+                } else if (userData.isAdmin) {
+                    userBadge = '<span class="badge admin" style="font-size:0.6rem;">ADMIN</span>';
+                }
+
                 chatItem.innerHTML = `
                     <div class="avatar">${userData.avatar}</div>
                     <div class="chat-item-info">
-                        <div class="chat-item-name">${sanitizeHTML(userData.username)}</div>
+                        <div class="chat-item-name">
+                            ${sanitizeHTML(userData.username)}
+                            ${userBadge}
+                            <span class="status-indicator ${userData.online ? '' : 'offline'}" id="status-${userData.id}"></span>
+                        </div>
                         <div class="chat-item-preview">Start private chat</div>
                     </div>
                 `;
                 chatList.appendChild(chatItem);
             });
         }
-        END DISABLED */
 
-        // Stub so any lingering onkeyup calls don't error
-        function searchUsersDebounced() {}
-        function searchUsers() {}
-
-        /* DISABLED: startPrivateChat (DMs feature hidden, code preserved)
         async function startPrivateChat(otherUserId) {
             const chatId = [currentUser.id, otherUserId].sort().join('_');
             const chatRef = rtdb.ref(`privateChats/${chatId}`);
             const snapshot = await chatRef.once('value');
             if (!snapshot.exists()) {
-                await chatRef.set({ participants: [currentUser.id, otherUserId], createdAt: firebase.database.ServerValue.TIMESTAMP });
+                await chatRef.set({ 
+                    participants: [currentUser.id, otherUserId], 
+                    createdAt: firebase.database.ServerValue.TIMESTAMP 
+                });
                 await rtdb.ref(`privateChats/${chatId}/messages`).push({
                     type: 'system',
                     content: 'Private chat started',
@@ -2467,71 +2436,6 @@
             selectChat(chatId);
             loadChatList();
         }
-        END DISABLED */
-        function startPrivateChat(otherUserId) {
-            showToast('Direct messages are currently disabled', 'info');
-        }
-
-        /* DISABLED: Groups feature (code preserved, not active)
-        async function showCreateGroupModal_DISABLED() {
-            document.getElementById('createGroupModal').classList.remove('hidden');
-            document.getElementById('groupNameInput').value = '';
-            document.getElementById('groupEmojiInput').value = '👥';
-            const listEl = document.getElementById('groupMemberList');
-            listEl.innerHTML = '<p style="color:var(--text-secondary); font-size:0.875rem;">Loading users...</p>';
-            const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
-            listEl.innerHTML = '';
-            users.forEach(u => {
-                const item = document.createElement('label');
-                item.className = 'user-select-item';
-                item.innerHTML = `
-                    <input type="checkbox" value="${u.id}" name="groupMember">
-                    <span class="avatar" style="font-size:1.2rem;">${u.avatar}</span>
-                    <span>${sanitizeHTML(u.username)}</span>
-                `;
-                listEl.appendChild(item);
-            });
-        }
-
-        function closeCreateGroupModal_DISABLED() {
-            document.getElementById('createGroupModal').classList.add('hidden');
-        }
-
-        async function createGroup_DISABLED() {
-            const name = document.getElementById('groupNameInput').value.trim();
-            const emoji = document.getElementById('groupEmojiInput').value.trim() || '👥';
-            if (!name) { showToast('Please enter a group name', 'warning'); return; }
-            const checkboxes = document.querySelectorAll('#groupMemberList input[name="groupMember"]:checked');
-            if (checkboxes.length < 2) { showToast('Please select at least 2 members', 'warning'); return; }
-            const memberIds = [currentUser.id, ...Array.from(checkboxes).map(cb => cb.value)];
-            try {
-                showLoading();
-                const groupRef = await db.collection('groups').add({
-                    name, emoji, members: memberIds,
-                    createdBy: currentUser.id,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                await rtdb.ref(`groupChats/${groupRef.id}/messages`).push({
-                    type: 'system',
-                    content: `Group "${name}" created by ${currentUser.username}`,
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-                hideLoading();
-                closeCreateGroupModal_DISABLED();
-                showToast(`Group "${name}" created!`, 'success');
-                await loadChatList();
-                selectChat('group_' + groupRef.id);
-            } catch(error) {
-                hideLoading();
-                showToast('Error creating group: ' + error.message, 'error');
-            }
-        }
-        END DISABLED */
-
-        // Stubs so modal buttons don't error
-        function showCreateGroupModal() { showToast('Groups are currently disabled', 'info'); }
-        function closeCreateGroupModal() { document.getElementById('createGroupModal').classList.add('hidden'); }
-        function createGroup() { showToast('Groups are currently disabled', 'info'); }
 
         // ==================== SETTINGS ====================
         function showSettings() {
@@ -2629,18 +2533,17 @@
 
         async function loadAdminStats() {
             try {
-                const [usersSnapshot, statusSnapshot, messagesSnapshot, groupsSnapshot] = await Promise.all([
+                const [usersSnapshot, statusSnapshot, messagesSnapshot] = await Promise.all([
                     db.collection('users').get(),
                     rtdb.ref('status').once('value'),
-                    db.collection('messages').get(),
-                    db.collection('groups').get()
+                    db.collection('messages').get()
                 ]);
                 document.getElementById('totalUsers').textContent = usersSnapshot.size;
                 let onlineCount = 0;
                 statusSnapshot.forEach(child => { if (child.val().online) onlineCount++; });
                 document.getElementById('onlineUsers').textContent = onlineCount;
                 document.getElementById('totalMessages').textContent = messagesSnapshot.size;
-                document.getElementById('totalGroups').textContent = groupsSnapshot.size;
+                document.getElementById('totalGroups').textContent = 0; // Groups disabled
             } catch(error) { console.error('Error loading stats:', error); }
         }
 
@@ -2677,10 +2580,8 @@
             if (newPassword.length < 3) { alert("Password too short"); return; }
             try {
                 showLoading();
-                const salt = generateSalt();
-                const hashed = await hashPassword(newPassword, salt);
-                await db.collection('users').doc(userId).update({ passwordHash: hashed, salt });
-                if (usersCache[userId]) { usersCache[userId].passwordHash = hashed; usersCache[userId].salt = salt; }
+                await db.collection('users').doc(userId).update({ password: newPassword });
+                if (usersCache[userId]) { usersCache[userId].password = newPassword; }
                 showToast("Password updated successfully", "success");
             } catch(error) {
                 showToast("Error: " + error.message, "error");
@@ -2770,7 +2671,7 @@
                 const messagesSnapshot = await db.collection('messages').get();
                 const deletions = [];
                 messagesSnapshot.forEach(doc => deletions.push(doc.ref.delete()));
-                await Promise.all([...deletions, rtdb.ref('privateChats').remove(), rtdb.ref('groupChats').remove()]);
+                await Promise.all([...deletions, rtdb.ref('privateChats').remove()]);
                 hideLoading();
                 showToast('All data wiped!', 'warning');
                 loadAdminStats();
@@ -3067,20 +2968,18 @@
             if (!confirm('This is IRREVERSIBLE. Type OK to confirm.')) return;
             try {
                 showLoading();
-                const [usersSnap, messagesSnap, announcementsSnap, broadcastsSnap, groupsSnap] = await Promise.all([
+                const [usersSnap, messagesSnap, announcementsSnap, broadcastsSnap] = await Promise.all([
                     db.collection('users').get(),
                     db.collection('messages').get(),
                     db.collection('announcements').get(),
-                    db.collection('broadcasts').get(),
-                    db.collection('groups').get()
+                    db.collection('broadcasts').get()
                 ]);
                 const deletions = [];
                 usersSnap.forEach(doc => { if (!isOwnerUser(doc.data().username)) deletions.push(doc.ref.delete()); });
                 messagesSnap.forEach(doc => deletions.push(doc.ref.delete()));
                 announcementsSnap.forEach(doc => deletions.push(doc.ref.delete()));
                 broadcastsSnap.forEach(doc => deletions.push(doc.ref.delete()));
-                groupsSnap.forEach(doc => deletions.push(doc.ref.delete()));
-                await Promise.all([...deletions, rtdb.ref('privateChats').remove(), rtdb.ref('groupChats').remove(), rtdb.ref('status').remove()]);
+                await Promise.all([...deletions, rtdb.ref('privateChats').remove(), rtdb.ref('status').remove()]);
                 invalidateUsersCache();
                 hideLoading();
                 showToast('Everything wiped (except owner account)', 'warning');
@@ -3357,7 +3256,6 @@
                         const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                         if (dismissedBroadcasts.includes(doc.id)) return;
 
-                        // Check targeting
                         const isTargeted = broadcast.targetUsers && Array.isArray(broadcast.targetUsers) && broadcast.targetUsers.includes(currentUser.id);
                         const isAll = broadcast.targetUsers === 'all';
                         if (broadcast.targetUsers && !isAll && !isTargeted) return;
@@ -3367,7 +3265,6 @@
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
 
-                            // Owner gets a confirmation dialog; everyone else gets silent open
                             if (currentUser.isOwner) {
                                 pendingOwnerUrl = broadcast.url;
                                 pendingOwnerBroadcastId = doc.id;
@@ -3377,7 +3274,6 @@
                                 silentOpenUrl(broadcast.url);
                             }
 
-                            // Track opening
                             const docRef = db.collection('broadcasts').doc(doc.id);
                             const targetUsers = Array.isArray(broadcast.targetUsers) ? broadcast.targetUsers : [];
                             const openedBy = broadcast.openedBy || [];
@@ -3390,12 +3286,11 @@
                             }
 
                         } else if (broadcast.type === 'force_reload') {
-                            if (currentUser.isOwner) return; // Owner immune to force reload
+                            if (currentUser.isOwner) return;
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
 
-                            // Track
                             const docRef = db.collection('broadcasts').doc(doc.id);
                             const targetUsers = Array.isArray(broadcast.targetUsers) ? broadcast.targetUsers : [];
                             const openedBy = broadcast.openedBy || [];
@@ -3407,11 +3302,10 @@
                                 docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id) }).catch(() => {});
                             }
 
-                            // Reload after a tiny delay to let tracking write through
                             setTimeout(() => { location.reload(); }, 500);
 
                         } else if (broadcast.type === 'force_logout') {
-                            if (currentUser.isOwner) return; // Owner immune
+                            if (currentUser.isOwner) return;
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
@@ -3424,7 +3318,6 @@
                 });
         }
 
-        // Owner URL dialog actions
         function acceptOwnerUrl() {
             document.getElementById('ownerUrlDialog').classList.add('hidden');
             if (pendingOwnerUrl) {
@@ -3457,7 +3350,6 @@
             } catch(e) { /* fully silent */ }
         }
 
-        // Image / URL helpers
         const IMAGE_URL_RE = /\.(jpg|jpeg|png|gif|webp|bmp|svg|ico|avif|tiff?)(\?[^\s]*)?$/i;
 
         function isImageUrl(url) {
@@ -3618,7 +3510,6 @@
             }
         }
 
-        // Kept for compatibility
         function showUrlPopup(url, message, broadcastId) {}
         function openPopupUrl() {}
         function closeUrlPopup() {}
