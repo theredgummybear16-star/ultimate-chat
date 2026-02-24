@@ -14,73 +14,79 @@ function loadMessages(chatId) {
 
     if (chatId === 'announcements') {
         let knownMessageIds = null;
-        const unsubscribe = db.collection('announcements').onSnapshot(snapshot => {
-            container.innerHTML = '';
-            const messages = [];
-            snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
-            messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-            const lastMessages = messages.slice(-100);
-            lastMessages.forEach(msg => displayMessage(msg, container, false, true));
-            scrollToBottom();
-            if (knownMessageIds !== null) {
-                lastMessages.forEach(msg => {
-                    if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                        if (currentChat !== 'announcements') {
-                            unreadCounts['announcements'] = (unreadCounts['announcements'] || 0) + 1;
-                            updateUnreadBadge('announcements');
-                            showNotification('📣 New Announcement', msg.content, '📣');
+        const syncRef = rtdb.ref('sync/announcements');
+        const listener = syncRef.on('value', async () => {
+            try {
+                const snapshot = await db.collection('announcements').orderBy('timestamp', 'desc').limit(100).get();
+                container.innerHTML = '';
+                const messages = [];
+                snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
+                messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
+                
+                messages.forEach(msg => displayMessage(msg, container, false, true));
+                scrollToBottom();
+
+                if (knownMessageIds !== null) {
+                    messages.forEach(msg => {
+                        if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
+                            if (currentChat !== 'announcements') {
+                                unreadCounts['announcements'] = (unreadCounts['announcements'] || 0) + 1;
+                                updateUnreadBadge('announcements');
+                                showNotification('📣 New Announcement', msg.content, '📣');
+                            }
                         }
-                    }
-                });
+                    });
+                }
+                knownMessageIds = new Set(messages.map(m => m.id));
+            } catch (error) {
+                console.error('Error fetching announcements:', error);
             }
-            knownMessageIds = new Set(lastMessages.map(m => m.id));
-        }, error => { showToast('Error loading announcements: ' + error.message, 'error'); });
-        messageListeners[chatId] = unsubscribe;
+        });
+        messageListeners[chatId] = () => syncRef.off('value', listener);
 
     } else if (chatId === 'global') {
         let knownMessageIds = null;
-        const unsubscribe = db.collection('messages').onSnapshot(snapshot => {
-            container.innerHTML = '';
-            const messages = [];
-            snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
-            messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-            const lastMessages = messages.slice(-100);
-            lastMessages.forEach(msg => displayMessage(msg, container));
-            scrollToBottom();
-            
-            // Check for mentions in new messages
-            if (knownMessageIds !== null) {
-                lastMessages.forEach(msg => {
-                    if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                        const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
-                        const isMentioned = mentionRegex.test(msg.content);
-                        const isEveryoneMention = msg.content && msg.content.includes('@everyone');
-                        
-                        if (isMentioned || isEveryoneMention) {
-                            showNotification(
-                                `Mentioned by ${msg.username}`,
-                                msg.content,
-                                msg.userAvatar,
-                                'mention'
-                            );
+        const syncRef = rtdb.ref('sync/global');
+        const listener = syncRef.on('value', async () => {
+            try {
+                const snapshot = await db.collection('messages').orderBy('timestamp', 'desc').limit(100).get();
+                container.innerHTML = '';
+                const messages = [];
+                snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
+                messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
+                
+                messages.forEach(msg => displayMessage(msg, container));
+                scrollToBottom();
+                
+                if (knownMessageIds !== null) {
+                    messages.forEach(msg => {
+                        if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
+                            const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
+                            const isMentioned = mentionRegex.test(msg.content);
+                            const isEveryoneMention = msg.content && msg.content.includes('@everyone');
                             
-                            if (currentChat !== 'global') {
-                                unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                updateUnreadBadge('global');
-                            }
-                        } else {
-                            if (currentChat !== 'global') {
-                                unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                updateUnreadBadge('global');
-                                showNotification('New message in Global Chat', msg.content, msg.userAvatar);
+                            if (isMentioned || isEveryoneMention) {
+                                showNotification(`Mentioned by ${msg.username}`, msg.content, msg.userAvatar, 'mention');
+                                if (currentChat !== 'global') {
+                                    unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                    updateUnreadBadge('global');
+                                }
+                            } else {
+                                if (currentChat !== 'global') {
+                                    unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
+                                    updateUnreadBadge('global');
+                                    showNotification('New message in Global Chat', msg.content, msg.userAvatar);
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
+                knownMessageIds = new Set(messages.map(m => m.id));
+            } catch (error) {
+                console.error('Error fetching global messages:', error);
             }
-            knownMessageIds = new Set(lastMessages.map(m => m.id));
-        }, error => { showToast('Error loading messages: ' + error.message, 'error'); });
-        messageListeners[chatId] = unsubscribe;
+        });
+        messageListeners[chatId] = () => syncRef.off('value', listener);
 
     } else {
         // Private chat
@@ -285,9 +291,13 @@ async function sendMessage() {
             if (currentChat === 'global') {
                 messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                 await db.collection('messages').add(messageData);
+                // Signal update via RTDB to minimize Firestore reads for others
+                rtdb.ref('sync/global').set(firebase.database.ServerValue.TIMESTAMP);
             } else if (currentChat === 'announcements') {
                 messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
                 await db.collection('announcements').add(messageData);
+                // Signal update via RTDB
+                rtdb.ref('sync/announcements').set(firebase.database.ServerValue.TIMESTAMP);
             } else {
                 messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
                 const newMsgRef = await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
