@@ -52,7 +52,7 @@ function loadMessages(chatId) {
             if (knownMessageIds !== null) {
                 lastMessages.forEach(msg => {
                     if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                        const mentionRegex = new RegExp('@' + currentUser.username + '\b', 'i');
+                        const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
                         const isMentioned = mentionRegex.test(msg.content);
                         const isEveryoneMention = msg.content && msg.content.includes('@everyone');
                         
@@ -141,7 +141,7 @@ function displayMessage(message, container, isPrivate = false, isAnnouncement = 
     if (isAnnouncement && !isSystem) className += ' announcement';
     
     // Check for mentions
-    const mentionRegex = new RegExp('@' + currentUser.username + '\b', 'i');
+    const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
     const isMentioned = mentionRegex.test(message.content);
     const isEveryoneMention = message.content && message.content.includes('@everyone');
     
@@ -198,7 +198,7 @@ function displayMessage(message, container, isPrivate = false, isAnnouncement = 
             const allUsers = Object.values(usersCache);
             allUsers.forEach(user => {
                 if (user.username) {
-                    const userMentionRegex = new RegExp('@' + user.username + '\b', 'g');
+                    const userMentionRegex = new RegExp('@' + user.username + '\\b', 'g');
                     text = text.replace(userMentionRegex, '<span class="mention-highlight">@' + user.username + '</span>');
                 }
             });

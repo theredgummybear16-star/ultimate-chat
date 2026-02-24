@@ -71,3 +71,26 @@ async function checkIPBlocked(ip) {
     if (cachedBlockedIPs.length === 0) await loadBlockedIPsCache();
     return cachedBlockedIPs.includes(ip);
 }
+
+// ==================== NOTIFICATIONS ====================
+function requestNotificationPermission() {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then(permission => {
+        notificationPermission = (permission === 'granted');
+    });
+}
+
+function showNotification(title, body, icon = '💬', type = 'info') {
+    // Show browser notification if permitted and tab is hidden
+    if (notificationPermission && document.hidden) {
+        try {
+            new Notification(title, { body, icon: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.pngmart.com%2Ffiles%2F11%2FChat-Logo-PNG-Pic.png&f=1&nofb=1&ipt=282b359cc027c71e1d0c549868e3cce0202f5b0185a1d96d02bd22143786cb2e' });
+        } catch (e) {
+            console.error('Error showing browser notification:', e);
+        }
+    }
+
+    // Always show in-app toast for visibility
+    const toastType = type === 'mention' ? 'warning' : (type === 'private' ? 'success' : 'info');
+    showToast(`${title}: ${body}`, toastType);
+}

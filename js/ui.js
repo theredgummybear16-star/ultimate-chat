@@ -52,14 +52,14 @@ async function loadChatList() {
     // Start with channels
     chatList.innerHTML = `
         <div class="sidebar-section-header">Channels</div>
-        <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
+        <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" data-chat-id="global" onclick="selectChat('global')">
             <div class="avatar">🌍</div>
             <div class="chat-item-info">
                 <div class="chat-item-name">Global Chat</div>
                 <div class="chat-item-preview">Public chat room</div>
             </div>
         </div>
-        <div class="chat-item ${currentChat === 'announcements' ? 'active' : ''}" onclick="selectChat('announcements')">
+        <div class="chat-item ${currentChat === 'announcements' ? 'active' : ''}" data-chat-id="announcements" onclick="selectChat('announcements')">
             <div class="avatar">📣</div>
             <div class="chat-item-info">
                 <div class="chat-item-name">
@@ -102,6 +102,7 @@ async function loadChatList() {
             const hasChat = existingChats.has(chatId);
             const chatItem = document.createElement('div');
             chatItem.className = `chat-item ${currentChat === chatId ? 'active' : ''}`;
+            chatItem.setAttribute('data-chat-id', chatId);
             chatItem.onclick = () => hasChat ? selectChat(chatId) : startPrivateChat(userData.id);
 
             let userBadge = '';
@@ -139,14 +140,41 @@ async function loadChatList() {
     }
 }
 
+function updateUnreadBadge(chatId) {
+    if (chatId) {
+        // Update specific chat badge
+        const chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+        if (chatItem) {
+            let badge = chatItem.querySelector('.unread-badge');
+            const count = unreadCounts[chatId] || 0;
+            
+            if (count > 0 && chatId !== currentChat) {
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'unread-badge';
+                    chatItem.appendChild(badge);
+                }
+                badge.textContent = count > 99 ? '99+' : count;
+            } else if (badge) {
+                badge.remove();
+            }
+        }
+    } else {
+        // Update all badges
+        Object.keys(unreadCounts).forEach(id => updateUnreadBadge(id));
+    }
+}
+
 function selectChat(chatId) {
     currentChat = chatId;
     unreadCounts[chatId] = 0;
 
-    document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
     document.querySelectorAll('.chat-item').forEach(item => {
-        const onclickAttr = item.getAttribute('onclick');
-        if (onclickAttr && onclickAttr.includes(`'${chatId}'`)) item.classList.add('active');
+        if (item.getAttribute('data-chat-id') === chatId) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
     });
 
     const chatTitle = document.getElementById('chatTitle');
