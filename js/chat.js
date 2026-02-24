@@ -1,4 +1,84 @@
-// ==================== CHAT FUNCTIONS ====================
+// ==================== CHAT SYSTEM REDESIGN (RTDB ENGINE) ====================
+
+// --- Chat Creation logic (RTDB) ---
+async function createChatFromMentions(usernames) {
+    try {
+        showLoading();
+        const allUsers = await getCachedUsers();
+        const targetUsers = allUsers.filter(u => usernames.includes(u.username));
+        
+        if (targetUsers.length === 0) {
+            showToast('No valid users mentioned', 'error');
+            return;
+        }
+
+        const memberIds = [currentUser.id, ...targetUsers.map(u => u.id)];
+        
+        if (targetUsers.length === 1) {
+            // Private Chat
+            const otherUser = targetUsers[0];
+            const chatId = [currentUser.id, otherUser.id].sort().join('_');
+            
+            const chatRef = rtdb.ref(`chats/${chatId}`);
+            const chatSnap = await chatRef.once('value');
+            
+            if (!chatSnap.exists()) {
+                const metadata = {
+                    type: 'private',
+                    members: memberIds,
+                    memberData: {
+                        [currentUser.id]: { role: 'member', joinedAt: firebase.database.ServerValue.TIMESTAMP },
+                        [otherUser.id]: { role: 'member', joinedAt: firebase.database.ServerValue.TIMESTAMP }
+                    },
+                    createdAt: firebase.database.ServerValue.TIMESTAMP
+                };
+                
+                await Promise.all([
+                    chatRef.set(metadata),
+                    rtdb.ref(`users/${currentUser.id}/joinedChats/${chatId}`).set(true),
+                    rtdb.ref(`users/${otherUser.id}/joinedChats/${chatId}`).set(true)
+                ]);
+            }
+            selectChat(chatId);
+        } else {
+            // Group Chat
+            const newChatRef = rtdb.ref('chats').push();
+            const chatId = newChatRef.key;
+            const groupName = targetUsers.map(u => u.username).join(', ') + ', ' + currentUser.username;
+            
+            const memberData = { [currentUser.id]: { role: 'owner', joinedAt: firebase.database.ServerValue.TIMESTAMP } };
+            targetUsers.forEach(u => memberData[u.id] = { role: 'member', joinedAt: firebase.database.ServerValue.TIMESTAMP });
+
+            const metadata = {
+                id: chatId,
+                type: 'group',
+                name: groupName,
+                members: memberIds,
+                memberData: memberData,
+                createdBy: currentUser.id,
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            await newChatRef.set(metadata);
+
+            // Add to all users' joinedChats
+            const updatePromises = memberIds.map(uid => 
+                rtdb.ref(`users/${uid}/joinedChats/${chatId}`).set(true)
+            );
+            await Promise.all(updatePromises);
+            selectChat(chatId);
+        }
+        
+        loadChatList();
+        hideLoading();
+    } catch (error) {
+        console.error('Error creating chat:', error);
+        showToast('Error creating chat: ' + error.message, 'error');
+        hideLoading();
+    }
+}
+
+// --- Message Loading (RTDB) ---
 function loadMessages(chatId) {
     const container = document.getElementById('messagesContainer');
     container.innerHTML = '';
@@ -7,624 +87,181 @@ function loadMessages(chatId) {
         const prev = messageListeners[currentChat];
         if (typeof prev === 'function') prev();
     }
-    if (messageListeners[currentChat + '_new']) {
-        const prev = messageListeners[currentChat + '_new'];
-        if (typeof prev === 'function') prev();
-    }
 
-    if (chatId === 'announcements') {
-        let knownMessageIds = null;
-        const syncRef = rtdb.ref('sync/announcements');
-        const listener = syncRef.on('value', async () => {
-            try {
-                const snapshot = await db.collection('announcements').orderBy('timestamp', 'desc').limit(100).get();
-                container.innerHTML = '';
-                const messages = [];
-                snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
-                messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-                
-                messages.forEach(msg => displayMessage(msg, container, false, true));
-                scrollToBottom();
+    const messagesRef = rtdb.ref(`chat_messages/${chatId}`).limitToLast(100);
 
-                if (knownMessageIds !== null) {
-                    messages.forEach(msg => {
-                        if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                            if (currentChat !== 'announcements') {
-                                unreadCounts['announcements'] = (unreadCounts['announcements'] || 0) + 1;
-                                updateUnreadBadge('announcements');
-                                showNotification('📣 New Announcement', msg.content, '📣');
-                            }
-                        }
-                    });
-                }
-                knownMessageIds = new Set(messages.map(m => m.id));
-            } catch (error) {
-                console.error('Error fetching announcements:', error);
-            }
+    const listener = messagesRef.on('value', snapshot => {
+        container.innerHTML = '';
+        const messages = [];
+        snapshot.forEach(child => {
+            messages.push({ id: child.key, ...child.val() });
         });
-        messageListeners[chatId] = () => syncRef.off('value', listener);
-
-    } else if (chatId === 'global') {
-        let knownMessageIds = null;
-        const syncRef = rtdb.ref('sync/global');
-        const listener = syncRef.on('value', async () => {
-            try {
-                const snapshot = await db.collection('messages').orderBy('timestamp', 'desc').limit(100).get();
-                container.innerHTML = '';
-                const messages = [];
-                snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
-                messages.sort((a, b) => (a.timestamp?.toMillis() || 0) - (b.timestamp?.toMillis() || 0));
-                
-                messages.forEach(msg => displayMessage(msg, container));
-                scrollToBottom();
-                
-                if (knownMessageIds !== null) {
-                    messages.forEach(msg => {
-                        if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                            const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
-                            const isMentioned = mentionRegex.test(msg.content);
-                            const isEveryoneMention = msg.content && msg.content.includes('@everyone');
-                            
-                            if (isMentioned || isEveryoneMention) {
-                                showNotification(`Mentioned by ${msg.username}`, msg.content, msg.userAvatar, 'mention');
-                                if (currentChat !== 'global') {
-                                    unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                    updateUnreadBadge('global');
-                                }
-                            } else {
-                                if (currentChat !== 'global') {
-                                    unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
-                                    updateUnreadBadge('global');
-                                    showNotification('New message in Global Chat', msg.content, msg.userAvatar);
-                                }
-                            }
-                        }
-                    });
-                }
-                knownMessageIds = new Set(messages.map(m => m.id));
-            } catch (error) {
-                console.error('Error fetching global messages:', error);
-            }
-        });
-        messageListeners[chatId] = () => syncRef.off('value', listener);
-
-    } else {
-        // Private chat
-        const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
-        messagesRef.on('value', snapshot => {
-            container.innerHTML = '';
-            const messages = [];
-            snapshot.forEach(child => {
-                const msg = { id: child.key, ...child.val() };
-                messages.push(msg);
-            });
-            messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-            messages.forEach(msg => displayMessage(msg, container, true));
-            scrollToBottom();
-        }, error => { 
-            console.error('Error loading private messages:', error);
-            showToast('Error loading messages: ' + error.message, 'error'); 
-        });
-        messageListeners[chatId] = () => messagesRef.off();
-
-        const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
-        let privateListenerReady = false;
-        newPrivateRef.on('child_added', snapshot => {
-            if (!privateListenerReady) { 
-                privateListenerReady = true; 
-                return; 
-            }
-            const msg = snapshot.val();
-            if (msg.userId !== currentUser.id && currentChat !== chatId) {
-                unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
-                updateUnreadBadge(chatId);
-                getCachedUser(msg.userId).then(userData => {
-                    if (userData) {
-                        showNotification(`Private message from ${userData.username}`, msg.content, userData.avatar, 'private');
-                    }
-                });
-            }
-        });
-        messageListeners[chatId + '_new'] = () => newPrivateRef.off();
-    }
-}
-
-function displayMessage(message, container, isPrivate = false, isAnnouncement = false) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'message-wrapper';
-
-    const div = document.createElement('div');
-    const isOwn = message.userId === currentUser.id;
-    const isSystem = message.type === 'system';
-    const isBroadcast = message.type === 'broadcast';
-    const msgIsOwner = isOwnerUser(message.username || '');
-
-    let className = 'message';
-    if (isOwn && !isSystem && !isBroadcast) className += ' own';
-    if (isSystem) className += ' system';
-    if (isBroadcast) className += ' admin-broadcast';
-    if (isPrivate && !isSystem) className += ' private';
-    if (isAnnouncement && !isSystem) className += ' announcement';
-    
-    // Check for mentions
-    const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
-    const isMentioned = mentionRegex.test(message.content);
-    const isEveryoneMention = message.content && message.content.includes('@everyone');
-    
-    if ((isMentioned || isEveryoneMention) && !isSystem && !isOwn) {
-        className += ' mention';
-    }
-
-    div.className = className;
-    div.setAttribute('data-message-id', message.id);
-
-    let content = '';
-    if (!isSystem) {
-        content += `
-            <div class="message-header">
-                <span class="avatar">${message.userAvatar || '😀'}</span>
-                <span>${sanitizeHTML(message.username || 'Unknown')}</span>
-                ${msgIsOwner ? '<span class="badge owner">⭐ OWNER</span>' : (message.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
-                ${isBroadcast ? '<span class="badge">BROADCAST</span>' : ''}
-                ${(isMentioned || isEveryoneMention) ? '<span class="badge warning">🔔 MENTION</span>' : ''}
-            </div>
-        `;
-    }
-
-    const rawText = message.content || '';
-    const URL_REGEX = /(https?:\/\/[^\s]+)/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-    const detectedLinks = [];
-
-    while ((match = URL_REGEX.exec(rawText)) !== null) {
-        if (match.index > lastIndex) parts.push({ type: 'text', value: rawText.slice(lastIndex, match.index) });
-        const url = match[0];
-        if (isImageUrl(url)) {
-            parts.push({ type: 'image', value: url });
-        } else {
-            parts.push({ type: 'link', value: url });
-            detectedLinks.push(url);
-        }
-        lastIndex = match.index + url.length;
-    }
-    if (lastIndex < rawText.length) parts.push({ type: 'text', value: rawText.slice(lastIndex) });
-
-    let messageHtml = '';
-    parts.forEach(part => {
-        if (part.type === 'text') {
-            let text = sanitizeHTML(part.value);
-            
-            text = text.replace(
-                /@everyone\b/g,
-                '<span class="mention-highlight">@everyone</span>'
-            );
-            
-            const allUsers = Object.values(usersCache);
-            allUsers.forEach(user => {
-                if (user.username) {
-                    const userMentionRegex = new RegExp('@' + user.username + '\\b', 'g');
-                    text = text.replace(userMentionRegex, '<span class="mention-highlight">@' + user.username + '</span>');
-                }
-            });
-            
-            messageHtml += text;
-        } else if (part.type === 'link') {
-            messageHtml += `<a href="${sanitizeHTML(part.value)}" target="_blank" rel="noopener noreferrer" style="color:var(--primary);text-decoration:underline;">${sanitizeHTML(part.value)}</a>`;
-        } else if (part.type === 'image') {
-            messageHtml += `<br><img class="message-image" src="${sanitizeHTML(part.value)}" alt="image" onclick="window.open('${sanitizeHTML(part.value)}','_blank')" onerror="this.replaceWith(Object.assign(document.createElement('a'),{href:'${sanitizeHTML(part.value)}',target:'_blank',rel:'noopener noreferrer',textContent:'${sanitizeHTML(part.value)}',style:'color:var(--primary);text-decoration:underline;'}))">`;
-        }
+        
+        messages.forEach(msg => displayMessage(msg, container));
+        scrollToBottom();
     });
 
-    content += `<div class="message-content">${messageHtml}</div>`;
-
-    if (!isSystem) {
-        const canEdit = isOwn && !isBroadcast && isWithinEditTime(message.timestamp) && !isAnnouncement;
-        const canDelete = (isOwn || currentUser.isAdmin || currentUser.isOwner) && !isBroadcast && isWithinEditTime(message.timestamp);
-        content += `
-            <div class="message-footer">
-                <span>${formatTimestamp(message.timestamp)}</span>
-                ${canEdit || canDelete ? `
-                    <div class="message-actions">
-                        ${canEdit ? `<button onclick="editMessage('${message.id}', '${currentChat}', ${isPrivate})">Edit</button>` : ''}
-                        ${canDelete ? `<button onclick="deleteMessage('${message.id}', '${currentChat}', ${isPrivate})">Delete</button>` : ''}
-                    </div>
-                ` : ''}
-            </div>
-        `;
+    messageListeners[chatId] = () => messagesRef.off('value', listener);
+    
+    // Load metadata from RTDB (Infinite Reads)
+    if (chatId !== 'global' && chatId !== 'announcements') {
+        rtdb.ref(`chats/${chatId}`).once('value', snapshot => {
+            currentChatMetadata = snapshot.val();
+            updateChatHeader();
+        });
+    } else {
+        currentChatMetadata = { type: chatId, name: chatId === 'global' ? 'Global Chat' : 'Announcements' };
+        updateChatHeader();
     }
-
-    div.innerHTML = content;
-    wrapper.appendChild(div);
-
-    if (isOwn) wrapper.classList.add('own');
-    container.appendChild(wrapper);
-
-    if (detectedLinks.length > 0 && !isSystem) fetchAndRenderPreview(detectedLinks[0], div);
 }
 
-function isWithinEditTime(timestamp) {
-    if (!timestamp) return false;
-    const messageTime = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return (new Date() - messageTime) < 7200000;
-}
-
+// --- All other message actions already use rtdb.ref() from the previous update ---
 async function sendMessage() {
     const input = document.getElementById('messageInput');
     const content = input.value.trim();
     if (!content) return;
 
-    if (currentChat === 'announcements' && !currentUser.isAdmin && !currentUser.isOwner) {
-        showToast('Only admins can post in Announcements', 'error');
+    const words = content.split(/\s+/);
+    if (words.length > 0 && words.every(w => w.startsWith('@'))) {
+        const usernames = words.map(w => w.substring(1));
+        await createChatFromMentions(usernames);
+        input.value = '';
         return;
     }
-
-    if (content.includes('@everyone') && !currentUser.isAdmin && !currentUser.isOwner) {
-        showToast('Only admins can use @everyone', 'error');
-        return;
-    }
-
-    clearTyping();
-    hideAutocomplete();
 
     try {
         const messageData = {
-            userId: currentUser.id,
-            username: currentUser.username,
-            userAvatar: currentUser.avatar,
-            isAdmin: currentUser.isAdmin || false,
-            content,
+            senderId: currentUser.id,
+            senderName: currentUser.username,
+            senderAvatar: currentUser.avatar,
+            content: content,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
             type: 'normal'
         };
 
-        if (editingMessageId) {
-            if (currentChat === 'global') {
-                await db.collection('messages').doc(editingMessageId).update({ content, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            } else if (currentChat === 'announcements') {
-                await db.collection('announcements').doc(editingMessageId).update({ content, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() });
-            } else {
-                await rtdb.ref(`privateChats/${currentChat}/messages/${editingMessageId}`).update({ content, edited: true, editedAt: firebase.database.ServerValue.TIMESTAMP });
-            }
-            editingMessageId = null;
-        } else {
-            if (currentChat === 'global') {
-                messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
-                await db.collection('messages').add(messageData);
-                // Signal update via RTDB to minimize Firestore reads for others
-                rtdb.ref('sync/global').set(firebase.database.ServerValue.TIMESTAMP);
-            } else if (currentChat === 'announcements') {
-                messageData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
-                await db.collection('announcements').add(messageData);
-                // Signal update via RTDB
-                rtdb.ref('sync/announcements').set(firebase.database.ServerValue.TIMESTAMP);
-            } else {
-                messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
-                const newMsgRef = await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
-                console.log('Message sent to private chat:', currentChat, newMsgRef.key);
-            }
+        if (currentReplyTo) {
+            messageData.replyTo = currentReplyTo;
+            currentReplyTo = null;
+            document.getElementById('replyIndicator').classList.add('hidden');
         }
 
+        await rtdb.ref(`chat_messages/${currentChat}`).push(messageData);
         input.value = '';
         scrollToBottom();
-    } catch(error) {
+        clearTyping();
+    } catch (error) {
         console.error('Error sending message:', error);
-        showToast('Failed to send message: ' + error.message, 'error');
+        showToast('Error sending message', 'error');
     }
 }
 
-function editMessage(messageId, chatId, isPrivate) {
-    editingMessageId = messageId;
-    if (isPrivate) {
-        rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).once('value', snapshot => {
-            const message = snapshot.val();
-            if (message) { document.getElementById('messageInput').value = message.content; document.getElementById('messageInput').focus(); }
-        });
+async function toggleReaction(messageId, emoji) {
+    const reactionRef = rtdb.ref(`chat_messages/${currentChat}/${messageId}/reactions/${emoji}/${currentUser.id}`);
+    const snapshot = await reactionRef.once('value');
+    if (snapshot.exists()) {
+        await reactionRef.remove();
     } else {
-        db.collection(chatId === 'announcements' ? 'announcements' : 'messages').doc(messageId).get().then(doc => {
-            if (doc.exists) { document.getElementById('messageInput').value = doc.data().content; document.getElementById('messageInput').focus(); }
-        });
+        await reactionRef.set(true);
     }
 }
 
-async function deleteMessage(messageId, chatId, isPrivate) {
+async function inviteUser(username) {
+    if (!currentChatMetadata || currentChatMetadata.type !== 'group') return;
     try {
-        if (chatId === 'announcements') {
-            await db.collection('announcements').doc(messageId).delete();
-        } else if (isPrivate) {
-            await rtdb.ref(`privateChats/${chatId}/messages/${messageId}`).remove();
-        } else {
-            await db.collection('messages').doc(messageId).delete();
-        }
-        showToast('Message deleted', 'success');
-    } catch(error) {
-        console.error('Error deleting message:', error);
-        showToast('Failed to delete message', 'error');
-    }
-}
-
-function handleMessageKeyPress(event) { 
-    if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-    }
-}
-
-function scrollToBottom() {
-    const container = document.getElementById('messagesContainer');
-    container.scrollTop = container.scrollHeight;
-}
-
-// ==================== MENTION AUTOCOMPLETE ====================
-async function handleMentionAutocomplete(event) {
-    const input = document.getElementById('messageInput');
-    const cursorPos = input.selectionStart;
-    const text = input.value;
-    const dropdown = document.getElementById('autocompleteDropdown');
-    
-    let lastAtIndex = -1;
-    for (let i = cursorPos - 1; i >= 0; i--) {
-        if (text[i] === '@') {
-            if (i === 0 || text[i-1].match(/\s/)) {
-                lastAtIndex = i;
-                break;
-            } else {
-                break;
-            }
-        }
-    }
-    
-    if (lastAtIndex !== -1) {
-        const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
-        mentionStartPos = lastAtIndex;
-        
         const users = await getCachedUsers();
-        autocompleteUsers = users
-            .filter(u => u.id !== currentUser.id && u.username.toLowerCase().startsWith(searchTerm))
-            .slice(0, 5);
+        const user = users.find(u => u.username === username);
+        if (!user) { showToast('User not found', 'error'); return; }
         
-        if (autocompleteUsers.length > 0) {
-            renderAutocomplete(searchTerm);
-            dropdown.classList.remove('hidden');
-            autocompleteIndex = 0;
-            highlightAutocompleteItem();
-        } else {
-            hideAutocomplete();
-        }
-    } else {
-        hideAutocomplete();
-    }
-}
-
-function renderAutocomplete(searchTerm) {
-    const dropdown = document.getElementById('autocompleteDropdown');
-    dropdown.innerHTML = '';
-    
-    autocompleteUsers.forEach((user, index) => {
-        const item = document.createElement('div');
-        item.className = 'autocomplete-item';
-        item.dataset.index = index;
-        item.onclick = () => selectAutocompleteUser(user.username);
+        await rtdb.ref(`chats/${currentChat}/members`).transaction(members => {
+            if (members && !members.includes(user.id)) members.push(user.id);
+            return members;
+        });
         
-        let badge = '';
-        if (isOwnerUser(user.username)) {
-            badge = '<span class="badge owner" style="font-size:0.6rem;">⭐</span>';
-        } else if (user.isAdmin) {
-            badge = '<span class="badge admin" style="font-size:0.6rem;">👑</span>';
-        }
+        await rtdb.ref(`chats/${currentChat}/memberData/${user.id}`).set({ 
+            role: 'member', joinedAt: firebase.database.ServerValue.TIMESTAMP 
+        });
         
-        item.innerHTML = `
-            <span class="avatar">${user.avatar}</span>
-            <span style="flex:1;">${sanitizeHTML(user.username)} ${badge}</span>
-            <span style="color:var(--text-secondary); font-size:0.75rem;">${user.username.toLowerCase().startsWith(searchTerm) ? 'Match' : ''}</span>
-        `;
-        dropdown.appendChild(item);
-    });
+        await rtdb.ref(`users/${user.id}/joinedChats/${currentChat}`).set(true);
+        showToast(`Invited ${username}`, 'success');
+    } catch (error) { showToast('Error inviting user', 'error'); }
 }
 
-function highlightAutocompleteItem() {
-    const items = document.querySelectorAll('.autocomplete-item');
-    items.forEach((item, index) => {
-        if (index === autocompleteIndex) {
-            item.classList.add('selected');
-        } else {
-            item.classList.remove('selected');
-        }
-    });
+async function updateGroupSettings(name, picture) {
+    if (!currentChatMetadata || currentChatMetadata.type !== 'group') return;
+    const role = currentChatMetadata.memberData[currentUser.id].role;
+    if (role !== 'owner' && role !== 'admin') { showToast('Only owners and admins can change settings', 'error'); return; }
+    try {
+        const updates = {};
+        if (name) updates.name = name;
+        if (picture) updates.picture = picture;
+        await rtdb.ref(`chats/${currentChat}`).update(updates);
+        showToast('Group updated', 'success');
+    } catch (error) { showToast('Error updating group', 'error'); }
 }
 
-function handleAutocompleteKeydown(event) {
-    const dropdown = document.getElementById('autocompleteDropdown');
-    if (dropdown.classList.contains('hidden')) return;
-    
-    if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        autocompleteIndex = (autocompleteIndex + 1) % autocompleteUsers.length;
-        highlightAutocompleteItem();
-    } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        autocompleteIndex = (autocompleteIndex - 1 + autocompleteUsers.length) % autocompleteUsers.length;
-        highlightAutocompleteItem();
-    } else if (event.key === 'Tab' || event.key === 'Enter') {
-        if (autocompleteIndex >= 0 && autocompleteUsers[autocompleteIndex]) {
-            event.preventDefault();
-            selectAutocompleteUser(autocompleteUsers[autocompleteIndex].username);
-        }
-    } else if (event.key === 'Escape') {
-        hideAutocomplete();
+function displayMessage(message, container) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'message-wrapper';
+    if (message.senderId === currentUser.id) wrapper.classList.add('own');
+    const div = document.createElement('div');
+    const isOwn = message.senderId === currentUser.id;
+    const isSystem = message.type === 'system';
+    let className = 'message';
+    if (isOwn) className += ' own';
+    if (isSystem) className += ' system';
+    const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
+    const isMentioned = message.content && mentionRegex.test(message.content);
+    if (isMentioned && !isOwn) className += ' mention';
+    div.className = className;
+    div.setAttribute('data-message-id', message.id);
+    let contentHtml = '';
+    if (message.replyTo) {
+        contentHtml += `<div class="message-reply-preview" onclick="scrollToMessage('${message.replyTo.messageId}')"><div class="reply-sender">${sanitizeHTML(message.replyTo.senderName)}</div><div class="reply-content">${sanitizeHTML(message.replyTo.content.substring(0, 50))}</div></div>`;
     }
-}
-
-function selectAutocompleteUser(username) {
-    const input = document.getElementById('messageInput');
-    const text = input.value;
-    const beforeMention = text.substring(0, mentionStartPos + 1);
-    const afterMention = text.substring(input.selectionStart);
-    
-    input.value = beforeMention + username + ' ' + afterMention;
-    input.focus();
-    input.selectionStart = input.selectionEnd = mentionStartPos + 1 + username.length + 1;
-    
-    hideAutocomplete();
-}
-
-function hideAutocomplete() {
-    document.getElementById('autocompleteDropdown').classList.add('hidden');
-    autocompleteUsers = [];
-    autocompleteIndex = -1;
-    mentionStartPos = -1;
-}
-
-// ==================== TYPING INDICATOR ====================
-function handleTyping() {
-    if (!currentUser) return;
-    
-    if (typingTimeout) clearTimeout(typingTimeout);
-    
-    const typingRef = rtdb.ref(`typing/${currentChat}/${currentUser.id}`);
-    typingRef.set({
-        username: currentUser.username,
-        avatar: currentUser.avatar,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
-    
-    typingTimeout = setTimeout(() => {
-        typingRef.remove();
-    }, 2000);
-}
-
-function clearTyping() {
-    if (typingTimeout) {
-        clearTimeout(typingTimeout);
-        typingTimeout = null;
+    if (!isSystem) {
+        contentHtml += `<div class="message-header"><span class="avatar">${message.senderAvatar || '😀'}</span><span class="username">${sanitizeHTML(message.senderName || 'Unknown')}</span></div>`;
     }
-    if (currentUser) {
-        rtdb.ref(`typing/${currentChat}/${currentUser.id}`).remove();
-    }
-}
-
-function setupTypingListener(chatId) {
-    if (typingListeners[chatId]) {
-        typingListeners[chatId]();
-        delete typingListeners[chatId];
-    }
-
-    const typingRef = rtdb.ref(`typing/${chatId}`);
-    const listener = typingRef.on('value', snapshot => {
-        const typers = snapshot.val();
-        const indicator = document.getElementById('typingIndicator');
-        const typingText = document.getElementById('typingText');
-        
-        if (typers) {
-            const typingUsers = Object.values(typers)
-                .filter(t => t.username !== currentUser?.username);
-            
-            if (typingUsers.length > 0) {
-                const names = typingUsers.map(t => t.username).join(', ');
-                typingText.textContent = typingUsers.length === 1 
-                    ? `${names} is typing...` 
-                    : `${names} are typing...`;
-                indicator.classList.remove('hidden');
-            } else {
-                indicator.classList.add('hidden');
+    contentHtml += `<div class="message-content">${renderMessageContent(message.content)}</div>`;
+    if (message.reactions) {
+        let reactionsHtml = '<div class="message-reactions">';
+        for (const [emoji, users] of Object.entries(message.reactions)) {
+            const userIds = Object.keys(users);
+            if (userIds.length > 0) {
+                const hasReacted = userIds.includes(currentUser.id);
+                reactionsHtml += `<div class="reaction-badge ${hasReacted ? 'active' : ''}" onclick="toggleReaction('${message.id}', '${emoji}')">${emoji} <span class="count">${userIds.length}</span></div>`;
             }
-        } else {
-            indicator.classList.add('hidden');
         }
-    });
-
-    typingListeners[chatId] = () => typingRef.off('value', listener);
-}
-
-function hideTypingIndicator() {
-    document.getElementById('typingIndicator').classList.add('hidden');
-}
-
-// ==================== SEARCH USERS ====================
-function searchUsersDebounced() {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(searchUsers, 300);
-}
-
-async function searchUsers() {
-    const query = document.getElementById('userSearch').value.toLowerCase().trim();
-    if (!query) { loadChatList(); return; }
-    
-    const allUsers = await getCachedUsers();
-    const chatList = document.getElementById('chatList');
-    
-    chatList.innerHTML = `
-        <div class="sidebar-section-header">Channels</div>
-        <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
-            <div class="avatar">🌍</div>
-            <div class="chat-item-info">
-                <div class="chat-item-name">Global Chat</div>
-                <div class="chat-item-preview">Public chat room</div>
-            </div>
-        </div>
-        <div class="chat-item ${currentChat === 'announcements' ? 'active' : ''}" onclick="selectChat('announcements')">
-            <div class="avatar">📣</div>
-            <div class="chat-item-info">
-                <div class="chat-item-name">
-                    Announcements
-                    <span class="channel-badge">ADMIN</span>
-                </div>
-                <div class="chat-item-preview">Official announcements</div>
-            </div>
-        </div>
-    `;
-    
-    const dmHeader = document.createElement('div');
-    dmHeader.className = 'sidebar-section-header';
-    dmHeader.textContent = 'Search Results';
-    chatList.appendChild(dmHeader);
-    
-    allUsers.forEach(userData => {
-        if (userData.id === currentUser.id) return;
-        if (!userData.username.toLowerCase().includes(query)) return;
-        
-        const chatId = [currentUser.id, userData.id].sort().join('_');
-        const chatItem = document.createElement('div');
-        chatItem.className = 'chat-item';
-        chatItem.onclick = () => startPrivateChat(userData.id);
-
-        let userBadge = '';
-        if (isOwnerUser(userData.username)) {
-            userBadge = '<span class="badge owner" style="font-size:0.6rem;">⭐ OWNER</span>';
-        } else if (userData.isAdmin) {
-            userBadge = '<span class="badge admin" style="font-size:0.6rem;">ADMIN</span>';
-        }
-
-        chatItem.innerHTML = `
-            <div class="avatar">${userData.avatar}</div>
-            <div class="chat-item-info">
-                <div class="chat-item-name">
-                    ${sanitizeHTML(userData.username)}
-                    ${userBadge}
-                    <span class="status-indicator ${userData.online ? '' : 'offline'}" id="status-${userData.id}"></span>
-                </div>
-                <div class="chat-item-preview">Start private chat</div>
-            </div>
-        `;
-        chatList.appendChild(chatItem);
-    });
-}
-
-async function startPrivateChat(otherUserId) {
-    const chatId = [currentUser.id, otherUserId].sort().join('_');
-    const chatRef = rtdb.ref(`privateChats/${chatId}`);
-    const snapshot = await chatRef.once('value');
-    if (!snapshot.exists()) {
-        await chatRef.set({ 
-            participants: [currentUser.id, otherUserId], 
-            createdAt: firebase.database.ServerValue.TIMESTAMP 
-        });
-        await rtdb.ref(`privateChats/${chatId}/messages`).push({
-            type: 'system',
-            content: 'Private chat started',
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
+        reactionsHtml += '</div>';
+        contentHtml += reactionsHtml;
     }
-    selectChat(chatId);
-    loadChatList();
+    if (!isSystem) {
+        contentHtml += `<div class="message-footer"><span>${formatTimestamp(message.timestamp)}</span><div class="message-actions"><button onclick="setReplyTo('${message.id}', '${sanitizeHTML(message.senderName)}', '${sanitizeHTML(message.content.replace(/'/g, "\\'"))}')">Reply</button><button onclick="showReactionPicker('${message.id}', event)">😊</button>${isOwn ? `<button onclick="deleteMessage('${message.id}')">Delete</button>` : ''}</div></div>`;
+    }
+    div.innerHTML = contentHtml;
+    wrapper.appendChild(div);
+    container.appendChild(wrapper);
 }
+function renderMessageContent(content) {
+    if (!content) return '';
+    let html = sanitizeHTML(content);
+    const URL_REGEX = /(https?:\/\/[^\s]+)/g;
+    html = html.replace(URL_REGEX, (url) => { if (isImageUrl(url)) return `<br><img class="message-image" src="${url}" onclick="window.open('${url}','_blank')">`; return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`; });
+    const MENTION_REGEX = /@(\w+)/g;
+    html = html.replace(MENTION_REGEX, match => `<span class="mention-highlight">${match}</span>`);
+    return html;
+}
+function setReplyTo(messageId, senderName, content) { currentReplyTo = { messageId, senderName, content }; const indicator = document.getElementById('replyIndicator'); document.getElementById('replyText').textContent = `Replying to ${senderName}: ${content.substring(0, 30)}...`; indicator.classList.remove('hidden'); document.getElementById('messageInput').focus(); }
+function cancelReply() { currentReplyTo = null; document.getElementById('replyIndicator').classList.add('hidden'); }
+function handleTyping() { if (!currentUser) return; if (typingTimeout) clearTimeout(typingTimeout); const typingRef = rtdb.ref(`typing/${currentChat}/${currentUser.id}`); typingRef.set({ username: currentUser.username, timestamp: firebase.database.ServerValue.TIMESTAMP }); typingTimeout = setTimeout(() => { typingRef.remove(); }, 2000); }
+function clearTyping() { if (typingTimeout) { clearTimeout(typingTimeout); typingTimeout = null; } if (currentUser) rtdb.ref(`typing/${currentChat}/${currentUser.id}`).remove(); }
+function setupTypingListener(chatId) { if (typingListeners[chatId]) { typingListeners[chatId](); delete typingListeners[chatId]; } const typingRef = rtdb.ref(`typing/${chatId}`); const listener = typingRef.on('value', snapshot => { const typers = snapshot.val(); const indicator = document.getElementById('typingIndicator'); const typingText = document.getElementById('typingText'); if (typers) { const typingUsers = Object.values(typers).filter(t => t.username !== currentUser?.username); if (typingUsers.length > 0) { const names = typingUsers.map(t => t.username).join(', '); typingText.textContent = typingUsers.length === 1 ? `${names} is typing...` : `${names} are typing...`; indicator.classList.remove('hidden'); } else { indicator.classList.add('hidden'); } } else { indicator.classList.add('hidden'); } }); typingListeners[chatId] = () => typingRef.off('value', listener); }
+function scrollToBottom() { const container = document.getElementById('messagesContainer'); container.scrollTop = container.scrollHeight; }
+function scrollToMessage(messageId) { const el = document.querySelector(`[data-message-id="${messageId}"]`); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('highlight'); setTimeout(() => el.classList.remove('highlight'), 2000); } }
+function handleMessageKeyPress(event) { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); } }
+async function searchUsers() { /* Auto-mentions */ }
+async function startPrivateChat(otherUserId) { const otherUser = await getCachedUser(otherUserId); if (otherUser) createChatFromMentions([otherUser.username]); }
+function showReactionPicker(messageId, event) { const picker = document.getElementById('reactionPicker'); picker.style.left = event.clientX + 'px'; picker.style.top = (event.clientY - 50) + 'px'; picker.classList.remove('hidden'); const emojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '✅']; picker.innerHTML = emojis.map(e => `<span onclick="toggleReaction('${messageId}', '${e}'); hideReactionPicker()">${e}</span>`).join(''); setTimeout(() => { window.onclick = () => { hideReactionPicker(); window.onclick = null; }; }, 100); }
+function hideReactionPicker() { document.getElementById('reactionPicker').classList.add('hidden'); }
+function formatTimestamp(ts) { if (!ts) return ''; const date = new Date(ts); return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+function sanitizeHTML(str) { const temp = document.createElement('div'); temp.textContent = str; return temp.innerHTML; }
+function isImageUrl(url) { return url.match(/\.(jpeg|jpg|gif|png|webp)$/) != null; }

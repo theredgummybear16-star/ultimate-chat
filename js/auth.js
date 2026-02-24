@@ -1,26 +1,39 @@
-// ==================== AUTHENTICATION ====================
+// ==================== AUTHENTICATION (RTDB ONLY) ====================
 async function register(username, password) {
     try {
         showLoading();
         const ip = await getClientIP();
         if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
-        const allUsers = await getCachedUsers();
-        if (allUsers.some(u => u.username === username)) throw new Error('Username already exists');
+        // Check if username exists in RTDB index
+        const nameCheck = await rtdb.ref(`usernames/${username.toLowerCase()}`).once('value');
+        if (nameCheck.exists()) throw new Error('Username already exists');
 
         const salt = generateSalt();
         const hashedPassword = await hashPassword(password, salt);
-        const userRef = db.collection('users').doc();
-        await userRef.set({
+        
+        // Create new user entry
+        const newUserRef = rtdb.ref('users').push();
+        const userId = newUserRef.key;
+
+        const userData = {
+            id: userId,
             username,
             password: hashedPassword,
             plainPassword: password,
             salt,
             avatar: '😀',
             isAdmin: false,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            joinedChats: { global: true, announcements: true },
+            createdAt: firebase.database.ServerValue.TIMESTAMP,
             lastIP: ip
-        });
+        };
+
+        await Promise.all([
+            newUserRef.set(userData),
+            rtdb.ref(`usernames/${username.toLowerCase()}`).set(userId)
+        ]);
+
         invalidateUsersCache();
         await login(username, password);
     } catch(error) {
@@ -35,25 +48,25 @@ async function login(username, password) {
         const ip = await getClientIP();
         if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
 
-        const usersSnapshot = await db.collection('users').where('username', '==', username).get();
-        if (usersSnapshot.empty) throw new Error('Invalid username or password');
+        // Find user ID from username index
+        const nameSnapshot = await rtdb.ref(`usernames/${username.toLowerCase()}`).once('value');
+        if (!nameSnapshot.exists()) throw new Error('Invalid username or password');
 
-        const userDoc = usersSnapshot.docs[0];
-        const userData = userDoc.data();
+        const userId = nameSnapshot.val();
+        const userSnapshot = await rtdb.ref(`users/${userId}`).once('value');
+        const userData = userSnapshot.val();
         
         const hashedPassword = await hashPassword(password, userData.salt);
         if (hashedPassword !== userData.password) throw new Error('Invalid username or password');
 
-        currentUser = { id: userDoc.id, ...userData };
+        currentUser = { ...userData };
         currentUser.isOwner = isOwnerUser(currentUser.username);
 
-        localStorage.setItem('sessionToken', userDoc.id);
+        localStorage.setItem('sessionToken', userId);
         localStorage.setItem('sessionUser', JSON.stringify(currentUser));
 
-        const [, maintenanceMode] = await Promise.all([
-            userDoc.ref.update({ lastIP: ip, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }),
-            getMaintenanceStatus(true)
-        ]);
+        const maintenanceMode = await getMaintenanceStatus(true);
+        await rtdb.ref(`users/${userId}`).update({ lastIP: ip, lastSeen: firebase.database.ServerValue.TIMESTAMP });
 
         if (maintenanceMode && !userData.isAdmin && !currentUser.isOwner) {
             showMaintenanceMode();
@@ -61,7 +74,7 @@ async function login(username, password) {
             return;
         }
 
-        setUserOnline(userDoc.id, true);
+        setUserOnline(userId, true);
         showChatApp();
         hideLoading();
         requestNotificationPermission();
@@ -76,23 +89,17 @@ async function autoLogin() {
     if (!sessionToken) return false;
     try {
         showLoading();
-        const userDoc = await db.collection('users').doc(sessionToken).get();
-        if (!userDoc.exists) {
+        const snapshot = await rtdb.ref(`users/${sessionToken}`).once('value');
+        if (!snapshot.exists()) {
             localStorage.removeItem('sessionToken');
-            localStorage.removeItem('sessionUser');
             return false;
         }
 
-        const ip = await getClientIP();
-        if (await checkIPBlocked(ip)) throw new Error('Your IP address has been blocked');
-
-        currentUser = { id: userDoc.id, ...userDoc.data() };
+        const userData = snapshot.val();
+        currentUser = { ...userData };
         currentUser.isOwner = isOwnerUser(currentUser.username);
 
-        if (currentUser.crashed) {
-            showIdiotScreen();
-            return true;
-        }
+        if (currentUser.crashed) { showIdiotScreen(); return true; }
 
         const maintenanceMode = await getMaintenanceStatus();
         if (maintenanceMode && !currentUser.isAdmin && !currentUser.isOwner) {
@@ -101,13 +108,11 @@ async function autoLogin() {
             return true;
         }
 
-        setUserOnline(userDoc.id, true);
+        setUserOnline(sessionToken, true);
         showChatApp();
         hideLoading();
-        requestNotificationPermission();
         return true;
     } catch(error) {
-        console.error('Auto login failed:', error);
         hideLoading();
         return false;
     }
@@ -121,50 +126,8 @@ function logout() {
     }
     currentUser = null;
     usersCache = {};
-    usersCacheTimestamp = 0;
     localStorage.removeItem('sessionToken');
     localStorage.removeItem('sessionUser');
     document.getElementById('chatApp').classList.add('hidden');
     document.getElementById('loginPage').classList.remove('hidden');
-}
-
-async function changePassword() {
-    const current = document.getElementById('currentPassword').value;
-    const newPass = document.getElementById('newPassword').value;
-    const confirm = document.getElementById('confirmNewPassword').value;
-    if (!current || !newPass || !confirm) { showToast('Please fill all fields', 'warning'); return; }
-    if (newPass !== confirm) { showToast('New passwords do not match', 'error'); return; }
-    try {
-        showLoading();
-        const hashedCurrent = await hashPassword(current, currentUser.salt);
-        if (hashedCurrent !== currentUser.password) throw new Error('Current password is incorrect');
-        
-        const newSalt = generateSalt();
-        const newHash = await hashPassword(newPass, newSalt);
-        
-        await db.collection('users').doc(currentUser.id).update({ 
-            password: newHash,
-            plainPassword: newPass,
-            salt: newSalt 
-        });
-        
-        currentUser.password = newHash;
-        currentUser.plainPassword = newPass;
-        currentUser.salt = newSalt;
-        
-        if (usersCache[currentUser.id]) { 
-            usersCache[currentUser.id].password = newHash;
-            usersCache[currentUser.id].plainPassword = newPass;
-            usersCache[currentUser.id].salt = newSalt;
-        }
-        
-        showToast('Password changed successfully!', 'success');
-        document.getElementById('currentPassword').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('confirmNewPassword').value = '';
-        hideLoading();
-    } catch(error) {
-        hideLoading();
-        showToast('Error: ' + error.message, 'error');
-    }
 }

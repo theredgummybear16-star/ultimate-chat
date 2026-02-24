@@ -156,6 +156,14 @@
             </div>
 
             <div id="messagesContainer" class="messages-container"></div>
+            
+            <div id="replyIndicator" class="reply-indicator hidden">
+                <div class="reply-indicator-content">
+                    <span id="replyText"></span>
+                    <button class="close-btn" onclick="cancelReply()">×</button>
+                </div>
+            </div>
+
             <div id="typingIndicator" class="typing-indicator-wrapper hidden">
                 <div class="typing-bubbles">
                     <div class="typing-bubble"></div>
@@ -169,10 +177,35 @@
                 <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping(); handleMentionAutocomplete(event)" onkeydown="handleAutocompleteKeydown(event)">
                 <button onclick="sendMessage()">Send</button>
                 <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
+                <div id="reactionPicker" class="reaction-picker hidden"></div>
             </div>
             <div id="readonlyBar" class="readonly-bar hidden">
                 📣 Only admins can post in Announcements — you can read only
             </div>
+        </div>
+    </div>
+
+    <!-- Group Settings Modal -->
+    <div id="groupSettingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 Group Settings</h3>
+                <button class="close-btn" onclick="closeGroupSettings()">×</button>
+            </div>
+            <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" id="groupNameInput">
+            </div>
+            <div class="form-group">
+                <label>Group Picture (URL)</label>
+                <input type="text" id="groupPictureInput">
+            </div>
+            <div class="form-group">
+                <label>Invite User (@username)</label>
+                <input type="text" id="inviteUserInput" placeholder="@username">
+                <button class="btn btn-small" style="margin-top:0.5rem;" onclick="handleInvite()">Invite</button>
+            </div>
+            <button class="btn" onclick="saveGroupSettings()">Save Changes</button>
         </div>
     </div>
 
