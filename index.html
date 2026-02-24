@@ -1,482 +1,1695 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Chat</title>
-    <link rel="icon" type="image/png" href="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.pngmart.com%2Ffiles%2F11%2FChat-Logo-PNG-Pic.png&f=1&nofb=1&ipt=282b359cc027c71e1d0c549868e3cce0202f5b0185a1d96d02bd22143786cb2e">
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UltraChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS VARIABLES & THEMES ===== */
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #1c2128;
+  --bg-hover: #21262d;
+  --bg-input: #0d1117;
+  --border: #30363d;
+  --border-light: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #7d8590;
+  --text-muted: #484f58;
+  --accent: #2f81f7;
+  --accent-hover: #1f6feb;
+  --accent-dim: #1f3a5c;
+  --success: #3fb950;
+  --warning: #d29922;
+  --danger: #f85149;
+  --owner: #f0c040;
+  --admin: #da7ef7;
+  --mention: rgba(47, 129, 247, 0.15);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --font: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --sidebar-width: 260px;
+}
+.theme-light {
+  --bg-primary: #f6f8fa; --bg-secondary: #ffffff; --bg-tertiary: #f0f2f4;
+  --bg-hover: #e8eaed; --bg-input: #f6f8fa; --border: #d0d7de;
+  --border-light: #e8eaed; --text-primary: #24292f; --text-secondary: #57606a;
+  --text-muted: #8c959f; --accent-dim: #dbeafe;
+}
+.theme-blue {
+  --bg-primary: #060d1f; --bg-secondary: #0c1a35; --bg-tertiary: #0f2145;
+  --bg-hover: #142858; --border: #1d3461; --border-light: #1a2e55;
+  --text-primary: #cce0ff; --text-secondary: #7fa8d9; --accent-dim: #0e2a50;
+}
+.theme-green {
+  --bg-primary: #06100a; --bg-secondary: #0b1f12; --bg-tertiary: #0f2a19;
+  --bg-hover: #133320; --border: #1a4228; --border-light: #163723;
+  --text-primary: #b7f0c8; --text-secondary: #5da870; --accent: #2ea043; --accent-dim: #0d2818;
+}
+.theme-purple {
+  --bg-primary: #0f0a1a; --bg-secondary: #1a1130; --bg-tertiary: #221545;
+  --bg-hover: #2b1a55; --border: #3a2060; --border-light: #2e1850;
+  --text-primary: #e0ccff; --text-secondary: #9c7ec8; --accent: #8b5cf6; --accent-dim: #2a1550;
+}
+
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: var(--font); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
+button { font-family: var(--font); cursor: pointer; border: none; outline: none; }
+input, textarea { font-family: var(--font); outline: none; border: none; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.hidden { display: none !important; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes toastIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
+@keyframes idiotFlash { 0% { background: #000; } 25% { background: #f00; } 50% { background: #ff0; } 75% { background: #f0f; } 100% { background: #000; } }
+@keyframes idiotText { 0% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.2) rotate(-3deg); } 50% { transform: scale(0.9) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 80% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+
+/* ===== BROADCAST BANNER ===== */
+.broadcast-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: linear-gradient(135deg, var(--warning), #b7791f);
+  color: #000; padding: 10px 20px; display: flex; align-items: center;
+  gap: 12px; font-size: 13px; font-weight: 500; animation: fadeIn 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.broadcast-banner .broadcast-icon { font-size: 16px; flex-shrink: 0; }
+.broadcast-banner .broadcast-message { flex: 1; }
+.broadcast-banner .broadcast-close {
+  background: rgba(0,0,0,0.2); color: #000; padding: 4px 10px;
+  border-radius: 4px; font-size: 12px; flex-shrink: 0;
+}
+.broadcast-banner .broadcast-close:hover { background: rgba(0,0,0,0.35); }
+
+/* ===== TOAST ===== */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary);
+  padding: 12px 16px; border-radius: var(--radius); font-size: 13px;
+  animation: toastIn 0.3s ease; max-width: 320px; display: flex; align-items: center; gap: 10px;
+  box-shadow: var(--shadow);
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.warning { border-left: 3px solid var(--warning); }
+.toast.info { border-left: 3px solid var(--accent); }
+.toast-icon { font-size: 16px; flex-shrink: 0; }
+
+/* ===== LOADING OVERLAY ===== */
+.loading-overlay {
+  position: fixed; inset: 0; background: var(--bg-primary); z-index: 8000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+}
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.loading-text { color: var(--text-secondary); font-size: 13px; }
+
+/* ===== AUTH PAGES ===== */
+.auth-wrapper {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  background: var(--bg-primary); padding: 20px;
+}
+.auth-box {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xl);
+  padding: 36px 32px; width: 100%; max-width: 380px; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: var(--shadow);
+}
+.auth-logo { text-align: center; margin-bottom: 28px; }
+.auth-logo .logo-icon { font-size: 48px; display: block; margin-bottom: 8px; }
+.auth-logo h1 { font-size: 22px; font-weight: 700; color: var(--text-primary); }
+.auth-logo p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.form-group input {
+  width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text-primary); font-size: 14px; transition: border 0.2s;
+}
+.form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.form-group input::placeholder { color: var(--text-muted); }
+.auth-error {
+  background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3);
+  border-radius: var(--radius); padding: 10px 12px; font-size: 13px; color: var(--danger);
+  margin-bottom: 16px; animation: fadeIn 0.2s ease;
+}
+.btn-primary {
+  width: 100%; padding: 11px; background: var(--accent); color: #fff; border-radius: var(--radius);
+  font-size: 14px; font-weight: 600; transition: background 0.2s, transform 0.1s;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+.auth-switch a { color: var(--accent); font-weight: 500; cursor: pointer; }
+
+/* ===== MAIN CHAT APP LAYOUT ===== */
+.app-layout {
+  display: flex; height: 100vh; overflow: hidden;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: var(--sidebar-width); background: var(--bg-secondary); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease;
+}
+.sidebar-header {
+  padding: 16px; border-bottom: 1px solid var(--border); display: flex;
+  align-items: center; justify-content: space-between;
+}
+.sidebar-logo { font-size: 16px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+.sidebar-logo span { font-size: 20px; }
+.sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border-light); }
+.sidebar-search input {
+  width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: 20px; color: var(--text-primary); font-size: 13px;
+}
+.sidebar-search input:focus { border-color: var(--accent); }
+.sidebar-search input::placeholder { color: var(--text-muted); }
+.sidebar-section { padding: 8px 0; }
+.sidebar-section-title {
+  padding: 6px 16px; font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.8px;
+}
+.channel-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer;
+  border-radius: 4px; margin: 1px 8px; transition: background 0.15s; position: relative;
+}
+.channel-item:hover { background: var(--bg-hover); }
+.channel-item.active { background: var(--accent-dim); color: var(--accent); }
+.channel-item.active .channel-name { color: var(--accent); font-weight: 600; }
+.channel-icon { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
+.channel-name { font-size: 14px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.channel-item.active .channel-name { color: var(--accent); }
+.channel-badge {
+  background: var(--danger); color: #fff; font-size: 10px; font-weight: 700;
+  border-radius: 10px; padding: 1px 6px; min-width: 18px; text-align: center;
+}
+.sidebar-users { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+
+/* User list items */
+.user-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer;
+  border-radius: 4px; margin: 1px 8px; transition: background 0.15s;
+}
+.user-item:hover { background: var(--bg-hover); }
+.user-item.active { background: var(--accent-dim); }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%; background: var(--bg-hover);
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+  flex-shrink: 0; position: relative;
+}
+.user-avatar-lg {
+  width: 40px; height: 40px; font-size: 20px;
+}
+.status-dot {
+  width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-secondary);
+  position: absolute; bottom: -1px; right: -1px;
+}
+.status-dot.online { background: var(--success); }
+.status-dot.offline { background: var(--text-muted); }
+.user-info-text { flex: 1; overflow: hidden; }
+.user-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-role { font-size: 11px; color: var(--text-muted); }
+.user-role.owner { color: var(--owner); }
+.user-role.admin { color: var(--admin); }
+
+/* Sidebar bottom */
+.sidebar-bottom {
+  border-top: 1px solid var(--border); padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.current-user-info { flex: 1; overflow: hidden; }
+.current-user-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.current-user-tag { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+.sidebar-actions { display: flex; gap: 4px; }
+.icon-btn {
+  width: 30px; height: 30px; border-radius: var(--radius); background: transparent;
+  color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: background 0.15s, color 0.15s;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ===== MAIN CONTENT ===== */
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.chat-header {
+  padding: 0 20px; height: 52px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; background: var(--bg-secondary);
+  flex-shrink: 0; box-shadow: 0 1px 0 var(--border);
+}
+.chat-header-icon { font-size: 18px; }
+.chat-header-info { flex: 1; }
+.chat-header-name { font-size: 15px; font-weight: 600; }
+.chat-header-desc { font-size: 12px; color: var(--text-secondary); }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.btn-sm {
+  padding: 6px 12px; border-radius: var(--radius); font-size: 12px; font-weight: 600;
+  transition: background 0.15s; display: flex; align-items: center; gap: 6px;
+}
+.btn-sm.secondary { background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-sm.secondary:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.btn-sm.danger { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
+.btn-sm.danger:hover { background: rgba(248,81,73,0.25); }
+.btn-sm.accent { background: var(--accent); color: #fff; }
+.btn-sm.accent:hover { background: var(--accent-hover); }
+
+/* ===== MESSAGES ===== */
+.messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 2px; }
+.messages-area.has-broadcast { padding-top: 56px; }
+.message-group { display: flex; gap: 12px; padding: 4px 0; margin-bottom: 4px; animation: fadeIn 0.25s ease; }
+.message-group:hover { background: rgba(255,255,255,0.02); border-radius: var(--radius); margin: 4px -8px; padding: 4px 8px; }
+.msg-avatar-col { flex-shrink: 0; padding-top: 2px; }
+.msg-content-col { flex: 1; min-width: 0; }
+.msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.msg-username { font-size: 14px; font-weight: 600; }
+.msg-username.owner { color: var(--owner); }
+.msg-username.admin { color: var(--admin); }
+.msg-timestamp { font-size: 11px; color: var(--text-muted); }
+.msg-role-badge {
+  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.msg-role-badge.owner { background: rgba(240,192,64,0.2); color: var(--owner); }
+.msg-role-badge.admin { background: rgba(218,126,247,0.2); color: var(--admin); }
+.msg-body { font-size: 14px; line-height: 1.55; color: var(--text-primary); word-break: break-word; white-space: pre-wrap; }
+.msg-body a { color: var(--accent); }
+.msg-body a:hover { text-decoration: underline; }
+.msg-body code {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 3px;
+  padding: 1px 5px; font-family: var(--font-mono); font-size: 12px;
+}
+.msg-body pre { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; overflow-x: auto; margin: 6px 0; }
+.msg-body pre code { background: none; border: none; padding: 0; }
+.msg-image { max-width: 400px; max-height: 300px; border-radius: var(--radius); margin-top: 8px; display: block; border: 1px solid var(--border); }
+.msg-continued .msg-avatar-col { visibility: hidden; }
+.msg-continued { margin-bottom: 0; }
+.mention { background: var(--mention); color: var(--accent); border-radius: 3px; padding: 0 3px; font-weight: 500; }
+.mention.own { background: rgba(47, 129, 247, 0.3); }
+.msg-system {
+  text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.msg-system::before, .msg-system::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.empty-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-secondary); }
+.empty-chat .empty-icon { font-size: 48px; }
+.empty-chat h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.empty-chat p { font-size: 13px; text-align: center; max-width: 300px; }
+
+/* Typing indicator */
+.typing-indicator { padding: 0 20px 8px; height: 24px; display: flex; align-items: center; gap: 8px; }
+.typing-dots { display: flex; gap: 3px; }
+.typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); animation: pulse 1.2s ease infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-text { font-size: 12px; color: var(--text-secondary); }
+
+/* ===== INPUT AREA ===== */
+.input-area {
+  padding: 12px 20px 16px; background: var(--bg-secondary); border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.input-box {
+  display: flex; align-items: flex-end; gap: 8px; background: var(--bg-input);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 8px 12px;
+  transition: border 0.2s;
+}
+.input-box:focus-within { border-color: var(--accent); }
+.input-actions-left { display: flex; gap: 2px; padding-bottom: 2px; }
+.msg-input {
+  flex: 1; background: transparent; color: var(--text-primary); font-size: 14px;
+  resize: none; max-height: 120px; line-height: 1.5; padding: 2px 0;
+}
+.msg-input::placeholder { color: var(--text-muted); }
+.input-actions-right { display: flex; gap: 4px; align-items: flex-end; padding-bottom: 2px; }
+.send-btn {
+  width: 32px; height: 32px; border-radius: var(--radius); background: var(--accent);
+  color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;
+  transition: background 0.15s, transform 0.1s; flex-shrink: 0;
+}
+.send-btn:hover { background: var(--accent-hover); }
+.send-btn:active { transform: scale(0.95); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ===== MODALS ===== */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5000;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadeIn 0.15s ease; backdrop-filter: blur(2px);
+}
+.modal-box {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xl);
+  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: var(--shadow);
+}
+.modal-box.wide { max-width: 600px; }
+.modal-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-size: 16px; font-weight: 700; }
+.modal-close { width: 28px; height: 28px; border-radius: var(--radius); background: var(--bg-hover); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.modal-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 0 24px 20px; display: flex; justify-content: flex-end; gap: 8px; }
+.setting-row { margin-bottom: 20px; }
+.setting-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.setting-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+.theme-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.theme-option {
+  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent;
+  transition: transform 0.2s, border 0.2s; display: flex; align-items: center; justify-content: center;
+}
+.theme-option:hover { transform: scale(1.1); }
+.theme-option.selected { border-color: var(--accent); }
+.theme-option.t-dark { background: #0d1117; }
+.theme-option.t-light { background: linear-gradient(135deg, #f6f8fa, #ffffff); border: 3px solid var(--border); }
+.theme-option.t-blue { background: #060d1f; }
+.theme-option.t-green { background: #06100a; }
+.theme-option.t-purple { background: #0f0a1a; }
+.avatar-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.avatar-option {
+  width: 44px; height: 44px; border-radius: 50%; background: var(--bg-hover);
+  display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer;
+  border: 3px solid transparent; transition: border 0.2s, transform 0.2s;
+}
+.avatar-option:hover { transform: scale(1.1); }
+.avatar-option.selected { border-color: var(--accent); }
+.status-picker { display: flex; gap: 8px; }
+.status-option {
+  display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: var(--radius);
+  background: var(--bg-hover); border: 1px solid var(--border); cursor: pointer; font-size: 13px;
+  transition: background 0.15s; border: 2px solid transparent;
+}
+.status-option:hover { background: var(--bg-tertiary); }
+.status-option.selected { border-color: var(--accent); background: var(--accent-dim); }
+.status-dot-sm { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot-sm.online { background: var(--success); }
+.status-dot-sm.offline { background: var(--text-muted); }
+
+/* Admin panel */
+.admin-section { margin-bottom: 24px; }
+.admin-section h3 { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.admin-user-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius); margin-bottom: 4px; background: var(--bg-hover); }
+.admin-user-row .user-info-text { flex: 1; }
+.admin-actions { display: flex; gap: 4px; }
+.admin-input-group { display: flex; gap: 8px; }
+.admin-input-group input { flex: 1; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 13px; }
+.admin-input-group input:focus { border-color: var(--accent); }
+
+/* ===== MAINTENANCE MODE ===== */
+.maintenance-screen {
+  position: fixed; inset: 0; background: var(--bg-primary); z-index: 9000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+}
+.maintenance-icon { font-size: 64px; animation: spin 4s linear infinite; }
+.maintenance-title { font-size: 28px; font-weight: 700; }
+.maintenance-desc { font-size: 14px; color: var(--text-secondary); text-align: center; max-width: 360px; }
+.maintenance-game { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.maintenance-game canvas { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-secondary); }
+.maintenance-score { font-size: 14px; color: var(--text-secondary); font-family: var(--font-mono); }
+
+/* ===== IDIOT SCREEN ===== */
+.idiot-screen {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  animation: idiotFlash 0.12s infinite;
+}
+.idiot-text {
+  font-size: clamp(40px, 10vw, 100px); font-weight: 900;
+  color: #fff; text-shadow: 0 0 40px #fff; letter-spacing: 4px;
+  animation: idiotText 0.12s infinite;
+  font-family: Impact, sans-serif;
+}
+.idiot-close {
+  position: absolute; bottom: 40px; padding: 12px 24px; background: rgba(255,255,255,0.2);
+  color: #fff; border-radius: var(--radius); font-size: 14px; border: 2px solid rgba(255,255,255,0.5);
+}
+.idiot-close:hover { background: rgba(255,255,255,0.35); }
+
+/* ===== DATE DIVIDER ===== */
+.date-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+.date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.date-divider-text { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+
+/* ===== SCROLLTOBOTTOM BTN ===== */
+.scroll-to-bottom {
+  position: absolute; bottom: 80px; right: 24px; width: 36px; height: 36px;
+  border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border);
+  color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer; box-shadow: var(--shadow); transition: background 0.15s;
+  animation: fadeIn 0.2s ease;
+}
+.scroll-to-bottom:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ===== PROFILE HOVER CARD ===== */
+.profile-card {
+  position: fixed; z-index: 4000; background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 20px; width: 240px; box-shadow: var(--shadow);
+  animation: popIn 0.2s ease;
+}
+.profile-card-avatar { font-size: 48px; text-align: center; margin-bottom: 12px; }
+.profile-card-name { font-size: 16px; font-weight: 700; text-align: center; }
+.profile-card-role { font-size: 12px; text-align: center; margin-top: 4px; }
+.profile-card-joined { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px; }
+.profile-card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.profile-card-actions button { flex: 1; padding: 7px; border-radius: var(--radius); font-size: 12px; font-weight: 600; }
+
+/* ===== MOBILE ===== */
+@media (max-width: 680px) {
+  :root { --sidebar-width: 100vw; }
+  .sidebar { position: fixed; inset: 0; z-index: 3000; transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .mobile-menu-btn { display: flex; }
+  .chat-header { padding: 0 12px; }
+}
+.mobile-menu-btn { display: none; }
+</style>
 </head>
 <body class="theme-dark">
 
-    <!-- Broadcast Banner -->
-    <div id="broadcastBanner" class="broadcast-banner hidden">
-        <div class="broadcast-content">
-            <span class="broadcast-icon">📢</span>
-            <div class="broadcast-message" id="broadcastText"></div>
-        </div>
-        <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
+<!-- Broadcast Banner -->
+<div id="broadcastBanner" class="broadcast-banner hidden">
+  <span class="broadcast-icon">📢</span>
+  <div id="broadcastText" class="broadcast-message"></div>
+  <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Connecting to UltraChat...</div>
+</div>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="auth-wrapper hidden">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="logo-icon">💬</span>
+      <h1>UltraChat</h1>
+      <p>Connect with everyone, instantly.</p>
+    </div>
+    <div id="loginError" class="auth-error hidden"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" onclick="doLogin()" id="loginBtn">Sign In</button>
+    <div class="auth-switch">New here? <a onclick="showPage('register')">Create an account</a></div>
+  </div>
+</div>
+
+<!-- REGISTER PAGE -->
+<div id="registerPage" class="auth-wrapper hidden">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="logo-icon">🚀</span>
+      <h1>Join UltraChat</h1>
+      <p>Create your free account today.</p>
+    </div>
+    <div id="registerError" class="auth-error hidden"></div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="registerUsername" placeholder="cooluser123" maxlength="20">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="registerEmail" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="registerPassword" placeholder="At least 6 characters" autocomplete="new-password">
+    </div>
+    <button class="btn-primary" onclick="doRegister()" id="registerBtn">Create Account</button>
+    <div class="auth-switch">Already have one? <a onclick="showPage('login')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- MAIN CHAT APP -->
+<div id="chatApp" class="app-layout hidden">
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"><span>💬</span> UltraChat</div>
+      <button class="icon-btn mobile-menu-btn" onclick="closeMobileSidebar()" title="Close">✕</button>
+    </div>
+    <div class="sidebar-search">
+      <input type="text" id="userSearch" placeholder="🔍 Search users..." oninput="filterUsers()">
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Channels</div>
+      <div class="channel-item active" id="ch-global" onclick="switchChat('global')">
+        <span class="channel-icon">#</span>
+        <span class="channel-name">global</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Direct Messages</div>
+      <div id="dmList"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Online <span id="onlineCount" style="color:var(--success)">0</span></div>
+      <div class="sidebar-users" id="userList"></div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="user-avatar user-avatar-lg" id="sidebarAvatar">😀</div>
+      <div class="current-user-info">
+        <div class="current-user-name" id="sidebarUsername">Loading...</div>
+        <div class="current-user-tag" id="sidebarTag">#0000</div>
+      </div>
+      <div class="sidebar-actions">
+        <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
+        <button class="icon-btn" onclick="doLogout()" title="Logout">🚪</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="chat-header">
+      <button class="icon-btn mobile-menu-btn" onclick="openMobileSidebar()" title="Menu">☰</button>
+      <span class="chat-header-icon" id="chatHeaderIcon">#</span>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chatHeaderName">global</div>
+        <div class="chat-header-desc" id="chatHeaderDesc">Welcome to the global chat</div>
+      </div>
+      <div class="header-actions">
+        <button id="adminPanelBtn" class="btn-sm accent hidden" onclick="showAdminPanel()">👑 Admin</button>
+      </div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay hidden">
-        <div class="spinner"></div>
+    <div id="messagesArea" class="messages-area">
+      <div class="empty-chat" id="emptyChat">
+        <div class="empty-icon">💬</div>
+        <h3>No messages yet</h3>
+        <p>Be the first to say something!</p>
+      </div>
     </div>
 
-    <!-- Owner URL Confirmation Dialog -->
-    <div id="ownerUrlDialog" class="owner-url-dialog hidden">
-        <div class="owner-url-dialog-box">
-            <h3>👑 Admin wil een URL openen</h3>
-            <p style="margin-bottom:0.75rem; color: var(--text-secondary);">Een admin heeft een link naar je gestuurd. Wil je deze openen?</p>
-            <div class="owner-url-preview" id="ownerUrlPreviewText"></div>
-            <div class="owner-url-buttons">
-                <button class="btn btn-secondary btn-small" onclick="rejectOwnerUrl()">Nee, weigeren</button>
-                <button class="btn btn-owner btn-small" onclick="acceptOwnerUrl()">Ja, openen</button>
-            </div>
+    <div class="typing-indicator" id="typingIndicator"></div>
+
+    <div class="input-area" id="inputArea">
+      <div class="input-box">
+        <textarea id="messageInput" class="msg-input" placeholder="Message #global" rows="1"
+          onkeydown="handleInputKey(event)" oninput="handleInputChange()"></textarea>
+        <div class="input-actions-right">
+          <button class="icon-btn" onclick="toggleEmojiPanel()" title="Emoji">😊</button>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">➤</button>
         </div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Login Page -->
-    <div id="loginPage" class="auth-container hidden">
-        <div class="auth-box">
-            <h2>🔐 Login</h2>
-            <div id="loginError" class="error hidden"></div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="loginUsername" required autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPassword" required autocomplete="current-password">
-                </div>
-                <button type="submit" class="btn">Login</button>
-            </form>
-            <div class="link" onclick="showRegister()">Don't have an account? Register</div>
-        </div>
+<!-- MAINTENANCE MODE -->
+<div id="maintenancePage" class="maintenance-screen hidden">
+  <div class="maintenance-icon">🔧</div>
+  <div class="maintenance-title">Under Maintenance</div>
+  <div class="maintenance-desc">We're making UltraChat even better. Play while you wait!</div>
+  <div class="maintenance-game">
+    <canvas id="gameCanvas" width="300" height="400"></canvas>
+    <div class="maintenance-score">Score: <span id="gameScore">0</span> | Best: <span id="gameBest">0</span></div>
+  </div>
+</div>
+
+<!-- IDIOT SCREEN -->
+<div id="idiotScreen" class="idiot-screen hidden">
+  <div class="idiot-text">YOU ARE AN IDIOT</div>
+  <button class="idiot-close" onclick="document.getElementById('idiotScreen').classList.add('hidden')">Close</button>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Settings</div>
+      <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
     </div>
-
-    <!-- Register Page -->
-    <div id="registerPage" class="auth-container hidden">
-        <div class="auth-box">
-            <h2>📝 Register</h2>
-            <div id="registerError" class="error hidden"></div>
-            <form id="registerForm">
-                <div class="form-group">
-                    <label>Username</label>
-                    <input type="text" id="registerUsername" required autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="registerPassword" required autocomplete="new-password">
-                </div>
-                <div class="form-group">
-                    <label>Confirm Password</label>
-                    <input type="password" id="registerConfirmPassword" required autocomplete="new-password">
-                </div>
-                <button type="submit" class="btn">Register</button>
-            </form>
-            <div class="link" onclick="showLogin()">Already have an account? Login</div>
+    <div class="modal-body">
+      <div class="setting-row">
+        <div class="setting-label">Avatar</div>
+        <div class="avatar-picker" id="avatarPicker">
+          <div class="avatar-option selected" data-emoji="😀" onclick="selectAvatar(this)">😀</div>
+          <div class="avatar-option" data-emoji="😎" onclick="selectAvatar(this)">😎</div>
+          <div class="avatar-option" data-emoji="🥷" onclick="selectAvatar(this)">🥷</div>
+          <div class="avatar-option" data-emoji="🧑‍💻" onclick="selectAvatar(this)">🧑‍💻</div>
+          <div class="avatar-option" data-emoji="🦊" onclick="selectAvatar(this)">🦊</div>
+          <div class="avatar-option" data-emoji="🐉" onclick="selectAvatar(this)">🐉</div>
+          <div class="avatar-option" data-emoji="👾" onclick="selectAvatar(this)">👾</div>
+          <div class="avatar-option" data-emoji="🤖" onclick="selectAvatar(this)">🤖</div>
+          <div class="avatar-option" data-emoji="🎭" onclick="selectAvatar(this)">🎭</div>
+          <div class="avatar-option" data-emoji="🌙" onclick="selectAvatar(this)">🌙</div>
+          <div class="avatar-option" data-emoji="⚡" onclick="selectAvatar(this)">⚡</div>
+          <div class="avatar-option" data-emoji="🌸" onclick="selectAvatar(this)">🌸</div>
         </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Theme</div>
+        <div class="theme-picker">
+          <div class="theme-option t-dark selected" data-theme="dark" onclick="selectTheme(this)" title="Dark"></div>
+          <div class="theme-option t-light" data-theme="light" onclick="selectTheme(this)" title="Light"></div>
+          <div class="theme-option t-blue" data-theme="blue" onclick="selectTheme(this)" title="Blue"></div>
+          <div class="theme-option t-green" data-theme="green" onclick="selectTheme(this)" title="Green"></div>
+          <div class="theme-option t-purple" data-theme="purple" onclick="selectTheme(this)" title="Purple"></div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Status</div>
+        <div class="status-picker">
+          <div class="status-option selected" data-status="online" onclick="selectStatus(this)">
+            <div class="status-dot-sm online"></div> Online
+          </div>
+          <div class="status-option" data-status="offline" onclick="selectStatus(this)">
+            <div class="status-dot-sm offline"></div> Invisible
+          </div>
+        </div>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">Username</div>
+        <div class="admin-input-group">
+          <input type="text" id="changeUsernameInput" placeholder="New username" maxlength="20">
+          <button class="btn-sm accent" onclick="changeUsername()">Update</button>
+        </div>
+      </div>
     </div>
-
-    <!-- Maintenance Mode -->
-    <div id="maintenancePage" class="maintenance-container hidden">
-        <div style="max-width: 600px; text-align: center;">
-            <div style="font-size: 5rem; margin-bottom: 1rem;">🔧</div>
-            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;">System Maintenance</h1>
-            <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 2rem;">We're currently upgrading our systems to serve you better. Play a game while you wait!</p>
-            <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 1rem; backdrop-filter: blur(10px);">
-                <canvas id="gameCanvas" width="400" height="600"></canvas>
-                <div class="game-info" style="margin-top: 1.5rem; font-size: 1.75rem; font-weight: 600;">
-                    Score: <span id="gameScore" style="color: #ffd700;">0</span>
-                </div>
-                <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">Click or tap to make the bird fly</p>
-            </div>
-            <button onclick="checkMaintenanceStatus()" class="btn" style="margin-top: 2rem; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3);">
-                Check Status
-            </button>
-        </div>
+    <div class="modal-footer">
+      <button class="btn-sm secondary" onclick="closeModal('settingsModal')">Close</button>
     </div>
+  </div>
+</div>
 
-    <!-- Main Chat Application -->
-    <div id="chatApp" class="chat-container hidden">
-        <!-- Sidebar -->
-        <div id="sidebar" class="sidebar">
-            <div class="sidebar-header">
-                <div class="user-info">
-                    <div class="avatar" id="userAvatar">😀</div>
-                    <div>
-                        <div id="currentUsername" style="font-weight: 600;"></div>
-                        <span class="status-indicator" id="userStatus"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Search users for DMs -->
-            <div class="search-box">
-                <input type="text" id="userSearch" placeholder="Search users for DM..." onkeyup="searchUsersDebounced()">
-            </div>
-
-            <div class="chat-list" id="chatList">
-                <div class="chat-item active" onclick="selectChat('global')">
-                    <div class="avatar">🌍</div>
-                    <div class="chat-item-info">
-                        <div class="chat-item-name">Global Chat</div>
-                        <div class="chat-item-preview">Public chat room</div>
-                    </div>
-                </div>
-            </div>
-
-            <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
-                <button class="btn btn-secondary" onclick="logout()">Logout</button>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="chat-header">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-                <div class="chat-title" id="chatTitle">
-                    <span class="avatar">🌍</span>
-                    <span>Global Chat</span>
-                </div>
-                <div class="header-actions">
-                    <button class="btn-small" onclick="showSettings()">⚙️ Settings</button>
-                    <div id="adminButton" class="hidden">
-                        <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
-                    </div>
-                    <div id="ownerButton" class="hidden">
-                        <button class="btn-small btn-owner" onclick="showOwnerTerminal()">💻 Terminal</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="messagesContainer" class="messages-container"></div>
-            
-            <div id="replyIndicator" class="reply-indicator hidden">
-                <div class="reply-indicator-content">
-                    <span id="replyText"></span>
-                    <button class="close-btn" onclick="cancelReply()">×</button>
-                </div>
-            </div>
-
-            <div id="typingIndicator" class="typing-indicator-wrapper hidden">
-                <div class="typing-bubbles">
-                    <div class="typing-bubble"></div>
-                    <div class="typing-bubble"></div>
-                    <div class="typing-bubble"></div>
-                </div>
-                <span id="typingText"></span>
-            </div>
-
-            <div id="inputContainer" class="input-container">
-                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping(); handleMentionAutocomplete(event)" onkeydown="handleAutocompleteKeydown(event)">
-                <button onclick="sendMessage()">Send</button>
-                <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
-                <div id="reactionPicker" class="reaction-picker hidden"></div>
-            </div>
-            <div id="readonlyBar" class="readonly-bar hidden">
-                📣 Only admins can post in Announcements — you can read only
-            </div>
-        </div>
+<!-- ADMIN PANEL MODAL -->
+<div id="adminModal" class="modal-overlay hidden">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title">👑 Admin Panel</div>
+      <button class="modal-close" onclick="closeModal('adminModal')">✕</button>
     </div>
-
-    <!-- Group Settings Modal -->
-    <div id="groupSettingsModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>👥 Group Settings</h3>
-                <button class="close-btn" onclick="closeGroupSettings()">×</button>
-            </div>
-            <div class="form-group">
-                <label>Group Name</label>
-                <input type="text" id="groupNameInput">
-            </div>
-            <div class="form-group">
-                <label>Group Picture (URL)</label>
-                <input type="text" id="groupPictureInput">
-            </div>
-            <div class="form-group">
-                <label>Invite User (@username)</label>
-                <input type="text" id="inviteUserInput" placeholder="@username">
-                <button class="btn btn-small" style="margin-top:0.5rem;" onclick="handleInvite()">Invite</button>
-            </div>
-            <button class="btn" onclick="saveGroupSettings()">Save Changes</button>
+    <div class="modal-body">
+      <div class="admin-section">
+        <h3>📢 Broadcast Message</h3>
+        <div class="admin-input-group" style="margin-bottom:8px">
+          <input type="text" id="broadcastInput" placeholder="Message to all users...">
+          <button class="btn-sm accent" onclick="sendBroadcast()">Send</button>
         </div>
-    </div>
-
-    <!-- Owner Terminal -->
-    <div id="ownerTerminal" class="terminal-container hidden">
-        <button class="terminal-close" onclick="closeOwnerTerminal()">Close Terminal</button>
-        <div class="terminal-header">👑 Owner Terminal v2.0 - User Specific Commands</div>
-        <div id="terminalOutput" class="terminal-output"></div>
-        <div class="terminal-input-line">
-            <span class="terminal-prompt">#&gt;</span>
-            <input type="text" id="terminalInput" class="terminal-input" placeholder="Type command... (help for list)" onkeypress="handleTerminalKeypress(event)">
+        <button class="btn-sm secondary" style="width:100%" onclick="clearBroadcast()">Clear Active Broadcast</button>
+      </div>
+      <div class="admin-section">
+        <h3>🛠️ Server Controls</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button class="btn-sm secondary" onclick="adminAction('reload')">🔄 Force Reload All</button>
+          <button class="btn-sm danger" onclick="adminAction('maintenance')">🔧 Toggle Maintenance</button>
+          <button class="btn-sm danger" onclick="clearAllMessages()">🗑️ Clear All Messages</button>
         </div>
+      </div>
+      <div class="admin-section">
+        <h3>👥 Users</h3>
+        <div id="adminUserList"></div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- Owner Popup (for targeted messages) -->
-    <div id="ownerPopup" class="owner-popup hidden">
-        <div class="owner-popup-header">
-            <span>👑 Owner Message</span>
-        </div>
-        <div id="ownerPopupContent" class="owner-popup-content"></div>
-        <button class="owner-popup-close" onclick="closeOwnerPopup()">OK</button>
+<!-- SIMPLE EMOJI PANEL -->
+<div id="emojiPanel" class="modal-overlay hidden" onclick="closeEmojiPanel(event)">
+  <div style="position:fixed; bottom:80px; right:24px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-xl); padding:12px; display:flex; flex-wrap:wrap; gap:4px; max-width:280px; box-shadow:var(--shadow); animation:popIn 0.2s ease;" onclick="event.stopPropagation()">
+    <div style="width:100%; font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--border);">Emoji</div>
+    <span class="emoji-pick">😀</span><span class="emoji-pick">😂</span><span class="emoji-pick">😍</span>
+    <span class="emoji-pick">🤔</span><span class="emoji-pick">😎</span><span class="emoji-pick">🥺</span>
+    <span class="emoji-pick">😭</span><span class="emoji-pick">🔥</span><span class="emoji-pick">💯</span>
+    <span class="emoji-pick">👍</span><span class="emoji-pick">👎</span><span class="emoji-pick">❤️</span>
+    <span class="emoji-pick">⚡</span><span class="emoji-pick">🎉</span><span class="emoji-pick">🚀</span>
+    <span class="emoji-pick">💀</span><span class="emoji-pick">🤡</span><span class="emoji-pick">🐉</span>
+    <span class="emoji-pick">🌙</span><span class="emoji-pick">⭐</span><span class="emoji-pick">💎</span>
+    <span class="emoji-pick">🎮</span><span class="emoji-pick">🏆</span><span class="emoji-pick">👾</span>
+  </div>
+</div>
+
+<style>
+.emoji-pick { font-size: 22px; cursor: pointer; padding: 4px; border-radius: 6px; transition: background 0.15s; }
+.emoji-pick:hover { background: var(--bg-hover); }
+</style>
+
+<!-- SUPABASE SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+// ============================================================
+// ⚠️  CONFIGURATION — Replace with your Supabase project details
+// ============================================================
+const SUPABASE_URL = 'https://xwealghjsjitdetsnluy.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3ZWFsZ2hqc2ppdGRldHNubHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzNDcsImV4cCI6MjA4NzUzMjM0N30.KUvGJwDZIuGNBoEk7KbXv7fAOmvqH-iVHNL9_6d_nNM';
+// ============================================================
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ===== STATE =====
+let currentUser = null;       // Auth user from Supabase
+let currentProfile = null;    // Profile row from profiles table
+let currentChat = 'global';   // 'global' or 'dm_<uid>'
+let allUsers = [];             // Cached user list
+let messageSubscription = null;
+let broadcastSubscription = null;
+let presenceChannel = null;
+let typingTimeout = null;
+let isNearBottom = true;
+let lastMessageDate = null;
+let gameBest = parseInt(localStorage.getItem('gameBest') || '0');
+
+// ===== INIT =====
+window.addEventListener('load', async () => {
+  applyTheme(localStorage.getItem('theme') || 'dark');
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadProfile();
+    await enterApp();
+  } else {
+    hide('loadingOverlay');
+    show('loginPage');
+  }
+});
+
+// ===== AUTH =====
+async function doLogin() {
+  const email = val('loginEmail');
+  const password = val('loginPassword');
+  if (!email || !password) return showAuthError('loginError', 'Please fill in all fields.');
+
+  setLoading('loginBtn', true);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  setLoading('loginBtn', false);
+
+  if (error) return showAuthError('loginError', error.message);
+  currentUser = data.user;
+  await loadProfile();
+  await enterApp();
+}
+
+async function doRegister() {
+  const username = val('registerUsername').trim();
+  const email = val('registerEmail');
+  const password = val('registerPassword');
+
+  if (!username || !email || !password) return showAuthError('registerError', 'Please fill in all fields.');
+  if (username.length < 2) return showAuthError('registerError', 'Username must be at least 2 characters.');
+  if (password.length < 6) return showAuthError('registerError', 'Password must be at least 6 characters.');
+  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) return showAuthError('registerError', 'Username can only contain letters, numbers, _ . -');
+
+  setLoading('registerBtn', true);
+
+  // Check username not taken
+  const { data: existing } = await supabase.from('profiles').select('id').eq('username', username).single();
+  if (existing) {
+    setLoading('registerBtn', false);
+    return showAuthError('registerError', 'Username already taken.');
+  }
+
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) { setLoading('registerBtn', false); return showAuthError('registerError', error.message); }
+
+  // Create profile
+  await supabase.from('profiles').insert({
+    id: data.user.id,
+    username,
+    avatar: '😀',
+    role: 'user',
+    status: 'online'
+  });
+
+  currentUser = data.user;
+  setLoading('registerBtn', false);
+  await loadProfile();
+  await enterApp();
+}
+
+async function doLogout() {
+  if (presenceChannel) await supabase.removeChannel(presenceChannel);
+  await supabase.from('profiles').update({ status: 'offline' }).eq('id', currentUser.id);
+  await supabase.auth.signOut();
+  currentUser = null; currentProfile = null; currentChat = 'global';
+  allUsers = [];
+  if (messageSubscription) supabase.removeChannel(messageSubscription);
+  if (broadcastSubscription) supabase.removeChannel(broadcastSubscription);
+  hide('chatApp');
+  show('loginPage');
+  el('loginEmail').value = '';
+  el('loginPassword').value = '';
+  toast('👋 You have been logged out.', 'info');
+}
+
+// ===== PROFILE =====
+async function loadProfile() {
+  const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (data) {
+    currentProfile = data;
+  } else {
+    // Create profile if missing
+    const username = currentUser.email.split('@')[0];
+    await supabase.from('profiles').insert({ id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' });
+    currentProfile = { id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' };
+  }
+}
+
+// ===== ENTER APP =====
+async function enterApp() {
+  hide('loginPage');
+  hide('registerPage');
+
+  // Update status to online
+  await supabase.from('profiles').update({ status: 'online' }).eq('id', currentUser.id);
+
+  // Update UI
+  el('sidebarAvatar').textContent = currentProfile.avatar;
+  el('sidebarUsername').textContent = currentProfile.username;
+  el('sidebarTag').textContent = '#' + currentProfile.id.slice(-4).toUpperCase();
+
+  // Show admin button if applicable
+  if (currentProfile.role === 'admin' || currentProfile.role === 'owner') {
+    show('adminPanelBtn');
+  }
+
+  // Load users
+  await loadUsers();
+
+  // Subscribe to presence + broadcasts
+  subscribePresence();
+  subscribeBroadcasts();
+
+  // Load messages
+  await switchChat('global');
+
+  hide('loadingOverlay');
+  show('chatApp');
+}
+
+// ===== USERS =====
+async function loadUsers() {
+  const { data } = await supabase.from('profiles').select('*').order('username');
+  if (data) {
+    allUsers = data;
+    renderUserList(data);
+  }
+}
+
+function renderUserList(users) {
+  const list = el('userList');
+  const dmList = el('dmList');
+  list.innerHTML = '';
+  dmList.innerHTML = '';
+  let onlineCount = 0;
+
+  users.forEach(u => {
+    if (u.id === currentUser.id) return;
+    if (u.status === 'online') onlineCount++;
+
+    const div = document.createElement('div');
+    div.className = 'user-item';
+    div.dataset.uid = u.id;
+    div.innerHTML = `
+      <div class="user-avatar" style="position:relative">
+        ${u.avatar}
+        <div class="status-dot ${u.status === 'online' ? 'online' : 'offline'}"></div>
+      </div>
+      <div class="user-info-text">
+        <div class="user-name">${escHtml(u.username)}</div>
+        <div class="user-role ${u.role}">${u.role}</div>
+      </div>`;
+    div.onclick = () => startDM(u);
+    list.appendChild(div);
+
+    // Also add to DM list if has DM
+    const dmId = getDMId(currentUser.id, u.id);
+    const dmDiv = document.createElement('div');
+    dmDiv.className = 'channel-item';
+    dmDiv.id = 'ch-dm-' + u.id;
+    dmDiv.innerHTML = `<span class="channel-icon">${u.avatar}</span><span class="channel-name">${escHtml(u.username)}</span>`;
+    dmDiv.onclick = () => startDM(u);
+    dmList.appendChild(dmDiv);
+  });
+
+  el('onlineCount').textContent = onlineCount;
+}
+
+function filterUsers() {
+  const q = val('userSearch').toLowerCase();
+  document.querySelectorAll('#userList .user-item').forEach(item => {
+    const name = item.querySelector('.user-name').textContent.toLowerCase();
+    item.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+function getDMId(uid1, uid2) {
+  return 'dm_' + [uid1, uid2].sort().join('_');
+}
+
+function startDM(user) {
+  const chatId = getDMId(currentUser.id, user.id);
+  switchChat(chatId, user);
+}
+
+// ===== CHAT SWITCHING =====
+async function switchChat(chatId, dmUser = null) {
+  currentChat = chatId;
+  lastMessageDate = null;
+
+  // Update active channel styling
+  document.querySelectorAll('.channel-item, .ch-global').forEach(i => i.classList.remove('active'));
+  if (chatId === 'global') {
+    el('ch-global').classList.add('active');
+    el('chatHeaderIcon').textContent = '#';
+    el('chatHeaderName').textContent = 'global';
+    el('chatHeaderDesc').textContent = 'The main chat room';
+    el('messageInput').placeholder = 'Message #global';
+  } else {
+    const userEl = el('ch-dm-' + (dmUser ? dmUser.id : ''));
+    if (userEl) userEl.classList.add('active');
+    el('chatHeaderIcon').textContent = dmUser ? dmUser.avatar : '💬';
+    el('chatHeaderName').textContent = dmUser ? dmUser.username : 'Direct Message';
+    el('chatHeaderDesc').textContent = dmUser ? 'Direct message' : '';
+    el('messageInput').placeholder = 'Message ' + (dmUser ? dmUser.username : '');
+  }
+
+  // Unsubscribe old message channel
+  if (messageSubscription) {
+    await supabase.removeChannel(messageSubscription);
+    messageSubscription = null;
+  }
+
+  // Clear messages
+  el('messagesArea').innerHTML = '<div class="empty-chat" id="emptyChat"><div class="empty-icon">💬</div><h3>No messages yet</h3><p>Be the first to say something!</p></div>';
+
+  // Load history
+  await loadMessages(chatId);
+
+  // Subscribe to new messages
+  messageSubscription = supabase.channel('msgs-' + chatId)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'messages',
+      filter: `chat_id=eq.${chatId}`
+    }, payload => {
+      appendMessage(payload.new, true);
+    })
+    .subscribe();
+}
+
+// ===== MESSAGES =====
+async function loadMessages(chatId) {
+  const { data, error } = await supabase
+    .from('messages').select('*').eq('chat_id', chatId)
+    .order('created_at', { ascending: true }).limit(100);
+
+  if (error) { toast('Failed to load messages', 'error'); return; }
+
+  const area = el('messagesArea');
+  area.innerHTML = '';
+  lastMessageDate = null;
+
+  if (!data || data.length === 0) {
+    area.innerHTML = '<div class="empty-chat" id="emptyChat"><div class="empty-icon">💬</div><h3>No messages yet</h3><p>Be the first to say something!</p></div>';
+    return;
+  }
+
+  data.forEach(msg => appendMessage(msg, false));
+  scrollToBottom();
+}
+
+let lastMsgUserId = null;
+let lastMsgTime = null;
+
+function appendMessage(msg, scrollIfNeeded = true) {
+  const area = el('messagesArea');
+
+  // Remove empty state
+  const empty = el('emptyChat');
+  if (empty) empty.remove();
+
+  const msgDate = new Date(msg.created_at);
+  const dateStr = msgDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Add date divider if needed
+  if (lastMessageDate !== dateStr) {
+    const div = document.createElement('div');
+    div.className = 'date-divider';
+    div.innerHTML = `<span class="date-divider-text">${dateStr}</span>`;
+    area.appendChild(div);
+    lastMessageDate = dateStr;
+    lastMsgUserId = null;
+  }
+
+  const isContinued = lastMsgUserId === msg.user_id &&
+    lastMsgTime && (msgDate - lastMsgTime) < 5 * 60 * 1000;
+
+  lastMsgUserId = msg.user_id;
+  lastMsgTime = msgDate;
+
+  const profile = allUsers.find(u => u.id === msg.user_id) || {};
+  const avatar = profile.avatar || '😀';
+  const role = profile.role || 'user';
+  const isOwn = msg.user_id === currentUser.id;
+
+  const timeStr = msgDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  const roleBadge = (role === 'owner' || role === 'admin')
+    ? `<span class="msg-role-badge ${role}">${role}</span>` : '';
+
+  const group = document.createElement('div');
+  group.className = `message-group${isContinued ? ' msg-continued' : ''}`;
+  group.dataset.msgId = msg.id;
+
+  group.innerHTML = `
+    <div class="msg-avatar-col">
+      <div class="user-avatar" style="cursor:pointer" onclick="showProfileCard(event, '${msg.user_id}')">${avatar}</div>
     </div>
+    <div class="msg-content-col">
+      ${!isContinued ? `<div class="msg-header">
+        <span class="msg-username ${role}" style="cursor:pointer" onclick="showProfileCard(event, '${msg.user_id}')">${escHtml(msg.username)}</span>
+        ${roleBadge}
+        <span class="msg-timestamp">${timeStr}</span>
+      </div>` : ''}
+      <div class="msg-body">${formatMessage(msg.content, isOwn)}</div>
+    </div>`;
 
-    <!-- Settings Modal -->
-    <div id="settingsModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>⚙️ Settings</h3>
-                <button class="close-btn" onclick="closeSettings()">×</button>
-            </div>
+  // Add delete option for admins/owners/own messages
+  if (isOwn || currentProfile.role === 'admin' || currentProfile.role === 'owner') {
+    group.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showContextMenu(e, msg.id);
+    });
+  }
 
-            <div class="tabs">
-                <div class="tab active" onclick="switchTab('profile', event)">Profile</div>
-                <div class="tab" onclick="switchTab('appearance', event)">Appearance</div>
-                <div class="tab" onclick="switchTab('security', event)">Security</div>
-            </div>
+  area.appendChild(group);
 
-            <div id="profileTab" class="tab-content active">
-                <div class="form-group">
-                    <label>Choose Your Avatar</label>
-                    <div class="emoji-grid" id="emojiGrid"></div>
-                </div>
-            </div>
+  if (scrollIfNeeded) {
+    if (isNearBottom) scrollToBottom();
+  }
+}
 
-            <div id="appearanceTab" class="tab-content">
-                <div class="form-group">
-                    <label>Theme</label>
-                    <div class="theme-selector" id="themeSelector"></div>
-                </div>
-            </div>
+function formatMessage(content, isOwn) {
+  let text = escHtml(content);
 
-            <div id="securityTab" class="tab-content">
-                <div class="form-group">
-                    <label>Current Password</label>
-                    <input type="password" id="currentPassword">
-                </div>
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" id="newPassword">
-                </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" id="confirmNewPassword">
-                </div>
-                <button class="btn" onclick="changePassword()">Change Password</button>
-            </div>
-        </div>
+  // Code blocks
+  text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Mentions
+  text = text.replace(/@(\w+)/g, `<span class="mention${isOwn ? ' own' : ''}">@$1</span>`);
+  // URLs
+  text = text.replace(/(https?:\/\/[^\s<>"]+)/g, (url) => {
+    const escaped = escHtml(url);
+    if (/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(url)) {
+      return `<a href="${escaped}" target="_blank" rel="noopener">${escaped}</a><br><img src="${escaped}" class="msg-image" loading="lazy" onerror="this.style.display='none'">`;
+    }
+    return `<a href="${escaped}" target="_blank" rel="noopener">${escaped}</a>`;
+  });
+
+  return text;
+}
+
+async function sendMessage() {
+  const input = el('messageInput');
+  const content = input.value.trim();
+  if (!content || !currentUser) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  const { error } = await supabase.from('messages').insert({
+    user_id: currentUser.id,
+    username: currentProfile.username,
+    chat_id: currentChat,
+    content
+  });
+
+  if (error) {
+    toast('Failed to send message: ' + error.message, 'error');
+    input.value = content;
+  }
+}
+
+async function deleteMessage(msgId) {
+  await supabase.from('messages').delete().eq('id', msgId);
+  const el2 = document.querySelector(`[data-msg-id="${msgId}"]`);
+  if (el2) el2.remove();
+  toast('Message deleted.', 'info');
+}
+
+// ===== SUBSCRIPTIONS =====
+function subscribePresence() {
+  presenceChannel = supabase.channel('presence-room', {
+    config: { presence: { key: currentUser.id } }
+  });
+
+  presenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      loadUsers();
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await presenceChannel.track({ userId: currentUser.id, online_at: new Date().toISOString() });
+      }
+    });
+}
+
+function subscribeBroadcasts() {
+  broadcastSubscription = supabase.channel('broadcasts-channel')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'broadcasts'
+    }, payload => {
+      const b = payload.new;
+      if (!b || !b.active) {
+        dismissBroadcast();
+        return;
+      }
+      if (b.type === 'reload') {
+        toast('🔄 Server requesting reload...', 'warning');
+        setTimeout(() => location.reload(), 2000);
+      } else if (b.type === 'maintenance') {
+        showMaintenancePage();
+      } else if (b.type === 'idiot') {
+        show('idiotScreen');
+      } else {
+        showBroadcast(b.message);
+      }
+    })
+    .subscribe();
+
+  // Check for existing active broadcast on load
+  supabase.from('broadcasts').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1).then(({ data }) => {
+    if (data && data.length > 0) {
+      const b = data[0];
+      if (b.type === 'message') showBroadcast(b.message);
+      else if (b.type === 'maintenance') showMaintenancePage();
+    }
+  });
+}
+
+function showBroadcast(msg) {
+  el('broadcastText').textContent = msg;
+  el('broadcastBanner').classList.remove('hidden');
+  el('messagesArea').classList.add('has-broadcast');
+}
+
+function dismissBroadcast() {
+  el('broadcastBanner').classList.add('hidden');
+  el('messagesArea').classList.remove('has-broadcast');
+}
+
+// ===== SETTINGS =====
+function showSettings() {
+  // Sync current avatar
+  document.querySelectorAll('.avatar-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.emoji === currentProfile.avatar);
+  });
+  // Sync current theme
+  const theme = localStorage.getItem('theme') || 'dark';
+  document.querySelectorAll('.theme-option').forEach(o => {
+    o.classList.toggle('selected', o.dataset.theme === theme);
+  });
+  show('settingsModal');
+}
+
+function selectAvatar(el2) {
+  document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+  el2.classList.add('selected');
+  const emoji = el2.dataset.emoji;
+  updateProfile({ avatar: emoji });
+}
+
+function selectTheme(el2) {
+  document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('selected'));
+  el2.classList.add('selected');
+  applyTheme(el2.dataset.theme);
+}
+
+function selectStatus(el2) {
+  document.querySelectorAll('.status-option').forEach(o => o.classList.remove('selected'));
+  el2.classList.add('selected');
+  const status = el2.dataset.status;
+  updateProfile({ status });
+}
+
+async function changeUsername() {
+  const newName = val('changeUsernameInput').trim();
+  if (!newName || newName.length < 2) return toast('Username must be at least 2 characters', 'error');
+  if (!/^[a-zA-Z0-9_.-]+$/.test(newName)) return toast('Invalid characters in username', 'error');
+
+  const { data: existing } = await supabase.from('profiles').select('id').eq('username', newName).neq('id', currentUser.id).single();
+  if (existing) return toast('Username already taken', 'error');
+
+  await updateProfile({ username: newName });
+  el('changeUsernameInput').value = '';
+  toast('Username updated!', 'success');
+}
+
+async function updateProfile(updates) {
+  const { error } = await supabase.from('profiles').update(updates).eq('id', currentUser.id);
+  if (!error) {
+    Object.assign(currentProfile, updates);
+    el('sidebarAvatar').textContent = currentProfile.avatar;
+    el('sidebarUsername').textContent = currentProfile.username;
+    await loadUsers();
+  }
+}
+
+// ===== ADMIN PANEL =====
+async function showAdminPanel() {
+  // Load all users for admin panel
+  const { data } = await supabase.from('profiles').select('*').order('username');
+  const list = el('adminUserList');
+  list.innerHTML = '';
+
+  (data || []).forEach(u => {
+    const row = document.createElement('div');
+    row.className = 'admin-user-row';
+    row.innerHTML = `
+      <div class="user-avatar">${u.avatar}</div>
+      <div class="user-info-text">
+        <div class="user-name">${escHtml(u.username)}</div>
+        <div class="user-role ${u.role}">${u.role} · ${u.status}</div>
+      </div>
+      <div class="admin-actions">
+        ${u.id !== currentUser.id ? `
+          <button class="btn-sm secondary" onclick="setUserRole('${u.id}', 'admin')" title="Make Admin">👑</button>
+          <button class="btn-sm secondary" onclick="setUserRole('${u.id}', 'user')" title="Make User">👤</button>
+          <button class="btn-sm danger" onclick="triggerIdiot('${u.id}')" title="Idiot Screen">🤡</button>
+        ` : '<span style="font-size:11px;color:var(--text-muted)">You</span>'}
+      </div>`;
+    list.appendChild(row);
+  });
+
+  show('adminModal');
+}
+
+async function setUserRole(userId, role) {
+  await supabase.from('profiles').update({ role }).eq('id', userId);
+  toast(`User role updated to ${role}`, 'success');
+  showAdminPanel();
+}
+
+async function sendBroadcast() {
+  const msg = val('broadcastInput').trim();
+  if (!msg) return;
+  // Clear old active broadcasts
+  await supabase.from('broadcasts').update({ active: false }).eq('active', true);
+  await supabase.from('broadcasts').insert({ message: msg, type: 'message', active: true });
+  el('broadcastInput').value = '';
+  toast('Broadcast sent!', 'success');
+}
+
+async function clearBroadcast() {
+  await supabase.from('broadcasts').update({ active: false }).eq('active', true);
+  toast('Broadcast cleared.', 'info');
+}
+
+async function adminAction(action) {
+  if (action === 'reload') {
+    await supabase.from('broadcasts').update({ active: false }).eq('active', true);
+    await supabase.from('broadcasts').insert({ message: 'Server reload requested', type: 'reload', active: true });
+    toast('Reload signal sent to all users.', 'success');
+  } else if (action === 'maintenance') {
+    await supabase.from('broadcasts').update({ active: false }).eq('active', true);
+    await supabase.from('broadcasts').insert({ message: 'Maintenance mode', type: 'maintenance', active: true });
+    toast('Maintenance mode activated.', 'warning');
+  }
+}
+
+async function triggerIdiot(userId) {
+  // Store a notification in a special broadcasts row targeting a user
+  await supabase.from('broadcasts').insert({ message: `idiot:${userId}`, type: 'idiot_target', active: true });
+  toast('🤡 Done!', 'success');
+}
+
+async function clearAllMessages() {
+  if (!confirm('Are you sure? This will delete ALL messages in the current channel.')) return;
+  await supabase.from('messages').delete().eq('chat_id', currentChat);
+  await switchChat(currentChat);
+  toast('All messages cleared.', 'success');
+}
+
+// ===== PROFILE CARD =====
+function showProfileCard(event, userId) {
+  // Remove existing
+  document.querySelectorAll('.profile-card').forEach(c => c.remove());
+
+  const user = allUsers.find(u => u.id === userId);
+  if (!user) return;
+
+  const card = document.createElement('div');
+  card.className = 'profile-card';
+  card.style.left = Math.min(event.clientX, window.innerWidth - 260) + 'px';
+  card.style.top = Math.min(event.clientY + 10, window.innerHeight - 220) + 'px';
+
+  const roleBadge = user.role !== 'user' ? `<div class="user-role ${user.role}" style="font-size:13px;font-weight:600">${user.role}</div>` : '';
+
+  card.innerHTML = `
+    <div class="profile-card-avatar">${user.avatar}</div>
+    <div class="profile-card-name">${escHtml(user.username)}</div>
+    ${roleBadge}
+    <div class="profile-card-joined" style="margin-top:8px">
+      <div class="status-dot-sm ${user.status}" style="display:inline-block;margin-right:5px;vertical-align:middle"></div>
+      ${user.status === 'online' ? 'Online' : 'Offline'}
     </div>
+    <div class="profile-card-actions">
+      <button class="btn-sm accent" onclick="startDMById('${user.id}');document.querySelectorAll('.profile-card').forEach(c=>c.remove())">💬 DM</button>
+    </div>`;
 
-    <!-- Admin Panel Modal -->
-    <div id="adminModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 850px;">
-            <div class="modal-header">
-                <h3>👑 Admin Panel</h3>
-                <button class="close-btn" onclick="closeAdminPanel()">×</button>
-            </div>
+  document.body.appendChild(card);
+  document.addEventListener('click', () => card.remove(), { once: true });
+}
 
-            <div class="tabs">
-                <div class="tab active" onclick="switchAdminTab('statsTab', event)">📊 Stats</div>
-                <div class="tab" onclick="switchAdminTab('usersTab', event)">👥 Users</div>
-                <div class="tab" onclick="switchAdminTab('systemTab', event)">🎮 System</div>
-                <div class="tab" onclick="switchAdminTab('broadcastTabPanel', event)">📢 Broadcast</div>
-                <div class="tab" onclick="switchAdminTab('ipTab', event)">🌐 IP</div>
-            </div>
+function startDMById(userId) {
+  const user = allUsers.find(u => u.id === userId);
+  if (user) startDM(user);
+}
 
-            <!-- Stats Tab -->
-            <div id="statsTab" class="tab-content active" style="padding: 1rem;">
-                <div class="admin-section">
-                    <h3>📊 Statistics</h3>
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalUsers">0</div>
-                            <div class="stat-label">Total Users</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="onlineUsers">0</div>
-                            <div class="stat-label">Online Now</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalMessages">0</div>
-                            <div class="stat-label">Total Messages</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="totalGroups">0</div>
-                            <div class="stat-label">Total Groups</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+// ===== CONTEXT MENU =====
+let contextMenu = null;
+function showContextMenu(e, msgId) {
+  if (contextMenu) contextMenu.remove();
+  const menu = document.createElement('div');
+  menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow);z-index:9000;min-width:160px;animation:fadeIn 0.1s ease`;
+  menu.innerHTML = `<button onclick="deleteMessage('${msgId}');this.closest('div').remove()" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:none;color:var(--danger);border-radius:4px;font-size:13px;text-align:left">🗑️ Delete Message</button>`;
+  document.body.appendChild(menu);
+  contextMenu = menu;
+  document.addEventListener('click', () => menu.remove(), { once: true });
+}
 
-            <!-- Users Tab -->
-            <div id="usersTab" class="tab-content" style="padding: 1rem;">
-                <div class="admin-section">
-                    <h3>👥 User Management</h3>
-                    <div class="user-list" id="adminUserList"></div>
-                </div>
-            </div>
+// ===== MAINTENANCE MODE GAME (Snake) =====
+let gameActive = false, gameLoop = null;
+let snake, food, dir, score;
 
-            <!-- System Tab -->
-            <div id="systemTab" class="tab-content" style="padding: 1rem;">
-                <div class="admin-section">
-                    <h3>🎮 System Controls</h3>
-                    <div class="admin-grid-2" style="margin-bottom: 0.5rem;">
-                        <button class="btn" onclick="toggleMaintenance()">
-                            <span id="maintenanceText">Enable Maintenance</span>
-                        </button>
-                        <button class="btn btn-secondary" onclick="cleanupOldMessages()">Cleanup Old Messages</button>
-                        <button class="btn btn-success" onclick="showUrlRedirect()">🌐 Send URL to Users</button>
-                        <button class="btn btn-warning" onclick="showPageReloadPanel()">🔄 Reload User Pages</button>
-                        <button class="btn btn-danger" onclick="wipeAllData()">⚠️ Wipe All Data</button>
-                    </div>
-                </div>
-            </div>
+function showMaintenancePage() {
+  closeModal('adminModal');
+  show('maintenancePage');
+  el('gameBest').textContent = gameBest;
+  startGame();
+}
 
-            <!-- Broadcast Tab -->
-            <div id="broadcastTabPanel" class="tab-content" style="padding: 1rem;">
-                <div class="admin-section">
-                    <h3>📢 Broadcast Message</h3>
-                    <div class="form-group">
-                        <textarea id="broadcastMessage" rows="3" placeholder="Enter your broadcast message..."></textarea>
-                    </div>
-                    <button class="btn" onclick="sendBroadcast()">Send Broadcast</button>
-                </div>
-            </div>
+function startGame() {
+  const canvas = el('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const CELL = 20, COLS = 15, ROWS = 20;
+  canvas.width = COLS * CELL;
+  canvas.height = ROWS * CELL;
 
-            <!-- IP Tab -->
-            <div id="ipTab" class="tab-content" style="padding: 1rem;">
-                <div class="admin-section">
-                    <h3>🌐 IP Address Tracking</h3>
-                    <div style="margin-bottom: 1rem;">
-                        <input type="text" id="ipSearchInput" placeholder="Search by username or IP..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--background); color: var(--text);">
-                    </div>
-                    <div id="ipTrackingList" style="max-height: 400px; overflow-y: auto;"></div>
-                </div>
+  snake = [{ x: 7, y: 10 }, { x: 6, y: 10 }, { x: 5, y: 10 }];
+  dir = { x: 1, y: 0 };
+  score = 0;
+  placeFood();
+  gameActive = true;
+  el('gameScore').textContent = '0';
 
-                <div class="admin-section">
-                    <h3>🚫 IP Management</h3>
-                    <div class="form-group">
-                        <label>Block IP Address</label>
-                        <input type="text" id="blockIpInput" placeholder="Enter IP address">
-                    </div>
-                    <button class="btn btn-danger" onclick="blockIP()">Block IP</button>
-                    <div id="blockedIpList" style="margin-top: 1rem;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
+  if (gameLoop) clearInterval(gameLoop);
+  gameLoop = setInterval(() => {
+    if (!gameActive) return;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
-    <!-- Owner Panel Modal (keeping for compatibility) -->
-    <div id="ownerModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 700px; border: 2px solid var(--owner-color);">
-            <div class="modal-header">
-                <h3 style="color: var(--owner-color);">⭐ Owner Panel</h3>
-                <button class="close-btn" onclick="closeOwnerPanel()">×</button>
-            </div>
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
+        snake.some(s => s.x === head.x && s.y === head.y)) {
+      gameActive = false;
+      if (score > gameBest) { gameBest = score; localStorage.setItem('gameBest', gameBest); el('gameBest').textContent = gameBest; }
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 20px DM Sans, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 16);
+      ctx.font = '14px DM Sans, sans-serif';
+      ctx.fillStyle = 'var(--text-secondary)';
+      ctx.fillText('Press Space to restart', canvas.width / 2, canvas.height / 2 + 10);
+      return;
+    }
 
-            <div class="admin-section owner-section">
-                <h3>⭐ Owner Controls</h3>
-                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
-                    As the Owner, you have ultimate control. These actions cannot be reversed by admins.
-                </p>
-                <div class="admin-grid-2">
-                    <button class="btn btn-owner" onclick="ownerWipeEverything()">☢️ Wipe Everything (incl. users)</button>
-                    <button class="btn btn-danger" onclick="ownerForceLogoutAll()">🚪 Force Logout All Users</button>
-                    <button class="btn btn-warning" onclick="ownerReloadAll()">🔄 Reload All Pages</button>
-                    <button class="btn btn-success" onclick="ownerRestoreDefaults()">♻️ Reset to Defaults</button>
-                </div>
-            </div>
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      score++;
+      el('gameScore').textContent = score;
+      placeFood();
+    } else {
+      snake.pop();
+    }
 
-            <div class="admin-section owner-section">
-                <h3>👑 Manage Admins</h3>
-                <div id="ownerAdminList" style="max-height: 300px; overflow-y: auto;"></div>
-            </div>
-        </div>
-    </div>
+    // Draw
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    <!-- URL Redirect Modal -->
-    <div id="urlRedirectModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🌐 Send Users to Website</h3>
-                <button class="close-btn" onclick="closeUrlRedirect()">×</button>
-            </div>
+    // Draw grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    for (let x = 0; x < COLS; x++) for (let y = 0; y < ROWS; y++) {
+      ctx.strokeRect(x * CELL, y * CELL, CELL, CELL);
+    }
 
-            <div class="form-group">
-                <label>Enter URL</label>
-                <input type="url" id="redirectUrl" placeholder="https://example.com">
-            </div>
+    // Draw food
+    ctx.fillStyle = '#f85149';
+    ctx.beginPath();
+    ctx.arc(food.x * CELL + CELL/2, food.y * CELL + CELL/2, CELL/2 - 2, 0, Math.PI * 2);
+    ctx.fill();
 
-            <div class="form-group">
-                <label>Custom Message (Optional)</label>
-                <input type="text" id="redirectMessage" placeholder="Check out this awesome site!">
-            </div>
+    // Draw snake
+    snake.forEach((s, i) => {
+      ctx.fillStyle = i === 0 ? '#2f81f7' : `hsl(${210 - i * 3}, 70%, ${55 - i * 0.5}%)`;
+      ctx.beginPath();
+      const r = i === 0 ? 6 : 4;
+      ctx.roundRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2, r);
+      ctx.fill();
+    });
+  }, 120);
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                <button class="btn" onclick="sendUrlToAll()">Send to All Users</button>
-                <button class="btn btn-secondary" onclick="showUrlUserSelect()">Select Users</button>
-            </div>
+  function placeFood() {
+    do { food = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) }; }
+    while (snake.some(s => s.x === food.x && s.y === food.y));
+  }
+}
 
-            <div id="urlUserList" class="hidden" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;"></div>
-        </div>
-    </div>
+document.addEventListener('keydown', (e) => {
+  if (el('maintenancePage').classList.contains('hidden')) return;
+  const map = { ArrowUp: {x:0,y:-1}, ArrowDown: {x:0,y:1}, ArrowLeft: {x:-1,y:0}, ArrowRight: {x:1,y:0} };
+  if (map[e.key]) {
+    const d = map[e.key];
+    if (!(d.x === -dir.x && d.y === -dir.y)) dir = d;
+    e.preventDefault();
+  }
+  if (e.key === ' ' && !gameActive) startGame();
+});
 
-    <!-- Page Reload Modal -->
-    <div id="pageReloadModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🔄 Reload User Pages</h3>
-                <button class="close-btn" onclick="closePageReloadModal()">×</button>
-            </div>
-            <p style="margin-bottom: 1rem; color: var(--text-secondary);">This will force-reload the page for selected users (or all users).</p>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
-                <button class="btn" onclick="sendReloadToAll()">🔄 Reload All Users</button>
-                <button class="btn btn-secondary" onclick="showReloadUserSelect()">Select Users</button>
-            </div>
-            <div id="reloadUserList" class="hidden" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;"></div>
-        </div>
-    </div>
+// ===== INPUT HANDLING =====
+function handleInputKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
 
-    <!-- Idiot Screen (exact replica from youareanidiot.cc) -->
-    <div id="idiotScreen" class="idiot-screen hidden">
-        <div class="idiot-frame">
-            <div class="idiot-svg-container">
-                <svg class="frame-black" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" x="0px" y="0px" width="100%" height="auto" viewBox="0 0 806 604">
-                    <defs/>
-                    <g id="Layer_1">
-                        <g>
-                            <g>
-                                <g>
-                                    <path fill="#FFFFFF" stroke="none" d="M 803 601.8 L 803 3.1 3.1 3.1 3.1 601.8 803 601.8 M 672.15 356.65 Q 686.85 371.35 686.85 392.1 686.85 412.85 672.15 427.5 657.5 442.2 636.75 442.2 616 442.2 601.3 427.5 586.65 412.85 586.65 392.1 586.65 371.35 601.3 356.65 616 342 636.75 342 657.5 342 672.15 356.65 M 349.3 393.75 Q 349.3 373 363.95 358.3 378.65 343.65 399.4 343.65 420.15 343.65 434.8 358.3 449.5 373 449.5 393.75 449.5 414.5 434.8 429.15 420.15 443.85 399.4 443.85 378.65 443.85 363.95 429.15 349.3 414.5 349.3 393.75 M 124.15 391.5 Q 124.15 370.75 138.8 356.05 153.5 341.4 174.25 341.4 195 341.4 209.65 356.05 224.35 370.75 224.35 391.5 224.35 412.25 209.65 426.9 195 441.6 174.25 441.6 153.5 441.6 138.8 426.9 124.15 412.25 124.15 391.5 M 137.8 230.1 Q 136.75 230.95 136.75 232.2 136.75 233.95 138.25 237 L 148.15 257.55 157.25 235.05 Q 158 233.25 158 231.45 158 230.65 157.7 230.25 157.35 229.75 156.6 229.5 155.85 229.2 153.95 229.2 L 153.95 227.55 167.15 227.55 167.15 229.2 Q 165.5 229.35 164.65 229.9 163.75 230.45 162.7 231.9 162.3 232.55 161.15 235.3 L 144.6 275.95 Q 142.2 281.85 138.35 284.85 134.4 287.9 130.8 287.9 128.2 287.9 126.5 286.4 124.8 284.85 124.8 282.9 124.8 281.05 126.05 279.95 127.25 278.8 129.4 278.8 130.85 278.8 133.4 279.75 135.15 280.4 135.6 280.4 136.95 280.4 138.55 279.05 140.1 277.65 141.7 273.7 L 144.6 266.65 130 235.95 Q 129.3 234.55 127.85 232.55 126.75 230.95 126 230.45 125 229.75 122.75 229.2 L 122.75 227.55 141.7 227.55 141.7 229.2 140.75 229.2 Q 138.75 229.2 137.8 230.1 M 205.3 233.35 Q 210.05 239.35 210.05 247.15 210.05 252.6 207.4 258.2 204.8 263.8 200.25 266.65 195.6 269.5 189.95 269.5 180.75 269.5 175.35 262.15 170.75 256 170.75 248.3 170.75 242.7 173.55 237.2 176.3 231.65 180.85 229 185.4 226.35 190.45 226.35 199.7 226.35 205.3 233.35 M 244.4 235.2 Q 244.4 231.75 243.15 230.55 241.85 229.3 237.85 229.2 L 237.85 227.55 251.7 227.55 251.7 252.2 Q 251.7 259.25 252.1 260.85 252.4 262.45 253.15 263.05 ... [truncated]
-                                </g>
-                            </g>
-                        </g>
-                    </g>
-                </svg>
-            </div>
-            <div class="idiot-text">YOU ARE AN IDIOT</div>
-            <div class="idiot-subtext">HA HA HA HA HA HA</div>
-        </div>
-    </div>
+function handleInputChange() {
+  const input = el('messageInput');
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+}
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/firebase.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/chat.js"></script>
-    <script src="js/ui.js"></script>
+// ===== EMOJI =====
+function toggleEmojiPanel() {
+  el('emojiPanel').classList.toggle('hidden');
+}
+
+function closeEmojiPanel(e) {
+  if (e.target === el('emojiPanel')) el('emojiPanel').classList.add('hidden');
+}
+
+document.querySelectorAll('.emoji-pick').forEach(e => {
+  e.onclick = () => {
+    el('messageInput').value += e.textContent;
+    el('messageInput').focus();
+    el('emojiPanel').classList.add('hidden');
+  };
+});
+
+// ===== SCROLL =====
+function scrollToBottom() {
+  const area = el('messagesArea');
+  area.scrollTop = area.scrollHeight;
+}
+
+el('messagesArea').addEventListener('scroll', () => {
+  const area = el('messagesArea');
+  isNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
+});
+
+// ===== MOBILE SIDEBAR =====
+function openMobileSidebar() { el('sidebar').classList.add('open'); }
+function closeMobileSidebar() { el('sidebar').classList.remove('open'); }
+
+// ===== MODAL HELPERS =====
+function showPage(page) {
+  hide('loginPage'); hide('registerPage');
+  show(page + 'Page');
+}
+
+function closeModal(id) {
+  el(id).classList.add('hidden');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.add('hidden');
+  });
+});
+
+// ===== THEME =====
+function applyTheme(theme) {
+  document.body.className = 'theme-' + theme;
+  localStorage.setItem('theme', theme);
+}
+
+// ===== TOAST =====
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+  const container = el('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="toast-icon">${icons[type]}</span> ${escHtml(msg)}`;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => t.remove(), 300);
+  }, 4000);
+}
+
+// ===== UTILS =====
+function el(id) { return document.getElementById(id); }
+function val(id) { return el(id) ? el(id).value : ''; }
+function show(id) { el(id) && el(id).classList.remove('hidden'); }
+function hide(id) { el(id) && el(id).classList.add('hidden'); }
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+function setLoading(btnId, loading) {
+  const b = el(btnId);
+  if (!b) return;
+  b.disabled = loading;
+  b.textContent = loading ? 'Loading...' : (btnId === 'loginBtn' ? 'Sign In' : 'Create Account');
+}
+function showAuthError(id, msg) {
+  const e = el(id);
+  e.textContent = msg;
+  e.classList.remove('hidden');
+  setTimeout(() => e.classList.add('hidden'), 5000);
+}
+
+// Enter key on auth forms
+['loginEmail','loginPassword'].forEach(id => {
+  el(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+['registerUsername','registerEmail','registerPassword'].forEach(id => {
+  el(id).addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+});
+</script>
+
+<!-- SQL SETUP INSTRUCTIONS (as a comment) -->
+<!--
+=======================================================================
+  SUPABASE SETUP — Run this SQL in your Supabase SQL editor
+=======================================================================
+
+-- 1. PROFILES TABLE
+create table profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  username text not null unique,
+  avatar text default '😀',
+  role text default 'user' check (role in ('user', 'admin', 'owner')),
+  status text default 'online' check (status in ('online', 'offline')),
+  created_at timestamptz default now()
+);
+
+-- 2. MESSAGES TABLE
+create table messages (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  username text not null,
+  chat_id text not null default 'global',
+  content text not null,
+  created_at timestamptz default now()
+);
+create index on messages(chat_id, created_at);
+
+-- 3. BROADCASTS TABLE
+create table broadcasts (
+  id uuid primary key default gen_random_uuid(),
+  message text not null,
+  type text default 'message' check (type in ('message', 'reload', 'maintenance', 'idiot', 'idiot_target')),
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- 4. ROW LEVEL SECURITY
+alter table profiles enable row level security;
+alter table messages enable row level security;
+alter table broadcasts enable row level security;
+
+-- Profiles: anyone can read, users can update their own
+create policy "Public read" on profiles for select using (true);
+create policy "Self update" on profiles for update using (auth.uid() = id);
+create policy "Self insert" on profiles for insert with check (auth.uid() = id);
+
+-- Messages: anyone can read, authenticated can insert, own can delete
+create policy "Public read" on messages for select using (true);
+create policy "Auth insert" on messages for insert with check (auth.uid() = user_id);
+create policy "Own delete" on messages for delete using (
+  auth.uid() = user_id or
+  exists (select 1 from profiles where id = auth.uid() and role in ('admin','owner'))
+);
+
+-- Broadcasts: authenticated can read, only admin/owner can write
+create policy "Public read" on broadcasts for select using (true);
+create policy "Admin write" on broadcasts for insert with check (
+  exists (select 1 from profiles where id = auth.uid() and role in ('admin','owner'))
+);
+create policy "Admin update" on broadcasts for update using (
+  exists (select 1 from profiles where id = auth.uid() and role in ('admin','owner'))
+);
+
+-- 5. ENABLE REALTIME
+alter publication supabase_realtime add table messages;
+alter publication supabase_realtime add table broadcasts;
+alter publication supabase_realtime add table profiles;
+
+=======================================================================
+  DEPLOY STEPS:
+  1. Go to https://supabase.com → create a new project (free)
+  2. Go to SQL Editor → run the SQL above
+  3. Go to Project Settings → API → copy:
+     - "Project URL"     → paste as SUPABASE_URL above
+     - "anon public key" → paste as SUPABASE_ANON_KEY above
+  4. Push index.html to GitHub → enable GitHub Pages
+  5. Done! Share your URL.
+=======================================================================
+-->
 </body>
 </html>
