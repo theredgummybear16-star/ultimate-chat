@@ -44,18 +44,6 @@
             --mention-text: #fef9c3;
         }
 
-        .theme-blue { --primary: #3b82f6; --background: #eff6ff; --surface: #dbeafe; }
-        .theme-green { --primary: #10b981; --background: #f0fdf4; --surface: #dcfce7; }
-        .theme-purple { --primary: #a855f7; --background: #faf5ff; --surface: #f3e8ff; }
-        .theme-red { --primary: #ef4444; --background: #fef2f2; --surface: #fee2e2; }
-        .theme-orange { --primary: #f97316; --background: #fff7ed; --surface: #ffedd5; }
-        .theme-pink { --primary: #ec4899; --background: #fdf2f8; --surface: #fce7f3; }
-        .theme-teal { --primary: #14b8a6; --background: #f0fdfa; --surface: #ccfbf1; }
-        .theme-indigo { --primary: #6366f1; --background: #eef2ff; --surface: #e0e7ff; }
-        .theme-cyan { --primary: #06b6d4; --background: #ecfeff; --surface: #cffafe; }
-        .theme-lime { --primary: #84cc16; --background: #f7fee7; --surface: #ecfccb; }
-        .theme-amber { --primary: #f59e0b; --background: #fffbeb; --surface: #fef3c7; }
-
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--background);
@@ -66,7 +54,6 @@
 
         .hidden { display: none !important; }
 
-        /* Auth Pages */
         .auth-container {
             display: flex;
             justify-content: center;
@@ -169,7 +156,6 @@
             font-size: 0.875rem;
         }
 
-        /* Main Chat Layout */
         .chat-container { display: flex; height: 100vh; overflow: hidden; }
 
         .sidebar {
@@ -374,14 +360,6 @@
         }
 
         .message-content { margin-bottom: 0.25rem; }
-        
-        .mention-highlight {
-            background: var(--warning);
-            color: var(--mention-text);
-            padding: 0.1rem 0.3rem;
-            border-radius: 0.25rem;
-            font-weight: 600;
-        }
 
         .message-footer {
             display: flex;
@@ -407,7 +385,6 @@
 
         .message-actions button:hover { background: rgba(0,0,0,0.1); }
 
-        /* Typing Indicator */
         .typing-indicator-wrapper {
             width: 100%;
             padding: 0.5rem 1rem;
@@ -453,7 +430,6 @@
             border-top: 1px solid var(--border);
             display: flex;
             gap: 0.5rem;
-            position: relative;
         }
 
         .input-container input {
@@ -473,50 +449,6 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
-        }
-
-        /* Autocomplete dropdown */
-        .autocomplete-dropdown {
-            position: absolute;
-            bottom: 100%;
-            left: 1rem;
-            right: 1rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 0.5rem;
-            max-height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-            z-index: 100;
-        }
-
-        .autocomplete-item {
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .autocomplete-item:last-child {
-            border-bottom: none;
-        }
-
-        .autocomplete-item:hover {
-            background: var(--background);
-        }
-
-        .autocomplete-item.selected {
-            background: var(--primary);
-            color: white;
-        }
-
-        .autocomplete-item .avatar {
-            width: 2rem;
-            height: 2rem;
-            font-size: 1.2rem;
         }
 
         .readonly-bar {
@@ -547,7 +479,6 @@
             background: #8b5cf6;
         }
 
-        /* Modal */
         .modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -585,7 +516,6 @@
             color: var(--text-secondary);
         }
 
-        /* Admin Panel */
         .admin-panel { padding: 1rem; }
 
         .admin-section {
@@ -598,7 +528,6 @@
 
         .admin-section h3 { margin-bottom: 1rem; color: var(--primary); }
 
-        /* Owner section highlight */
         .admin-section.owner-section {
             border-color: var(--owner-color);
         }
@@ -634,7 +563,6 @@
         .user-item-info { display: flex; align-items: center; gap: 0.5rem; }
         .user-actions { display: flex; gap: 0.5rem; }
 
-        /* Maintenance Mode / Game */
         .maintenance-container {
             display: flex;
             flex-direction: column;
@@ -659,7 +587,6 @@
 
         .game-info { margin-top: 1rem; font-size: 1.5rem; font-weight: bold; }
 
-        /* Settings Panel */
         .settings-panel { padding: 1rem; }
 
         .theme-selector {
@@ -683,7 +610,6 @@
         .theme-btn:hover { border-color: var(--primary); }
         .theme-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
 
-        /* Loading Spinner */
         .spinner {
             border: 3px solid rgba(255,255,255,0.3);
             border-top-color: white;
@@ -705,7 +631,6 @@
             z-index: 2000;
         }
 
-        /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -729,7 +654,6 @@
 
         @media (min-width: 769px) { .menu-toggle { display: none; } }
 
-        /* Tabs */
         .tabs {
             display: flex;
             border-bottom: 1px solid var(--border);
@@ -750,7 +674,6 @@
         .tab-content { display: none; padding: 1rem 0; }
         .tab-content.active { display: block; }
 
-        /* Emoji Picker */
         .emoji-grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -771,7 +694,6 @@
         .emoji-btn:hover { border-color: var(--primary); transform: scale(1.1); }
         .emoji-btn.selected { border-color: var(--primary); background: var(--primary); }
 
-        /* Search */
         .search-box {
             padding: 1rem;
             border-bottom: 1px solid var(--border);
@@ -799,7 +721,6 @@
         .badge.admin { background: var(--danger); }
         .badge.owner { background: linear-gradient(135deg, #f59e0b, #b45309); color: white; }
 
-        /* Toast Notifications */
         .toast-container {
             position: fixed;
             top: 1rem; right: 1rem;
@@ -855,7 +776,6 @@
 
         .toast.removing { animation: slideOut 0.3s ease forwards; }
 
-        /* Broadcast Banner */
         .broadcast-banner {
             position: fixed;
             top: 0; left: 0; right: 0;
@@ -904,7 +824,6 @@
 
         .broadcast-close:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
 
-        /* Owner URL Confirmation Dialog */
         .owner-url-dialog {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -950,7 +869,6 @@
             justify-content: flex-end;
         }
 
-        /* Image messages */
         .message-image {
             max-width: 100%;
             max-height: 300px;
@@ -964,7 +882,6 @@
 
         .message-image:hover { opacity: 0.9; }
 
-        /* URL preview cards */
         .url-preview {
             display: flex;
             gap: 0.75rem;
@@ -1023,7 +940,6 @@
             text-overflow: ellipsis;
         }
 
-        /* Group section in sidebar */
         .sidebar-section-header {
             padding: 0.5rem 1rem;
             font-size: 0.7rem;
@@ -1035,7 +951,6 @@
             border-bottom: 1px solid var(--border);
         }
 
-        /* Admin grid buttons */
         .admin-grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1048,7 +963,6 @@
             gap: 0.5rem;
         }
 
-        /* Scrollable user select list */
         .user-select-list {
             max-height: 250px;
             overflow-y: auto;
@@ -1072,7 +986,6 @@
 </head>
 <body class="theme-dark">
 
-    <!-- Broadcast Banner -->
     <div id="broadcastBanner" class="broadcast-banner hidden">
         <div class="broadcast-content">
             <span class="broadcast-icon">📢</span>
@@ -1081,15 +994,12 @@
         <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
     </div>
 
-    <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
     </div>
 
-    <!-- Owner URL Confirmation Dialog -->
     <div id="ownerUrlDialog" class="owner-url-dialog hidden">
         <div class="owner-url-dialog-box">
             <h3>👑 Admin wil een URL openen</h3>
@@ -1102,8 +1012,7 @@
         </div>
     </div>
 
-    <!-- Login Page -->
-    <div id="loginPage" class="auth-container hidden">
+    <div id="loginPage" class="auth-container">
         <div class="auth-box">
             <h2>🔐 Login</h2>
             <div id="loginError" class="error hidden"></div>
@@ -1122,7 +1031,6 @@
         </div>
     </div>
 
-    <!-- Register Page -->
     <div id="registerPage" class="auth-container hidden">
         <div class="auth-box">
             <h2>📝 Register</h2>
@@ -1146,7 +1054,6 @@
         </div>
     </div>
 
-    <!-- Maintenance Mode -->
     <div id="maintenancePage" class="maintenance-container hidden">
         <div style="max-width: 600px; text-align: center;">
             <div style="font-size: 5rem; margin-bottom: 1rem;">🔧</div>
@@ -1165,9 +1072,7 @@
         </div>
     </div>
 
-    <!-- Main Chat Application -->
     <div id="chatApp" class="chat-container hidden">
-        <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <div class="user-info">
@@ -1179,7 +1084,6 @@
                 </div>
             </div>
 
-            <!-- Search users for DMs -->
             <div class="search-box">
                 <input type="text" id="userSearch" placeholder="Search users for DM..." onkeyup="searchUsersDebounced()">
             </div>
@@ -1199,7 +1103,6 @@
             </div>
         </div>
 
-        <!-- Main Content -->
         <div class="main-content">
             <div class="chat-header">
                 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
@@ -1229,9 +1132,8 @@
             </div>
 
             <div id="inputContainer" class="input-container">
-                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping(); handleMentionAutocomplete(event)" onkeydown="handleAutocompleteKeydown(event)">
+                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping()">
                 <button onclick="sendMessage()">Send</button>
-                <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
             </div>
             <div id="readonlyBar" class="readonly-bar hidden">
                 📣 Only admins can post in Announcements — you can read only
@@ -1239,7 +1141,6 @@
         </div>
     </div>
 
-    <!-- Settings Modal -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1285,7 +1186,28 @@
         </div>
     </div>
 
-    <!-- Admin Panel Modal -->
+    <div id="createGroupModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 Create Group</h3>
+                <button class="close-btn" onclick="closeCreateGroupModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>Group Name</label>
+                <input type="text" id="groupNameInput" placeholder="e.g. Gaming Squad">
+            </div>
+            <div class="form-group">
+                <label>Group Emoji / Icon</label>
+                <input type="text" id="groupEmojiInput" placeholder="e.g. 🎮" maxlength="4" style="font-size:1.5rem;">
+            </div>
+            <div class="form-group">
+                <label>Add Members (select at least 2 others)</label>
+                <div class="user-select-list" id="groupMemberList"></div>
+            </div>
+            <button class="btn" onclick="createGroup()">Create Group</button>
+        </div>
+    </div>
+
     <div id="adminModal" class="modal hidden">
         <div class="modal-content" style="max-width: 850px;">
             <div class="modal-header">
@@ -1301,7 +1223,6 @@
                 <div class="tab" onclick="switchAdminTab('ipTab', event)">🌐 IP</div>
             </div>
 
-            <!-- Stats Tab -->
             <div id="statsTab" class="tab-content active" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>📊 Statistics</h3>
@@ -1326,7 +1247,6 @@
                 </div>
             </div>
 
-            <!-- Users Tab -->
             <div id="usersTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>👥 User Management</h3>
@@ -1334,7 +1254,6 @@
                 </div>
             </div>
 
-            <!-- System Tab -->
             <div id="systemTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>🎮 System Controls</h3>
@@ -1350,7 +1269,6 @@
                 </div>
             </div>
 
-            <!-- Broadcast Tab -->
             <div id="broadcastTabPanel" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>📢 Broadcast Message</h3>
@@ -1361,7 +1279,6 @@
                 </div>
             </div>
 
-            <!-- IP Tab -->
             <div id="ipTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>🌐 IP Address Tracking</h3>
@@ -1384,7 +1301,6 @@
         </div>
     </div>
 
-    <!-- Owner Panel Modal -->
     <div id="ownerModal" class="modal hidden">
         <div class="modal-content" style="max-width: 700px; border: 2px solid var(--owner-color);">
             <div class="modal-header">
@@ -1412,7 +1328,6 @@
         </div>
     </div>
 
-    <!-- URL Redirect Modal -->
     <div id="urlRedirectModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1439,7 +1354,6 @@
         </div>
     </div>
 
-    <!-- Page Reload Modal -->
     <div id="pageReloadModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1455,14 +1369,12 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
-        // ==================== FIREBASE CONFIGURATION ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCdPQzgTtMRoJdjgjnHhoX66JKyLSnY6ug",
             authDomain: "ultimate-chat-b8c08.firebaseapp.com",
@@ -1478,27 +1390,19 @@
         const db = firebase.firestore();
         const rtdb = firebase.database();
 
-        // ==================== OWNER CONFIG (HARDCODED) ====================
         const OWNER_USERNAME = 'theredgummybear16@gmail.com';
 
         function isOwnerUser(username) {
             return username === OWNER_USERNAME;
         }
 
-        // ==================== GLOBAL STATE ====================
         let currentUser = null;
         let currentChat = 'global';
         let messageListeners = {};
         let editingMessageId = null;
         let typingTimeout = null;
         let typingListeners = {};
-        
-        // Autocomplete state
-        let autocompleteUsers = [];
-        let autocompleteIndex = -1;
-        let mentionStartPos = -1;
 
-        // Caches
         let usersCache = {};
         let usersCacheTimestamp = 0;
         const USERS_CACHE_TTL = 60 * 1000;
@@ -1509,16 +1413,12 @@
 
         let cachedBlockedIPs = [];
 
-        // Debounce timer
         let searchDebounceTimer = null;
 
-        // Unread counters
         let unreadCounts = { global: 0, announcements: 0 };
 
-        // Notification permission
         let notificationPermission = false;
 
-        // Pending owner URL
         let pendingOwnerUrl = null;
         let pendingOwnerBroadcastId = null;
 
@@ -1526,7 +1426,6 @@
 
         const THEMES = ['light','dark','blue','green','purple','red','orange','pink','teal','indigo','cyan','lime','amber'];
 
-        // ==================== NOTIFICATION HELPER ====================
         function requestNotificationPermission() {
             if (!("Notification" in window)) return;
             if (Notification.permission === "granted") {
@@ -1545,7 +1444,6 @@
             } catch(e) {}
         }
 
-        // ==================== UNREAD BADGE ====================
         function updateUnreadBadge(chatId) {
             document.querySelectorAll('.chat-item').forEach(item => {
                 const onclick = item.getAttribute('onclick');
@@ -1570,7 +1468,6 @@
             });
         }
 
-        // ==================== TOAST ====================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -1588,7 +1485,6 @@
             }, 5000);
         }
 
-        // ==================== UTILITY ====================
         async function hashPassword(password, salt) {
             const encoder = new TextEncoder();
             const data = encoder.encode(password + salt);
@@ -1644,7 +1540,6 @@
             return cachedBlockedIPs.includes(ip);
         }
 
-        // ==================== USER CACHE ====================
         async function getCachedUsers(forceRefresh = false) {
             const now = Date.now();
             if (!forceRefresh && usersCacheTimestamp && (now - usersCacheTimestamp) < USERS_CACHE_TTL) {
@@ -1654,7 +1549,7 @@
             usersCache = {};
             snapshot.forEach(doc => { 
                 const data = doc.data();
-                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.password }; 
+                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.plainPassword }; 
             });
             usersCacheTimestamp = now;
             return Object.values(usersCache);
@@ -1665,7 +1560,7 @@
             const doc = await db.collection('users').doc(userId).get();
             if (doc.exists) {
                 const data = doc.data();
-                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.password };
+                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.plainPassword };
                 return usersCache[doc.id];
             }
             return null;
@@ -1673,7 +1568,6 @@
 
         function invalidateUsersCache() { usersCacheTimestamp = 0; }
 
-        // ==================== MAINTENANCE CACHE ====================
         async function getMaintenanceStatus(forceRefresh = false) {
             const now = Date.now();
             if (!forceRefresh && maintenanceCacheTimestamp && (now - maintenanceCacheTimestamp) < MAINTENANCE_CACHE_TTL) {
@@ -1687,7 +1581,6 @@
 
         function invalidateMaintenanceCache() { maintenanceCacheTimestamp = 0; }
 
-        // ==================== AUTHENTICATION ====================
         async function register(username, password) {
             try {
                 showLoading();
@@ -1703,7 +1596,7 @@
                 await userRef.set({
                     username,
                     password: hashedPassword,
-                    plainPassword: password, // Store plain password for admin viewing
+                    plainPassword: password,
                     salt,
                     avatar: '😀',
                     isAdmin: false,
@@ -1853,7 +1746,6 @@
             }
         }
 
-        // ==================== USER STATUS ====================
         function setUserOnline(userId, online) {
             rtdb.ref('status/' + userId).set({ online, lastSeen: firebase.database.ServerValue.TIMESTAMP });
             if (online) {
@@ -1865,7 +1757,6 @@
             rtdb.ref('status/' + userId).on('value', snapshot => callback(snapshot.val()));
         }
 
-        // ==================== CHAT FUNCTIONS ====================
         function showChatApp() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('registerPage').classList.add('hidden');
@@ -1900,7 +1791,6 @@
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
             
-            // Start with channels
             chatList.innerHTML = `
                 <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
@@ -1923,7 +1813,6 @@
             `;
 
             try {
-                // Load users for DMs
                 const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
 
                 const chatsRef = rtdb.ref('privateChats');
@@ -2033,7 +1922,6 @@
             }
 
             hideTypingIndicator();
-            hideAutocomplete();
             loadMessages(chatId);
             updateUnreadBadge(chatId);
 
@@ -2044,18 +1932,19 @@
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
 
-            if (messageListeners[currentChat]) {
-                const prev = messageListeners[currentChat];
+            if (messageListeners[chatId]) {
+                const prev = messageListeners[chatId];
                 if (typeof prev === 'function') prev();
             }
-            if (messageListeners[currentChat + '_new']) {
-                const prev = messageListeners[currentChat + '_new'];
+            if (messageListeners[chatId + '_new']) {
+                const prev = messageListeners[chatId + '_new'];
                 if (typeof prev === 'function') prev();
             }
 
             if (chatId === 'announcements') {
                 let knownMessageIds = null;
                 const unsubscribe = db.collection('announcements').onSnapshot(snapshot => {
+                    if (currentChat !== 'announcements') return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
@@ -2081,6 +1970,7 @@
             } else if (chatId === 'global') {
                 let knownMessageIds = null;
                 const unsubscribe = db.collection('messages').onSnapshot(snapshot => {
+                    if (currentChat !== 'global') return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
@@ -2089,17 +1979,14 @@
                     lastMessages.forEach(msg => displayMessage(msg, container));
                     scrollToBottom();
                     
-                    // Check for mentions in new messages
                     if (knownMessageIds !== null) {
                         lastMessages.forEach(msg => {
                             if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                                // Check if user is mentioned
                                 const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
                                 const isMentioned = mentionRegex.test(msg.content);
                                 const isEveryoneMention = msg.content && msg.content.includes('@everyone');
                                 
                                 if (isMentioned || isEveryoneMention) {
-                                    // Show notification for mention
                                     showNotification(
                                         `Mentioned by ${msg.username}`,
                                         msg.content,
@@ -2107,13 +1994,11 @@
                                         'mention'
                                     );
                                     
-                                    // Add to unread if not in current chat
                                     if (currentChat !== 'global') {
                                         unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
                                         updateUnreadBadge('global');
                                     }
                                 } else {
-                                    // Regular message notification
                                     if (currentChat !== 'global') {
                                         unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
                                         updateUnreadBadge('global');
@@ -2128,21 +2013,33 @@
                 messageListeners[chatId] = unsubscribe;
 
             } else {
-                // Private chat
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
+                messagesRef.off();
                 messagesRef.on('value', snapshot => {
+                    if (currentChat !== chatId) return;
                     container.innerHTML = '';
                     const messages = [];
-                    snapshot.forEach(child => messages.push({ id: child.key, ...child.val() }));
+                    snapshot.forEach(child => {
+                        const msg = child.val();
+                        messages.push({ id: child.key, ...msg });
+                    });
+                    messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     messages.forEach(msg => displayMessage(msg, container, true));
                     scrollToBottom();
-                }, error => { showToast('Error loading messages: ' + error.message, 'error'); });
+                }, error => { 
+                    console.error('Error loading private messages:', error);
+                    showToast('Error loading private messages: ' + error.message, 'error'); 
+                });
                 messageListeners[chatId] = () => messagesRef.off();
 
                 const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
+                newPrivateRef.off();
                 let privateListenerReady = false;
                 newPrivateRef.on('child_added', snapshot => {
-                    if (!privateListenerReady) { privateListenerReady = true; return; }
+                    if (!privateListenerReady) { 
+                        privateListenerReady = true; 
+                        return; 
+                    }
                     const msg = snapshot.val();
                     if (msg.userId !== currentUser.id && currentChat !== chatId) {
                         unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
@@ -2175,7 +2072,6 @@
             if (isPrivate && !isSystem) className += ' private';
             if (isAnnouncement && !isSystem) className += ' announcement';
             
-            // Check for mentions
             const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
             const isMentioned = mentionRegex.test(message.content);
             const isEveryoneMention = message.content && message.content.includes('@everyone');
@@ -2223,21 +2119,17 @@
             let messageHtml = '';
             parts.forEach(part => {
                 if (part.type === 'text') {
-                    // Highlight mentions in the text
                     let text = sanitizeHTML(part.value);
-                    
-                    // Highlight @everyone
                     text = text.replace(
                         /@everyone\b/g,
-                        '<span class="mention-highlight">@everyone</span>'
+                        '<span style="background: var(--danger); color: white; padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@everyone</span>'
                     );
                     
-                    // Highlight @username mentions
                     const allUsers = Object.values(usersCache);
                     allUsers.forEach(user => {
                         if (user.username) {
                             const userMentionRegex = new RegExp('@' + user.username + '\\b', 'g');
-                            text = text.replace(userMentionRegex, '<span class="mention-highlight">@' + user.username + '</span>');
+                            text = text.replace(userMentionRegex, '<span style="background: var(--warning); color: var(--mention-text); padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@' + user.username + '</span>');
                         }
                     });
                     
@@ -2292,14 +2184,12 @@
                 return;
             }
 
-            // Check for @everyone command (admins only)
             if (content.includes('@everyone') && !currentUser.isAdmin && !currentUser.isOwner) {
                 showToast('Only admins can use @everyone', 'error');
                 return;
             }
 
             clearTyping();
-            hideAutocomplete();
 
             try {
                 const messageData = {
@@ -2383,130 +2273,6 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // ==================== MENTION AUTOCOMPLETE ====================
-        async function handleMentionAutocomplete(event) {
-            const input = document.getElementById('messageInput');
-            const cursorPos = input.selectionStart;
-            const text = input.value;
-            const dropdown = document.getElementById('autocompleteDropdown');
-            
-            // Find the last @ symbol before cursor
-            let lastAtIndex = -1;
-            for (let i = cursorPos - 1; i >= 0; i--) {
-                if (text[i] === '@') {
-                    // Check if it's part of a word
-                    if (i === 0 || text[i-1].match(/\s/)) {
-                        lastAtIndex = i;
-                        break;
-                    } else {
-                        break;
-                    }
-                }
-            }
-            
-            if (lastAtIndex !== -1) {
-                const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
-                mentionStartPos = lastAtIndex;
-                
-                // Get users for autocomplete
-                const users = await getCachedUsers();
-                autocompleteUsers = users
-                    .filter(u => u.id !== currentUser.id && u.username.toLowerCase().startsWith(searchTerm))
-                    .slice(0, 5);
-                
-                if (autocompleteUsers.length > 0) {
-                    renderAutocomplete(searchTerm);
-                    dropdown.classList.remove('hidden');
-                    autocompleteIndex = 0;
-                    highlightAutocompleteItem();
-                } else {
-                    hideAutocomplete();
-                }
-            } else {
-                hideAutocomplete();
-            }
-        }
-
-        function renderAutocomplete(searchTerm) {
-            const dropdown = document.getElementById('autocompleteDropdown');
-            dropdown.innerHTML = '';
-            
-            autocompleteUsers.forEach((user, index) => {
-                const item = document.createElement('div');
-                item.className = 'autocomplete-item';
-                item.dataset.index = index;
-                item.onclick = () => selectAutocompleteUser(user.username);
-                
-                let badge = '';
-                if (isOwnerUser(user.username)) {
-                    badge = '<span class="badge owner" style="font-size:0.6rem;">⭐</span>';
-                } else if (user.isAdmin) {
-                    badge = '<span class="badge admin" style="font-size:0.6rem;">👑</span>';
-                }
-                
-                item.innerHTML = `
-                    <span class="avatar">${user.avatar}</span>
-                    <span style="flex:1;">${sanitizeHTML(user.username)} ${badge}</span>
-                    <span style="color:var(--text-secondary); font-size:0.75rem;">${user.username.toLowerCase().startsWith(searchTerm) ? 'Match' : ''}</span>
-                `;
-                dropdown.appendChild(item);
-            });
-        }
-
-        function highlightAutocompleteItem() {
-            const items = document.querySelectorAll('.autocomplete-item');
-            items.forEach((item, index) => {
-                if (index === autocompleteIndex) {
-                    item.classList.add('selected');
-                } else {
-                    item.classList.remove('selected');
-                }
-            });
-        }
-
-        function handleAutocompleteKeydown(event) {
-            const dropdown = document.getElementById('autocompleteDropdown');
-            if (dropdown.classList.contains('hidden')) return;
-            
-            if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                autocompleteIndex = (autocompleteIndex + 1) % autocompleteUsers.length;
-                highlightAutocompleteItem();
-            } else if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                autocompleteIndex = (autocompleteIndex - 1 + autocompleteUsers.length) % autocompleteUsers.length;
-                highlightAutocompleteItem();
-            } else if (event.key === 'Tab' || event.key === 'Enter') {
-                if (autocompleteIndex >= 0 && autocompleteUsers[autocompleteIndex]) {
-                    event.preventDefault();
-                    selectAutocompleteUser(autocompleteUsers[autocompleteIndex].username);
-                }
-            } else if (event.key === 'Escape') {
-                hideAutocomplete();
-            }
-        }
-
-        function selectAutocompleteUser(username) {
-            const input = document.getElementById('messageInput');
-            const text = input.value;
-            const beforeMention = text.substring(0, mentionStartPos + 1);
-            const afterMention = text.substring(input.selectionStart);
-            
-            input.value = beforeMention + username + ' ' + afterMention;
-            input.focus();
-            input.selectionStart = input.selectionEnd = mentionStartPos + 1 + username.length + 1;
-            
-            hideAutocomplete();
-        }
-
-        function hideAutocomplete() {
-            document.getElementById('autocompleteDropdown').classList.add('hidden');
-            autocompleteUsers = [];
-            autocompleteIndex = -1;
-            mentionStartPos = -1;
-        }
-
-        // ==================== TYPING INDICATOR ====================
         function handleTyping() {
             if (!currentUser) return;
             
@@ -2571,7 +2337,6 @@
             document.getElementById('typingIndicator').classList.add('hidden');
         }
 
-        // ==================== SEARCH USERS ====================
         function searchUsersDebounced() {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(searchUsers, 300);
@@ -2584,7 +2349,6 @@
             const allUsers = await getCachedUsers();
             const chatList = document.getElementById('chatList');
             
-            // Keep channels
             chatList.innerHTML = `
                 <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
@@ -2661,7 +2425,10 @@
             loadChatList();
         }
 
-        // ==================== SETTINGS ====================
+        function showCreateGroupModal() { showToast('Groups are currently disabled', 'info'); }
+        function closeCreateGroupModal() { document.getElementById('createGroupModal').classList.add('hidden'); }
+        function createGroup() { showToast('Groups are currently disabled', 'info'); }
+
         function showSettings() {
             document.getElementById('settingsModal').classList.remove('hidden');
             initializeEmojiPicker();
@@ -2733,7 +2500,6 @@
 
         function applyTheme(theme) { document.body.className = 'theme-' + theme; }
 
-        // ==================== ADMIN PANEL ====================
         async function showAdminPanel() {
             if (!currentUser.isAdmin && !currentUser.isOwner) { showToast('Access denied', 'error'); return; }
             document.getElementById('adminModal').classList.remove('hidden');
@@ -2767,7 +2533,7 @@
                 statusSnapshot.forEach(child => { if (child.val().online) onlineCount++; });
                 document.getElementById('onlineUsers').textContent = onlineCount;
                 document.getElementById('totalMessages').textContent = messagesSnapshot.size;
-                document.getElementById('totalGroups').textContent = 0; // Groups disabled
+                document.getElementById('totalGroups').textContent = 0;
             } catch(error) { console.error('Error loading stats:', error); }
         }
 
@@ -3080,7 +2846,6 @@
             } catch(error) { alert('Error: ' + error.message); }
         }
 
-        // ==================== PAGE RELOAD PANEL ====================
         function showPageReloadPanel() {
             document.getElementById('pageReloadModal').classList.remove('hidden');
             document.getElementById('reloadUserList').classList.add('hidden');
@@ -3160,7 +2925,6 @@
             }
         }
 
-        // ==================== OWNER PANEL ====================
         async function showOwnerPanel() {
             if (!currentUser.isOwner) { showToast('Access denied', 'error'); return; }
             document.getElementById('ownerModal').classList.remove('hidden');
@@ -3289,7 +3053,6 @@
             }
         }
 
-        // ==================== MAINTENANCE MODE / GAME ====================
         function showMaintenanceMode() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('chatApp').classList.add('hidden');
@@ -3456,7 +3219,6 @@
             gameLoop();
         }
 
-        // ==================== UI HELPERS ====================
         function showLogin() {
             document.getElementById('registerPage').classList.add('hidden');
             document.getElementById('loginPage').classList.remove('hidden');
@@ -3469,7 +3231,6 @@
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
-        // ==================== EVENT LISTENERS ====================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
@@ -3489,7 +3250,6 @@
             catch(error) { showError('registerError', error.message); }
         });
 
-        // ==================== BROADCAST BANNER & URL / RELOAD HANDLING ====================
         let broadcastListener = null;
         let currentPopupUrl = null;
 
@@ -3662,7 +3422,6 @@
             banner.classList.add('hidden');
         }
 
-        // ==================== URL REDIRECT FUNCTIONS ====================
         function showUrlRedirect() {
             document.getElementById('urlRedirectModal').classList.remove('hidden');
             document.getElementById('redirectUrl').value = '';
@@ -3762,7 +3521,6 @@
         function openPopupUrl() {}
         function closeUrlPopup() {}
 
-        // ==================== INITIALIZATION ====================
         window.addEventListener('load', async () => {
             const loggedIn = await autoLogin();
             if (!loggedIn) document.getElementById('loginPage').classList.remove('hidden');
@@ -3775,7 +3533,6 @@
             }
         });
 
-        // Override loadMessages to set up typing listener
         const originalLoadMessages = loadMessages;
         loadMessages = function(chatId) {
             originalLoadMessages(chatId);
