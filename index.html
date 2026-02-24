@@ -3,40 +3,447 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0; url=firebase-chat-app.html">
-    <title>Ultimate Chat - Redirecting...</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .container {
-            text-align: center;
-        }
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        p {
-            font-size: 1.25rem;
-        }
-        a {
-            color: white;
-            text-decoration: underline;
-        }
-    </style>
+    <title>Ultimate Chat</title>
+    <link rel="icon" type="image/png" href="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.pngmart.com%2Ffiles%2F11%2FChat-Logo-PNG-Pic.png&f=1&nofb=1&ipt=282b359cc027c71e1d0c549868e3cce0202f5b0185a1d96d02bd22143786cb2e">
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
-    <div class="container">
-        <h1>🚀 Ultimate Chat</h1>
-        <p>Redirecting to the chat application...</p>
-        <p>If you're not redirected, <a href="firebase-chat-app.html">click here</a>.</p>
+<body class="theme-dark">
+
+    <!-- Broadcast Banner -->
+    <div id="broadcastBanner" class="broadcast-banner hidden">
+        <div class="broadcast-content">
+            <span class="broadcast-icon">📢</span>
+            <div class="broadcast-message" id="broadcastText"></div>
+        </div>
+        <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
     </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Owner URL Confirmation Dialog -->
+    <div id="ownerUrlDialog" class="owner-url-dialog hidden">
+        <div class="owner-url-dialog-box">
+            <h3>👑 Admin wil een URL openen</h3>
+            <p style="margin-bottom:0.75rem; color: var(--text-secondary);">Een admin heeft een link naar je gestuurd. Wil je deze openen?</p>
+            <div class="owner-url-preview" id="ownerUrlPreviewText"></div>
+            <div class="owner-url-buttons">
+                <button class="btn btn-secondary btn-small" onclick="rejectOwnerUrl()">Nee, weigeren</button>
+                <button class="btn btn-owner btn-small" onclick="acceptOwnerUrl()">Ja, openen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container hidden">
+        <div class="auth-box">
+            <h2>🔐 Login</h2>
+            <div id="loginError" class="error hidden"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="loginUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn">Login</button>
+            </form>
+            <div class="link" onclick="showRegister()">Don't have an account? Register</div>
+        </div>
+    </div>
+
+    <!-- Register Page -->
+    <div id="registerPage" class="auth-container hidden">
+        <div class="auth-box">
+            <h2>📝 Register</h2>
+            <div id="registerError" class="error hidden"></div>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="registerUsername" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="registerPassword" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="registerConfirmPassword" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn">Register</button>
+            </form>
+            <div class="link" onclick="showLogin()">Already have an account? Login</div>
+        </div>
+    </div>
+
+    <!-- Maintenance Mode -->
+    <div id="maintenancePage" class="maintenance-container hidden">
+        <div style="max-width: 600px; text-align: center;">
+            <div style="font-size: 5rem; margin-bottom: 1rem;">🔧</div>
+            <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem;">System Maintenance</h1>
+            <p style="font-size: 1.1rem; opacity: 0.9; margin-bottom: 2rem;">We're currently upgrading our systems to serve you better. Play a game while you wait!</p>
+            <div style="background: rgba(255,255,255,0.1); padding: 2rem; border-radius: 1rem; backdrop-filter: blur(10px);">
+                <canvas id="gameCanvas" width="400" height="600"></canvas>
+                <div class="game-info" style="margin-top: 1.5rem; font-size: 1.75rem; font-weight: 600;">
+                    Score: <span id="gameScore" style="color: #ffd700;">0</span>
+                </div>
+                <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.8;">Click or tap to make the bird fly</p>
+            </div>
+            <button onclick="checkMaintenanceStatus()" class="btn" style="margin-top: 2rem; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3);">
+                Check Status
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Chat Application -->
+    <div id="chatApp" class="chat-container hidden">
+        <!-- Sidebar -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="user-info">
+                    <div class="avatar" id="userAvatar">😀</div>
+                    <div>
+                        <div id="currentUsername" style="font-weight: 600;"></div>
+                        <span class="status-indicator" id="userStatus"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search users for DMs -->
+            <div class="search-box">
+                <input type="text" id="userSearch" placeholder="Search users for DM..." onkeyup="searchUsersDebounced()">
+            </div>
+
+            <div class="chat-list" id="chatList">
+                <div class="chat-item active" onclick="selectChat('global')">
+                    <div class="avatar">🌍</div>
+                    <div class="chat-item-info">
+                        <div class="chat-item-name">Global Chat</div>
+                        <div class="chat-item-preview">Public chat room</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 1rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="chat-header">
+                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <div class="chat-title" id="chatTitle">
+                    <span class="avatar">🌍</span>
+                    <span>Global Chat</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-small" onclick="showSettings()">⚙️ Settings</button>
+                    <div id="adminButton" class="hidden">
+                        <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
+                    </div>
+                    <div id="ownerButton" class="hidden">
+                        <button class="btn-small btn-owner" onclick="showOwnerTerminal()">💻 Terminal</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="messagesContainer" class="messages-container"></div>
+            <div id="typingIndicator" class="typing-indicator-wrapper hidden">
+                <div class="typing-bubbles">
+                    <div class="typing-bubble"></div>
+                    <div class="typing-bubble"></div>
+                    <div class="typing-bubble"></div>
+                </div>
+                <span id="typingText"></span>
+            </div>
+
+            <div id="inputContainer" class="input-container">
+                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping(); handleMentionAutocomplete(event)" onkeydown="handleAutocompleteKeydown(event)">
+                <button onclick="sendMessage()">Send</button>
+                <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
+            </div>
+            <div id="readonlyBar" class="readonly-bar hidden">
+                📣 Only admins can post in Announcements — you can read only
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner Terminal -->
+    <div id="ownerTerminal" class="terminal-container hidden">
+        <button class="terminal-close" onclick="closeOwnerTerminal()">Close Terminal</button>
+        <div class="terminal-header">👑 Owner Terminal v2.0 - User Specific Commands</div>
+        <div id="terminalOutput" class="terminal-output"></div>
+        <div class="terminal-input-line">
+            <span class="terminal-prompt">#&gt;</span>
+            <input type="text" id="terminalInput" class="terminal-input" placeholder="Type command... (help for list)" onkeypress="handleTerminalKeypress(event)">
+        </div>
+    </div>
+
+    <!-- Owner Popup (for targeted messages) -->
+    <div id="ownerPopup" class="owner-popup hidden">
+        <div class="owner-popup-header">
+            <span>👑 Owner Message</span>
+        </div>
+        <div id="ownerPopupContent" class="owner-popup-content"></div>
+        <button class="owner-popup-close" onclick="closeOwnerPopup()">OK</button>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Settings</h3>
+                <button class="close-btn" onclick="closeSettings()">×</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('profile', event)">Profile</div>
+                <div class="tab" onclick="switchTab('appearance', event)">Appearance</div>
+                <div class="tab" onclick="switchTab('security', event)">Security</div>
+            </div>
+
+            <div id="profileTab" class="tab-content active">
+                <div class="form-group">
+                    <label>Choose Your Avatar</label>
+                    <div class="emoji-grid" id="emojiGrid"></div>
+                </div>
+            </div>
+
+            <div id="appearanceTab" class="tab-content">
+                <div class="form-group">
+                    <label>Theme</label>
+                    <div class="theme-selector" id="themeSelector"></div>
+                </div>
+            </div>
+
+            <div id="securityTab" class="tab-content">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" id="currentPassword">
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" id="newPassword">
+                </div>
+                <div class="form-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword">
+                </div>
+                <button class="btn" onclick="changePassword()">Change Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 850px;">
+            <div class="modal-header">
+                <h3>👑 Admin Panel</h3>
+                <button class="close-btn" onclick="closeAdminPanel()">×</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" onclick="switchAdminTab('statsTab', event)">📊 Stats</div>
+                <div class="tab" onclick="switchAdminTab('usersTab', event)">👥 Users</div>
+                <div class="tab" onclick="switchAdminTab('systemTab', event)">🎮 System</div>
+                <div class="tab" onclick="switchAdminTab('broadcastTabPanel', event)">📢 Broadcast</div>
+                <div class="tab" onclick="switchAdminTab('ipTab', event)">🌐 IP</div>
+            </div>
+
+            <!-- Stats Tab -->
+            <div id="statsTab" class="tab-content active" style="padding: 1rem;">
+                <div class="admin-section">
+                    <h3>📊 Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalUsers">0</div>
+                            <div class="stat-label">Total Users</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="onlineUsers">0</div>
+                            <div class="stat-label">Online Now</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalMessages">0</div>
+                            <div class="stat-label">Total Messages</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalGroups">0</div>
+                            <div class="stat-label">Total Groups</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="usersTab" class="tab-content" style="padding: 1rem;">
+                <div class="admin-section">
+                    <h3>👥 User Management</h3>
+                    <div class="user-list" id="adminUserList"></div>
+                </div>
+            </div>
+
+            <!-- System Tab -->
+            <div id="systemTab" class="tab-content" style="padding: 1rem;">
+                <div class="admin-section">
+                    <h3>🎮 System Controls</h3>
+                    <div class="admin-grid-2" style="margin-bottom: 0.5rem;">
+                        <button class="btn" onclick="toggleMaintenance()">
+                            <span id="maintenanceText">Enable Maintenance</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="cleanupOldMessages()">Cleanup Old Messages</button>
+                        <button class="btn btn-success" onclick="showUrlRedirect()">🌐 Send URL to Users</button>
+                        <button class="btn btn-warning" onclick="showPageReloadPanel()">🔄 Reload User Pages</button>
+                        <button class="btn btn-danger" onclick="wipeAllData()">⚠️ Wipe All Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Broadcast Tab -->
+            <div id="broadcastTabPanel" class="tab-content" style="padding: 1rem;">
+                <div class="admin-section">
+                    <h3>📢 Broadcast Message</h3>
+                    <div class="form-group">
+                        <textarea id="broadcastMessage" rows="3" placeholder="Enter your broadcast message..."></textarea>
+                    </div>
+                    <button class="btn" onclick="sendBroadcast()">Send Broadcast</button>
+                </div>
+            </div>
+
+            <!-- IP Tab -->
+            <div id="ipTab" class="tab-content" style="padding: 1rem;">
+                <div class="admin-section">
+                    <h3>🌐 IP Address Tracking</h3>
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="ipSearchInput" placeholder="Search by username or IP..." style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--background); color: var(--text);">
+                    </div>
+                    <div id="ipTrackingList" style="max-height: 400px; overflow-y: auto;"></div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>🚫 IP Management</h3>
+                    <div class="form-group">
+                        <label>Block IP Address</label>
+                        <input type="text" id="blockIpInput" placeholder="Enter IP address">
+                    </div>
+                    <button class="btn btn-danger" onclick="blockIP()">Block IP</button>
+                    <div id="blockedIpList" style="margin-top: 1rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Owner Panel Modal (keeping for compatibility) -->
+    <div id="ownerModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 700px; border: 2px solid var(--owner-color);">
+            <div class="modal-header">
+                <h3 style="color: var(--owner-color);">⭐ Owner Panel</h3>
+                <button class="close-btn" onclick="closeOwnerPanel()">×</button>
+            </div>
+
+            <div class="admin-section owner-section">
+                <h3>⭐ Owner Controls</h3>
+                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.875rem;">
+                    As the Owner, you have ultimate control. These actions cannot be reversed by admins.
+                </p>
+                <div class="admin-grid-2">
+                    <button class="btn btn-owner" onclick="ownerWipeEverything()">☢️ Wipe Everything (incl. users)</button>
+                    <button class="btn btn-danger" onclick="ownerForceLogoutAll()">🚪 Force Logout All Users</button>
+                    <button class="btn btn-warning" onclick="ownerReloadAll()">🔄 Reload All Pages</button>
+                    <button class="btn btn-success" onclick="ownerRestoreDefaults()">♻️ Reset to Defaults</button>
+                </div>
+            </div>
+
+            <div class="admin-section owner-section">
+                <h3>👑 Manage Admins</h3>
+                <div id="ownerAdminList" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Redirect Modal -->
+    <div id="urlRedirectModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🌐 Send Users to Website</h3>
+                <button class="close-btn" onclick="closeUrlRedirect()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label>Enter URL</label>
+                <input type="url" id="redirectUrl" placeholder="https://example.com">
+            </div>
+
+            <div class="form-group">
+                <label>Custom Message (Optional)</label>
+                <input type="text" id="redirectMessage" placeholder="Check out this awesome site!">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <button class="btn" onclick="sendUrlToAll()">Send to All Users</button>
+                <button class="btn btn-secondary" onclick="showUrlUserSelect()">Select Users</button>
+            </div>
+
+            <div id="urlUserList" class="hidden" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Page Reload Modal -->
+    <div id="pageReloadModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🔄 Reload User Pages</h3>
+                <button class="close-btn" onclick="closePageReloadModal()">×</button>
+            </div>
+            <p style="margin-bottom: 1rem; color: var(--text-secondary);">This will force-reload the page for selected users (or all users).</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
+                <button class="btn" onclick="sendReloadToAll()">🔄 Reload All Users</button>
+                <button class="btn btn-secondary" onclick="showReloadUserSelect()">Select Users</button>
+            </div>
+            <div id="reloadUserList" class="hidden" style="margin-top: 1rem; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Idiot Screen (exact replica from youareanidiot.cc) -->
+    <div id="idiotScreen" class="idiot-screen hidden">
+        <div class="idiot-frame">
+            <div class="idiot-svg-container">
+                <svg class="frame-black" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" x="0px" y="0px" width="100%" height="auto" viewBox="0 0 806 604">
+                    <defs/>
+                    <g id="Layer_1">
+                        <g>
+                            <g>
+                                <g>
+                                    <path fill="#FFFFFF" stroke="none" d="M 803 601.8 L 803 3.1 3.1 3.1 3.1 601.8 803 601.8 M 672.15 356.65 Q 686.85 371.35 686.85 392.1 686.85 412.85 672.15 427.5 657.5 442.2 636.75 442.2 616 442.2 601.3 427.5 586.65 412.85 586.65 392.1 586.65 371.35 601.3 356.65 616 342 636.75 342 657.5 342 672.15 356.65 M 349.3 393.75 Q 349.3 373 363.95 358.3 378.65 343.65 399.4 343.65 420.15 343.65 434.8 358.3 449.5 373 449.5 393.75 449.5 414.5 434.8 429.15 420.15 443.85 399.4 443.85 378.65 443.85 363.95 429.15 349.3 414.5 349.3 393.75 M 124.15 391.5 Q 124.15 370.75 138.8 356.05 153.5 341.4 174.25 341.4 195 341.4 209.65 356.05 224.35 370.75 224.35 391.5 224.35 412.25 209.65 426.9 195 441.6 174.25 441.6 153.5 441.6 138.8 426.9 124.15 412.25 124.15 391.5 M 137.8 230.1 Q 136.75 230.95 136.75 232.2 136.75 233.95 138.25 237 L 148.15 257.55 157.25 235.05 Q 158 233.25 158 231.45 158 230.65 157.7 230.25 157.35 229.75 156.6 229.5 155.85 229.2 153.95 229.2 L 153.95 227.55 167.15 227.55 167.15 229.2 Q 165.5 229.35 164.65 229.9 163.75 230.45 162.7 231.9 162.3 232.55 161.15 235.3 L 144.6 275.95 Q 142.2 281.85 138.35 284.85 134.4 287.9 130.8 287.9 128.2 287.9 126.5 286.4 124.8 284.85 124.8 282.9 124.8 281.05 126.05 279.95 127.25 278.8 129.4 278.8 130.85 278.8 133.4 279.75 135.15 280.4 135.6 280.4 136.95 280.4 138.55 279.05 140.1 277.65 141.7 273.7 L 144.6 266.65 130 235.95 Q 129.3 234.55 127.85 232.55 126.75 230.95 126 230.45 125 229.75 122.75 229.2 L 122.75 227.55 141.7 227.55 141.7 229.2 140.75 229.2 Q 138.75 229.2 137.8 230.1 M 205.3 233.35 Q 210.05 239.35 210.05 247.15 210.05 252.6 207.4 258.2 204.8 263.8 200.25 266.65 195.6 269.5 189.95 269.5 180.75 269.5 175.35 262.15 170.75 256 170.75 248.3 170.75 242.7 173.55 237.2 176.3 231.65 180.85 229 185.4 226.35 190.45 226.35 199.7 226.35 205.3 233.35 M 244.4 235.2 Q 244.4 231.75 243.15 230.55 241.85 229.3 237.85 229.2 L 237.85 227.55 251.7 227.55 251.7 252.2 Q 251.7 259.25 252.1 260.85 252.4 262.45 253.15 263.05 ... [truncated]
+                                </g>
+                            </g>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+            <div class="idiot-text">YOU ARE AN IDIOT</div>
+            <div class="idiot-subtext">HA HA HA HA HA HA</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/firebase.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/ui.js"></script>
 </body>
 </html>
