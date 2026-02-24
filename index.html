@@ -779,14 +779,32 @@ let gameBest = parseInt(localStorage.getItem('gameBest') || '0');
 window.addEventListener('load', async () => {
   applyTheme(localStorage.getItem('theme') || 'dark');
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-    await loadProfile();
-    await enterApp();
-  } else {
+  // Safety net: if anything hangs >8s, show login
+  const initTimeout = setTimeout(() => {
+    console.warn('UltraChat: init timed out');
     hide('loadingOverlay');
     show('loginPage');
+  }, 8000);
+
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    clearTimeout(initTimeout);
+    if (error) throw error;
+    const session = data && data.session;
+    if (session && session.user) {
+      currentUser = session.user;
+      await loadProfile();
+      await enterApp();
+    } else {
+      hide('loadingOverlay');
+      show('loginPage');
+    }
+  } catch (err) {
+    clearTimeout(initTimeout);
+    console.error('Init failed:', err);
+    hide('loadingOverlay');
+    show('loginPage');
+    setTimeout(() => toast('Connection error - check console', 'error'), 200);
   }
 });
 
@@ -828,14 +846,25 @@ async function doRegister() {
   const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) { setLoading('registerBtn', false); return showAuthError('registerError', error.message); }
 
+  // data.user can be null if email confirmation is required
+  if (!data.user) {
+    setLoading('registerBtn', false);
+    return showAuthError('registerError', 'Please check your email to confirm your account, then log in.');
+  }
+
   // Create profile
-  await supabase.from('profiles').insert({
+  const { error: profileError } = await supabase.from('profiles').insert({
     id: data.user.id,
     username,
     avatar: '😀',
     role: 'user',
     status: 'online'
   });
+
+  if (profileError) {
+    console.error('Profile insert error:', profileError);
+    // Profile might already exist (e.g. re-registration), try to continue
+  }
 
   currentUser = data.user;
   setLoading('registerBtn', false);
@@ -860,47 +889,61 @@ async function doLogout() {
 
 // ===== PROFILE =====
 async function loadProfile() {
-  const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-  if (data) {
-    currentProfile = data;
-  } else {
-    // Create profile if missing
-    const username = currentUser.email.split('@')[0];
-    await supabase.from('profiles').insert({ id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' });
-    currentProfile = { id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' };
+  try {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
+    if (data) {
+      currentProfile = data;
+    } else {
+      // Create profile if missing (new user via Google OAuth etc)
+      const username = (currentUser.user_metadata?.username) || currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g,'_');
+      const { error: insertError } = await supabase.from('profiles').insert({ id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' });
+      if (insertError) console.error('Profile create error:', insertError);
+      currentProfile = { id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' };
+    }
+  } catch (err) {
+    console.error('loadProfile error:', err);
+    // Fallback profile so the app doesnt crash
+    currentProfile = { id: currentUser.id, username: 'User', avatar: '😀', role: 'user', status: 'online' };
   }
 }
 
 // ===== ENTER APP =====
 async function enterApp() {
-  hide('loginPage');
-  hide('registerPage');
+  try {
+    hide('loginPage');
+    hide('registerPage');
 
-  // Update status to online
-  await supabase.from('profiles').update({ status: 'online' }).eq('id', currentUser.id);
+    // Update status to online (non-blocking, ignore errors)
+    supabase.from('profiles').update({ status: 'online' }).eq('id', currentUser.id).then();
 
-  // Update UI
-  el('sidebarAvatar').textContent = currentProfile.avatar;
-  el('sidebarUsername').textContent = currentProfile.username;
-  el('sidebarTag').textContent = '#' + currentProfile.id.slice(-4).toUpperCase();
+    // Update UI
+    el('sidebarAvatar').textContent = currentProfile.avatar || '😀';
+    el('sidebarUsername').textContent = currentProfile.username || 'User';
+    el('sidebarTag').textContent = '#' + (currentProfile.id || '0000').slice(-4).toUpperCase();
 
-  // Show admin button if applicable
-  if (currentProfile.role === 'admin' || currentProfile.role === 'owner') {
-    show('adminPanelBtn');
+    // Show admin button if applicable
+    if (currentProfile.role === 'admin' || currentProfile.role === 'owner') {
+      show('adminPanelBtn');
+    }
+
+    // Load users (non-fatal)
+    try { await loadUsers(); } catch(e) { console.warn('loadUsers failed:', e); }
+
+    // Subscribe to presence + broadcasts
+    try { subscribePresence(); } catch(e) { console.warn('presence failed:', e); }
+    try { subscribeBroadcasts(); } catch(e) { console.warn('broadcasts failed:', e); }
+
+    // Load messages
+    await switchChat('global');
+
+    hide('loadingOverlay');
+    show('chatApp');
+  } catch (err) {
+    console.error('enterApp failed:', err);
+    hide('loadingOverlay');
+    show('chatApp'); // Show app anyway, user can still try
+    toast('Some features may not load correctly', 'warning');
   }
-
-  // Load users
-  await loadUsers();
-
-  // Subscribe to presence + broadcasts
-  subscribePresence();
-  subscribeBroadcasts();
-
-  // Load messages
-  await switchChat('global');
-
-  hide('loadingOverlay');
-  show('chatApp');
 }
 
 // ===== USERS =====
@@ -1192,6 +1235,12 @@ function subscribeBroadcasts() {
         showMaintenancePage();
       } else if (b.type === 'idiot') {
         show('idiotScreen');
+      } else if (b.type === 'idiot_target') {
+        // Only show to the targeted user
+        const targetId = b.message.replace('idiot:', '');
+        if (currentUser && currentUser.id === targetId) {
+          show('idiotScreen');
+        }
       } else {
         showBroadcast(b.message);
       }
