@@ -493,7 +493,7 @@ a:hover { text-decoration: underline; }
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay">
   <div class="spinner"></div>
-  <div class="loading-text">Connecting to UltraChat...</div>
+  <div class="loading-text" id="loadingText">Connecting to UltraChat...</div>
 </div>
 
 <!-- LOGIN PAGE -->
@@ -749,8 +749,17 @@ a:hover { text-decoration: underline; }
 .emoji-pick:hover { background: var(--bg-hover); }
 </style>
 
-<!-- SUPABASE SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- SUPABASE SDK (dual CDN fallback) -->
+<script>
+// Utility functions defined FIRST so they always exist
+function _el(id) { return document.getElementById(id); }
+function _show(id) { var e=_el(id); if(e) e.classList.remove('hidden'); }
+function _hide(id) { var e=_el(id); if(e) e.classList.add('hidden'); }
+function _showLogin() { _hide('loadingOverlay'); _show('loginPage'); }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  onerror="document.getElementById('loadingText').textContent='CDN failed, trying backup...';var s=document.createElement('script');s.src='https://unpkg.com/@supabase/supabase-js@2';s.onerror=function(){document.getElementById('loadingText').textContent='Could not load Supabase SDK. Check your internet connection.';};document.head.appendChild(s);">
+</script>
 
 <script>
 // ============================================================
@@ -760,13 +769,20 @@ const SUPABASE_URL = 'https://xwealghjsjitdetsnluy.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3ZWFsZ2hqc2ppdGRldHNubHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzNDcsImV4cCI6MjA4NzUzMjM0N30.KUvGJwDZIuGNBoEk7KbXv7fAOmvqH-iVHNL9_6d_nNM';
 // ============================================================
 
+// Guard: if SDK didn't load, show login immediately
+if (!window.supabase) {
+  console.error('Supabase SDK not loaded!');
+  _showLogin();
+  throw new Error('Supabase SDK missing');
+}
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ===== STATE =====
-let currentUser = null;       // Auth user from Supabase
-let currentProfile = null;    // Profile row from profiles table
-let currentChat = 'global';   // 'global' or 'dm_<uid>'
-let allUsers = [];             // Cached user list
+let currentUser = null;
+let currentProfile = null;
+let currentChat = 'global';
+let allUsers = [];
 let messageSubscription = null;
 let broadcastSubscription = null;
 let presenceChannel = null;
@@ -776,19 +792,18 @@ let lastMessageDate = null;
 let gameBest = parseInt(localStorage.getItem('gameBest') || '0');
 
 // ===== INIT =====
+// Hard 5s failsafe set immediately - no waiting for load event
+const _hardTimeout = setTimeout(() => {
+  console.warn('UltraChat: hard timeout hit');
+  _showLogin();
+}, 5000);
+
 window.addEventListener('load', async () => {
   applyTheme(localStorage.getItem('theme') || 'dark');
 
-  // Safety net: if anything hangs >8s, show login
-  const initTimeout = setTimeout(() => {
-    console.warn('UltraChat: init timed out');
-    hide('loadingOverlay');
-    show('loginPage');
-  }, 8000);
-
   try {
     const { data, error } = await supabase.auth.getSession();
-    clearTimeout(initTimeout);
+    clearTimeout(_hardTimeout);
     if (error) throw error;
     const session = data && data.session;
     if (session && session.user) {
@@ -796,15 +811,13 @@ window.addEventListener('load', async () => {
       await loadProfile();
       await enterApp();
     } else {
-      hide('loadingOverlay');
-      show('loginPage');
+      _showLogin();
     }
   } catch (err) {
-    clearTimeout(initTimeout);
+    clearTimeout(_hardTimeout);
     console.error('Init failed:', err);
-    hide('loadingOverlay');
-    show('loginPage');
-    setTimeout(() => toast('Connection error - check console', 'error'), 200);
+    _showLogin();
+    setTimeout(() => toast('Connection error: ' + err.message, 'error'), 100);
   }
 });
 
