@@ -1081,9 +1081,14 @@ function startFlappyBird() {
   flappyGame = true;
 }
 
+// FIXED: Deze functie herlaadt NIET meer de pagina
 function checkMaintenanceStatus() {
-  console.log('🔄 Checking maintenance status, reloading...');
-  location.reload();
+  console.log('🔄 Checking maintenance status...');
+  // De pagina opnieuw laden is verwijderd!
+  // In plaats daarvan laten we de gebruiker teruggaan naar login
+  document.getElementById('maintenancePage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  toast('Terug naar inlogpagina', 'info');
 }
 
 // ==================== ENTER APP ====================
