@@ -321,12 +321,12 @@ input[type=range]{accent-color:var(--primary);cursor:pointer}
   <button class="broadcast-close" onclick="dismissBroadcast()">Sluiten</button>
 </div>
 
-<!-- MAINTENANCE LOCK (wordt getoond tijdens onderhoud) -->
+<!-- MAINTENANCE LOCK -->
 <div id="maintenanceLock" class="maintenance-lock hidden">
   🔒 Onderhoudsmodus - Alleen admins
 </div>
 
-<!-- ADMIN CHAT INDICATOR (voor admin kanaal) -->
+<!-- ADMIN CHAT INDICATOR -->
 <div id="adminChatIndicator" class="hidden">
   👑 ADMIN CHAT - Alleen zichtbaar voor admins
 </div>
@@ -343,16 +343,16 @@ input[type=range]{accent-color:var(--primary);cursor:pointer}
       <button class="auth-tab" onclick="switchTab('register',this)">Registreren</button>
     </div>
     <div id="loginPanel" class="auth-panel active">
-      <div class="form-group"><label>Gebruikersnaam</label><input type="text" id="loginUsername" placeholder="gebruikersnaam" autocomplete="username"></div>
-      <div class="form-group"><label>Wachtwoord</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
-      <button class="btn" onclick="handleLogin()">Inloggen</button>
+      <div class="form-group"><label>Gebruikersnaam</label><input type="text" id="loginUsername" placeholder="gebruikersnaam" autocomplete="off"></div>
+      <div class="form-group"><label>Wachtwoord</label><input type="password" id="loginPassword" placeholder="••••••••" autocomplete="off"></div>
+      <button class="btn" type="button" onclick="handleLogin()">Inloggen</button>
     </div>
     <div id="registerPanel" class="auth-panel">
-      <div class="form-group"><label>Gebruikersnaam</label><input type="text" id="regUsername" placeholder="kies_gebruikersnaam" autocomplete="username"></div>
-      <div class="form-group"><label>Weergavenaam</label><input type="text" id="regDisplay" placeholder="Jouw Naam"></div>
-      <div class="form-group"><label>Wachtwoord</label><input type="password" id="regPassword" placeholder="min 4 tekens"></div>
-      <div class="form-group"><label>Bevestig Wachtwoord</label><input type="password" id="regConfirm" placeholder="••••••••"></div>
-      <button class="btn" onclick="handleRegister()">Account Aanmaken</button>
+      <div class="form-group"><label>Gebruikersnaam</label><input type="text" id="regUsername" placeholder="kies_gebruikersnaam" autocomplete="off"></div>
+      <div class="form-group"><label>Weergavenaam</label><input type="text" id="regDisplay" placeholder="Jouw Naam" autocomplete="off"></div>
+      <div class="form-group"><label>Wachtwoord</label><input type="password" id="regPassword" placeholder="min 4 tekens" autocomplete="off"></div>
+      <div class="form-group"><label>Bevestig Wachtwoord</label><input type="password" id="regConfirm" placeholder="••••••••" autocomplete="off"></div>
+      <button class="btn" type="button" onclick="handleRegister()">Account Aanmaken</button>
     </div>
   </div>
 </div>
@@ -734,8 +734,6 @@ async function checkMaintenanceStatus(showLock = true) {
       .single();
     
     if (error && error.code === 'PGRST116') {
-      // Tabel bestaat nog niet, maak hem aan
-      await supabaseClient.rpc('create_admin_settings_table');
       return false;
     }
     
@@ -776,16 +774,6 @@ async function setMaintenanceMode(enabled) {
       lockEl.classList.add('hidden');
       toast('🔓 Onderhoudsmodus uitgeschakeld', 'success');
     }
-    
-    // Update alle gebruikers real-time
-    await supabaseClient
-      .from('broadcasts')
-      .insert([{
-        type: 'maintenance_update',
-        maintenance_mode: enabled,
-        created_at: new Date().toISOString()
-      }]);
-      
   } catch (e) {
     console.error('Error setting maintenance:', e);
     toast('Fout bij wijzigen onderhoudsmodus', 'error');
@@ -819,7 +807,6 @@ async function handleLogin() {
   if(!un||!pw){authErr('Vul alle velden in');return;}
   
   try {
-    // Check maintenance mode
     await checkMaintenanceStatus(false);
     
     const { data: users, error } = await supabaseClient
@@ -834,7 +821,6 @@ async function handleLogin() {
     if (user.password !== pw) { authErr('Verkeerd wachtwoord'); return; }
     if (user.is_banned) { authErr('Dit account is verbannen'); return; }
     
-    // Als onderhoudsmodus aan staat en gebruiker is geen admin, stuur naar maintenance
     if (S.maintenanceMode && !['admin','owner'].includes(user.role)) {
       showMaintenancePage();
       return;
@@ -875,7 +861,6 @@ async function handleRegister() {
   if(pw!==cf){authErr("Wachtwoorden komen niet overeen");return;}
   
   try {
-    // Check of registratie is toegestaan tijdens onderhoud
     await checkMaintenanceStatus(false);
     if (S.maintenanceMode) {
       authErr('Registratie is tijdelijk uitgeschakeld vanwege onderhoud');
@@ -914,7 +899,6 @@ async function handleRegister() {
 }
 
 function logout() {
-  // Cleanup subscriptions
   Object.values(S.messageSubscriptions).forEach(sub => {
     if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
   });
@@ -923,16 +907,16 @@ function logout() {
   sessionStorage.removeItem('uc_sess');
   S.user=null; 
   S.replyTo=null;
-  hide('chatApp'); 
-  show('loginPage');
+  document.getElementById('chatApp').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
   document.getElementById('loginUsername').value='';
   document.getElementById('loginPassword').value='';
   toast('Uitgelogd','info');
 }
 
 function showMaintenancePage() {
-  hide('loginPage');
-  hide('chatApp');
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('chatApp').classList.add('hidden');
   document.getElementById('maintenancePage').classList.remove('hidden');
   startFlappyBird();
 }
@@ -999,7 +983,6 @@ function startFlappyBird() {
         continue;
       }
       
-      // Collision detection
       if (50 > pipes[i].x && 50 < pipes[i].x + 50) {
         if (bird.y < pipes[i].top || bird.y + 20 > pipes[i].bottom) {
           gameOver = true;
@@ -1014,7 +997,6 @@ function startFlappyBird() {
     ctx.fillStyle = '#70c5ce';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Bird
     ctx.fillStyle = '#f1c40f';
     ctx.beginPath();
     ctx.arc(50, bird.y, 15, 0, Math.PI * 2);
@@ -1028,7 +1010,6 @@ function startFlappyBird() {
     ctx.arc(62, bird.y - 5, 2, 0, Math.PI * 2);
     ctx.fill();
     
-    // Pipes
     pipes.forEach(pipe => {
       ctx.fillStyle = '#27ae60';
       ctx.fillRect(pipe.x, 0, 50, pipe.top);
@@ -1064,9 +1045,9 @@ function checkMaintenanceStatus() {
 
 // ==================== ENTER APP ====================
 function enterApp() {
-  hide('loginPage'); 
-  hide('maintenancePage');
-  show('chatApp');
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('maintenancePage').classList.add('hidden');
+  document.getElementById('chatApp').classList.remove('hidden');
   
   document.getElementById('currentUsername').textContent = S.user.display_name;
   document.getElementById('userAvatar').textContent = S.user.avatar;
@@ -1085,7 +1066,6 @@ function enterApp() {
   initGifGrid();
   renderChatList();
   
-  // Start met global chat
   switchChat('global');
   
   document.getElementById('messagesContainer').addEventListener('scroll', onScroll);
@@ -1097,7 +1077,6 @@ function enterApp() {
 
 // ==================== REALTIME SUBSCRIPTIONS ====================
 function initRealtimeSubscriptions() {
-  // Luister naar nieuwe berichten in alle kanalen
   const channels = supabaseClient.channel('messages-channel')
     .on('postgres_changes', { 
       event: 'INSERT', 
@@ -1106,7 +1085,6 @@ function initRealtimeSubscriptions() {
     }, payload => {
       const msg = payload.new;
       
-      // Check of bericht voor huidige chat is
       if (msg.channel_id === S.chatId) {
         const c = document.getElementById('messagesContainer');
         const m = {
@@ -1126,18 +1104,15 @@ function initRealtimeSubscriptions() {
           sysCard: msg.sys_card
         };
         
-        // Verwijder leeg bericht indicatie als die er is
         const emptyMsg = c.querySelector('[style*="3rem"]');
         if (emptyMsg) emptyMsg.remove();
         
         renderMsg(m, c);
         scrollToBottom();
         
-        // Geluid afspelen als het niet van onszelf is
         if (msg.user_id !== S.user.id && S.settings.sound) beep();
       }
       
-      // Check voor mentions en notificaties
       if (msg.user_id !== S.user.id) {
         const mentionRegex = new RegExp('@' + S.user.username + '\\b', 'i');
         const isMentioned = mentionRegex.test(msg.content);
@@ -1150,21 +1125,11 @@ function initRealtimeSubscriptions() {
             'mention'
           );
           
-          // Update unread voor channel
           unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
           updateUnreadBadges();
         } else if (msg.channel_id !== S.chatId) {
           unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
           updateUnreadBadges();
-          
-          // Notificatie voor privé berichten
-          if (msg.channel_id.startsWith('dm_')) {
-            showNotification(
-              `💬 Nieuw bericht van ${msg.display_name || msg.username}`,
-              msg.content.substring(0, 100),
-              'dm'
-            );
-          }
         }
       }
     })
@@ -1175,7 +1140,6 @@ function initRealtimeSubscriptions() {
     }, payload => {
       const msg = payload.new;
       if (msg.channel_id === S.chatId) {
-        // Update bestaand bericht in UI
         const msgEl = document.querySelector(`[data-id="${msg.id}"] .message`);
         if (msgEl) {
           const newContent = formatMsg(msg.content, msg.image_url);
@@ -1211,7 +1175,6 @@ function initRealtimeSubscriptions() {
     
   S.messageSubscriptions.main = channels;
   
-  // Luister naar broadcasts
   supabaseClient
     .channel('broadcasts-channel')
     .on('postgres_changes', { 
@@ -1244,6 +1207,11 @@ function initRealtimeSubscriptions() {
             (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
           showIdiotScreen();
         }
+      } else if (broadcast.type === 'owner_popup' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          showOwnerPopup(broadcast.message);
+        }
       }
     })
     .subscribe();
@@ -1257,7 +1225,6 @@ async function renderChatList(q='') {
 
   addLabel(list,'Kanalen');
   
-  // Filter kanalen op basis van admin status
   const visibleChannels = CHANNELS.filter(ch => {
     if (ch.adminOnly && !['admin','owner'].includes(S.user.role)) return false;
     return ch.name.toLowerCase().includes(ql);
@@ -1329,7 +1296,6 @@ function filterChats(v){ renderChatList(v); }
 async function switchToDM(user) {
   const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
   
-  // Controleer of er al berichten zijn
   const { data } = await supabaseClient
     .from('messages')
     .select('id')
@@ -1337,7 +1303,6 @@ async function switchToDM(user) {
     .limit(1);
   
   if (!data || data.length === 0) {
-    // Stuur systeembericht
     await supabaseClient
       .from('messages')
       .insert([{
@@ -1356,7 +1321,6 @@ async function switchToDM(user) {
 }
 
 async function switchChat(id, name, sub) {
-  // Reset unread voor deze chat
   unreadCounts[id] = 0;
   updateUnreadBadges();
   
@@ -1370,7 +1334,6 @@ async function switchChat(id, name, sub) {
   document.getElementById('chatTitle').textContent = title;
   document.getElementById('chatSubtitle').textContent = subtitle;
   
-  // Toon admin indicator voor admin chat
   const adminIndicator = document.getElementById('adminChatIndicator');
   if (id === 'admin' && ['admin','owner'].includes(S.user.role)) {
     adminIndicator.classList.remove('hidden');
@@ -1378,7 +1341,6 @@ async function switchChat(id, name, sub) {
     adminIndicator.classList.add('hidden');
   }
   
-  // Read-only overlay voor aankondigingen
   const isRO = ch && ch.readOnly && !['admin','owner'].includes(S.user?.role||'user');
   const ic = document.querySelector('.input-container');
   let ro = document.getElementById('readonlyOverlay');
@@ -1416,7 +1378,6 @@ async function loadMessages(id) {
     if (!messages || messages.length === 0) {
       c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:3rem 1rem;font-size:.9rem">💬 Nog geen berichten. Wees de eerste!</div>';
     } else {
-      // Groepeer per dag
       let lastDate = '';
       messages.forEach(msg => {
         const msgDate = new Date(msg.created_at).toLocaleDateString();
@@ -1537,7 +1498,6 @@ function formatMsg(text, img) {
   if (!text) return '';
   let s = esc(text);
   
-  // URLs en afbeeldingen
   s = s.replace(/(https?:\/\/[^\s]+)/g, function(url) {
     if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?$/i)) {
       return `<br><img src="${url}" class="message-image" onclick="openLightbox('${url}')" onerror="this.replaceWith(Object.assign(document.createElement('a'),{href:'${url}',target:'_blank',textContent:'${url}'}))">`;
@@ -1545,10 +1505,7 @@ function formatMsg(text, img) {
     return `<a class="msg-link" href="${url}" target="_blank" rel="noopener">${url}</a>`;
   });
   
-  // Mentions
   s = s.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
-  
-  // Formatting
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
   s = s.replace(/`(.+?)`/g, '<code style="background:var(--surface3);padding:.1em .3em;border-radius:4px;font-family:monospace;font-size:.85em">$1</code>');
@@ -1614,7 +1571,6 @@ async function sendMessage(overrideText=null, img=null) {
 
     if (error) throw error;
 
-    // Update message count
     await supabaseClient
       .from('users')
       .update({ message_count: (S.user.message_count || 0) + 1 })
@@ -1626,10 +1582,6 @@ async function sendMessage(overrideText=null, img=null) {
     input.style.height = 'auto';
     document.getElementById('charCounter').textContent = '0/2000';
     cancelReply();
-    
-    if (S.chatId === S.chatId) {
-      // Message wordt al real-time toegevoegd via subscription
-    }
 
   } catch (error) {
     console.error('Fout bij versturen:', error);
@@ -1678,8 +1630,6 @@ async function toggleRx(msgId, emoji) {
       .from('messages')
       .update({ reactions })
       .eq('id', msgId);
-    
-    // UI wordt geüpdatet via subscription
     
   } catch (error) {
     console.error('Fout bij reactie:', error);
@@ -1730,7 +1680,7 @@ function editMessage(msgId) {
 }
 
 async function clearAllMessages() {
-  if (!confirm('Alle berichten in deze chat wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+  if (!confirm('Alle berichten in deze chat wissen? Dit kan niet ongedaan worden gemaakt.')) return;
   
   try {
     await supabaseClient
@@ -1757,7 +1707,6 @@ function handleTyping() {
     clearTimeout(S.typingTimeouts[typingKey]);
   }
   
-  // Stuur typing indicator naar andere gebruikers via broadcast
   supabaseClient
     .from('typing_indicator')
     .upsert({ 
@@ -2162,8 +2111,6 @@ function adminPostAnnouncement() {
   if (!title) { toast('Voer een titel in','error'); return; }
   if (!text) { toast('Voer een bericht in','error'); return; }
   
-  const icons = {announce:'📣', info:'ℹ️', warn:'⚠️', success:'✅', danger:'🚨', update:'🚀'};
-  
   supabaseClient
     .from('messages')
     .insert([{
@@ -2214,9 +2161,8 @@ async function openAdmin() {
   
   document.getElementById('statTotalMsgs').textContent = msgCount || 0;
   document.getElementById('statTotalUsers').textContent = userCount || 0;
-  document.getElementById('statOnline').textContent = '1'; // Vereenvoudigd
+  document.getElementById('statOnline').textContent = '1';
   
-  // Haal huidige maintenance status op
   const { data } = await supabaseClient
     .from('admin_settings')
     .select('maintenance_mode')
@@ -2921,21 +2867,20 @@ window.addEventListener('load', async () => {
           message_count: data.message_count || 0
         };
         
-        // Check maintenance mode bij inloggen
         if (S.maintenanceMode && !['admin','owner'].includes(data.role)) {
           showMaintenancePage();
         } else {
           enterApp();
         }
       } else {
-        show('loginPage');
+        document.getElementById('loginPage').classList.remove('hidden');
       }
     } catch (e) {
       console.error('Sessie fout:', e);
-      show('loginPage');
+      document.getElementById('loginPage').classList.remove('hidden');
     }
   } else {
-    show('loginPage');
+    document.getElementById('loginPage').classList.remove('hidden');
   }
   
   document.getElementById('loginPassword').addEventListener('keydown', e => { 
