@@ -899,9 +899,12 @@ async function handleRegister() {
 }
 
 function logout() {
-  Object.values(S.messageSubscriptions).forEach(sub => {
-    if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
-  });
+  if (S.messageSubscriptions.main) {
+    S.messageSubscriptions.main.unsubscribe();
+  }
+  if (S.messageSubscriptions.broadcast) {
+    S.messageSubscriptions.broadcast.unsubscribe();
+  }
   S.messageSubscriptions = {};
   
   sessionStorage.removeItem('uc_sess');
@@ -1077,6 +1080,14 @@ function enterApp() {
 
 // ==================== REALTIME SUBSCRIPTIONS ====================
 function initRealtimeSubscriptions() {
+  // Unsubscribe van bestaande subscriptions
+  if (S.messageSubscriptions.main) {
+    S.messageSubscriptions.main.unsubscribe();
+  }
+  if (S.messageSubscriptions.broadcast) {
+    S.messageSubscriptions.broadcast.unsubscribe();
+  }
+  
   const channels = supabaseClient.channel('messages-channel')
     .on('postgres_changes', { 
       event: 'INSERT', 
@@ -1175,8 +1186,7 @@ function initRealtimeSubscriptions() {
     
   S.messageSubscriptions.main = channels;
   
-  supabaseClient
-    .channel('broadcasts-channel')
+  const broadcastChannel = supabaseClient.channel('broadcasts-channel')
     .on('postgres_changes', { 
       event: 'INSERT', 
       schema: 'public', 
@@ -1198,9 +1208,10 @@ function initRealtimeSubscriptions() {
           document.getElementById('ownerUrlDialog').style.display = 'flex';
         }
       } else if (broadcast.type === 'force_reload' && S.user) {
+        // NIET AUTOMATISCH HERLADEN - alleen tonen voor admins
         if (broadcast.target_users === 'all' || 
             (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          setTimeout(() => location.reload(), 1000);
+          toast('🔄 Admin heeft een herlaad commando gestuurd', 'info');
         }
       } else if (broadcast.type === 'crash' && S.user) {
         if (broadcast.target_users === 'all' || 
@@ -1215,6 +1226,8 @@ function initRealtimeSubscriptions() {
       }
     })
     .subscribe();
+    
+  S.messageSubscriptions.broadcast = broadcastChannel;
 }
 
 // ==================== CHAT LIST ====================
