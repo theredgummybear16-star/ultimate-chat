@@ -644,23 +644,11 @@ input[type=range]{accent-color:var(--primary);cursor:pointer}
 </div>
 
 <script>
-// ==================== DEBUG LOGGING ====================
-console.log('🚀 Script started loading...');
-let debugReloadCount = 0;
-window.addEventListener('beforeunload', function(e) {
-  debugReloadCount++;
-  console.log(`⚠️ Page is reloading! Reload count: ${debugReloadCount}`);
-  console.log('Current timestamp:', new Date().toISOString());
-  console.log('Session storage:', sessionStorage.getItem('uc_sess'));
-});
-
 // ==================== SUPABASE INIT ====================
-console.log('Initializing Supabase...');
 const { createClient } = supabase;
 const supabaseUrl = 'https://nsaaiwxjhcvdmsywazxl.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYWFpd3hqaGN2ZG1zeXdhenhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDkyOTEsImV4cCI6MjA4NzUyNTI5MX0.cfQ91DxXvYf9uydVucHhrW0d3zOERD1lDFVX9oYo6-M';
 const supabaseClient = createClient(supabaseUrl, supabaseKey);
-console.log('✅ Supabase initialized');
 
 // ==================== STATE ====================
 let S = {
@@ -673,7 +661,9 @@ let S = {
   isOwner: false,
   maintenanceMode: false,
   messageSubscriptions: {},
-  typingTimeouts: {}
+  typingTimeouts: {},
+  lastMessageId: 0,
+  lastBroadcastId: 0
 };
 
 let gameObj = null;
@@ -685,14 +675,12 @@ let editingMessageId = null;
 let pendingOwnerUrl = null;
 let unreadCounts = {};
 
-// Owner specifiek
 const OWNER_USERNAME = 'juroadmin';
 
 function isOwnerUser(username) {
   return username === OWNER_USERNAME;
 }
 
-// ==================== CONSTANTEN ====================
 const CHANNELS = [
   {id:'global', name:'🌍 Algemeen', desc:"Iedereen kan hier praten", readOnly:false},
   {id:'admin', name:'👑 Admin Chat', desc:'Alleen zichtbaar voor admins', readOnly:false, adminOnly:true},
@@ -708,38 +696,171 @@ const GIFS = [
   {label:'👎 Nee',txt:'👎❌😒🙄'},{label:'🤔 Denk',txt:'🤔💭🧐🔍'},{label:'🎵 Muziek',txt:'🎵🎶🎸🥁'},
 ];
 
-// ==================== NOTIFICATIES ====================
-let notificationPermission = false;
+// ==================== POLLING FUNCTIONS (elke 0.1 sec) ====================
+let pollingInterval = null;
 
-function requestNotificationPermission() {
-  console.log('Requesting notification permission...');
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "granted") {
-    notificationPermission = true;
-    console.log('✅ Notifications already granted');
-  } else if (Notification.permission !== "denied") {
-    Notification.requestPermission().then(p => { 
-      notificationPermission = p === "granted";
-      console.log('📱 Notification permission:', p);
+function startPolling() {
+  if (pollingInterval) clearInterval(pollingInterval);
+  
+  pollingInterval = setInterval(async () => {
+    if (!S.user) return;
+    
+    try {
+      await Promise.all([
+        pollNewMessages(),
+        pollNewBroadcasts(),
+        pollMaintenanceStatus()
+      ]);
+    } catch (error) {
+      console.error('Polling error:', error);
+    }
+  }, 100);
+}
+
+async function pollNewMessages() {
+  const { data: messages, error } = await supabaseClient
+    .from('messages')
+    .select('*')
+    .eq('channel_id', S.chatId)
+    .gt('id', S.lastMessageId)
+    .order('id', { ascending: true });
+
+  if (error) throw error;
+
+  if (messages && messages.length > 0) {
+    messages.forEach(msg => {
+      S.lastMessageId = Math.max(S.lastMessageId, msg.id);
+      
+      if (msg.channel_id === S.chatId) {
+        const container = document.getElementById('messagesContainer');
+        
+        const messageObj = {
+          id: msg.id,
+          uid: msg.username,
+          un: msg.username,
+          dn: msg.display_name || msg.username,
+          av: msg.avatar,
+          role: msg.role,
+          text: msg.content,
+          img: msg.image_url,
+          ts: new Date(msg.created_at).getTime(),
+          time: fmt(new Date(msg.created_at).getTime()),
+          rx: msg.reactions || {},
+          rep: msg.reply_to_data,
+          sys: msg.is_system || false,
+          sysCard: msg.sys_card,
+          edited: msg.edited
+        };
+        
+        renderMsg(messageObj, container);
+        
+        if (msg.user_id !== S.user.id && S.settings.sound) beep();
+      }
+
+      if (msg.user_id !== S.user.id) {
+        const mentionRegex = new RegExp('@' + S.user.username + '\\b', 'i');
+        const isMentioned = mentionRegex.test(msg.content);
+        const isEveryoneMention = msg.content && msg.content.includes('@everyone');
+        
+        if (isMentioned || isEveryoneMention) {
+          showNotification(
+            `🔔 Mention van ${msg.display_name || msg.username}`,
+            msg.content.substring(0, 100),
+            'mention'
+          );
+          
+          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
+          updateUnreadBadges();
+        } else if (msg.channel_id !== S.chatId) {
+          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
+          updateUnreadBadges();
+        }
+      }
+    });
+    
+    scrollToBottom();
+  }
+}
+
+async function pollNewBroadcasts() {
+  const { data: broadcasts, error } = await supabaseClient
+    .from('broadcasts')
+    .select('*')
+    .gt('id', S.lastBroadcastId)
+    .order('id', { ascending: true });
+
+  if (error) throw error;
+
+  if (broadcasts && broadcasts.length > 0) {
+    broadcasts.forEach(broadcast => {
+      S.lastBroadcastId = Math.max(S.lastBroadcastId, broadcast.id);
+      
+      if (broadcast.type === 'message') {
+        document.getElementById('broadcastText').textContent = broadcast.message;
+        document.getElementById('broadcastBanner').classList.remove('hidden');
+        toast('Nieuwe broadcast!', 'info');
+      } else if (broadcast.type === 'maintenance_update') {
+        S.maintenanceMode = broadcast.maintenance_mode;
+        checkMaintenanceStatus(true);
+      } else if (broadcast.type === 'url_redirect' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          pendingOwnerUrl = broadcast.url;
+          document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
+          document.getElementById('ownerUrlDialog').style.display = 'flex';
+        }
+      } else if (broadcast.type === 'crash' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          showIdiotScreen();
+        }
+      } else if (broadcast.type === 'owner_popup' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          showOwnerPopup(broadcast.message);
+        }
+      } else if (broadcast.type === 'force_reload' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          location.reload();
+        }
+      }
     });
   }
 }
 
-function showNotification(title, body, tag = null) {
-  if (!notificationPermission) return;
-  try {
-    const options = { body, icon: '💬' };
-    if (tag) options.tag = tag;
-    new Notification(title, options);
-    console.log('🔔 Notification shown:', title);
-  } catch(e) {
-    console.error('❌ Notification error:', e);
+async function pollMaintenanceStatus() {
+  const { data, error } = await supabaseClient
+    .from('admin_settings')
+    .select('maintenance_mode')
+    .eq('id', 1)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') throw error;
+  
+  if (data && data.maintenance_mode !== S.maintenanceMode) {
+    S.maintenanceMode = data.maintenance_mode;
+    
+    const lockEl = document.getElementById('maintenanceLock');
+    if (S.maintenanceMode) {
+      lockEl.classList.remove('hidden');
+      if (!['admin','owner'].includes(S.user?.role)) {
+        showMaintenancePage();
+      }
+    } else {
+      lockEl.classList.add('hidden');
+      if (document.getElementById('maintenancePage').classList.contains('hidden') === false) {
+        document.getElementById('maintenancePage').classList.add('hidden');
+        if (S.user) {
+          document.getElementById('chatApp').classList.remove('hidden');
+        }
+      }
+    }
   }
 }
 
 // ==================== TOAST ====================
 function toast(msg, type='info') {
-  console.log(`🍞 Toast: ${msg} (${type})`);
   const c=document.getElementById('toastContainer');
   const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; c.appendChild(t);
   setTimeout(()=>{t.style.cssText='opacity:0;transform:translateX(40px);transition:all .3s';setTimeout(()=>t.remove(),300);},3500);
@@ -747,7 +868,6 @@ function toast(msg, type='info') {
 
 // ==================== MAINTENANCE MODE ====================
 async function checkMaintenanceStatus(showLock = true) {
-  console.log('🔧 Checking maintenance status...');
   try {
     const { data, error } = await supabaseClient
       .from('admin_settings')
@@ -756,12 +876,10 @@ async function checkMaintenanceStatus(showLock = true) {
       .single();
     
     if (error && error.code === 'PGRST116') {
-      console.log('ℹ️ No admin_settings table yet');
       return false;
     }
     
     S.maintenanceMode = data?.maintenance_mode || false;
-    console.log('🔧 Maintenance mode:', S.maintenanceMode);
     
     if (showLock) {
       const lockEl = document.getElementById('maintenanceLock');
@@ -780,7 +898,6 @@ async function checkMaintenanceStatus(showLock = true) {
 }
 
 async function setMaintenanceMode(enabled) {
-  console.log('🔧 Setting maintenance mode to:', enabled);
   if (!S.user || !['admin','owner'].includes(S.user.role)) return;
   
   try {
@@ -799,6 +916,15 @@ async function setMaintenanceMode(enabled) {
       lockEl.classList.add('hidden');
       toast('🔓 Onderhoudsmodus uitgeschakeld', 'success');
     }
+    
+    await supabaseClient
+      .from('broadcasts')
+      .insert([{
+        type: 'maintenance_update',
+        maintenance_mode: enabled,
+        sent_by: S.user.id,
+        created_at: new Date().toISOString()
+      }]);
   } catch (e) {
     console.error('Error setting maintenance:', e);
     toast('Fout bij wijzigen onderhoudsmodus', 'error');
@@ -807,17 +933,14 @@ async function setMaintenanceMode(enabled) {
 
 // ==================== LOAD SETTINGS ====================
 function loadSettings() {
-  console.log('⚙️ Loading settings...');
   const s = localStorage.getItem('uc_settings');
   if (s) Object.assign(S.settings, JSON.parse(s));
   document.body.className = 'theme-'+S.settings.theme+(S.settings.compact?' compact-mode':'');
   document.documentElement.style.setProperty('--msg-font', S.settings.fontSize+'px');
-  console.log('✅ Settings loaded:', S.settings);
 }
 
 // ==================== AUTH ====================
 function switchTab(tab, el) {
-  console.log('Switching auth tab to:', tab);
   document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   document.getElementById('loginPanel').classList.toggle('active',tab==='login');
@@ -825,13 +948,11 @@ function switchTab(tab, el) {
 }
 
 function authErr(msg) {
-  console.log('❌ Auth error:', msg);
   const e=document.getElementById('authError'); e.textContent=msg; e.classList.remove('hidden');
   setTimeout(()=>e.classList.add('hidden'),4000);
 }
 
 async function handleLogin() {
-  console.log('🔐 Login attempt...');
   const un=document.getElementById('loginUsername').value.trim().toLowerCase();
   const pw=document.getElementById('loginPassword').value;
   if(!un||!pw){authErr('Vul alle velden in');return;}
@@ -852,7 +973,6 @@ async function handleLogin() {
     if (user.is_banned) { authErr('Dit account is verbannen'); return; }
     
     if (S.maintenanceMode && !['admin','owner'].includes(user.role)) {
-      console.log('🔧 Maintenance mode active, showing game page');
       showMaintenancePage();
       return;
     }
@@ -873,7 +993,6 @@ async function handleLogin() {
     S.isOwner = isOwnerUser(un);
     
     sessionStorage.setItem('uc_sess', JSON.stringify(S.user));
-    console.log('✅ Login successful, user:', S.user.username);
     enterApp();
   } catch (error) {
     console.error('Login error:', error);
@@ -882,7 +1001,6 @@ async function handleLogin() {
 }
 
 async function handleRegister() {
-  console.log('📝 Register attempt...');
   const un=document.getElementById('regUsername').value.trim().toLowerCase();
   const dn=document.getElementById('regDisplay').value.trim()||un;
   const pw=document.getElementById('regPassword').value;
@@ -925,7 +1043,6 @@ async function handleRegister() {
     document.getElementById('loginUsername').value = un;
     document.getElementById('loginPassword').value = pw;
     switchTab('login', document.querySelector('.auth-tab'));
-    console.log('✅ Registration successful');
   } catch (error) {
     console.error('Register error:', error);
     authErr('Fout bij registreren');
@@ -933,20 +1050,16 @@ async function handleRegister() {
 }
 
 function logout() {
-  console.log('🚪 Logging out...');
-  if (S.messageSubscriptions.main) {
-    S.messageSubscriptions.main.unsubscribe();
-    console.log('Unsubscribed from main channel');
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
   }
-  if (S.messageSubscriptions.broadcast) {
-    S.messageSubscriptions.broadcast.unsubscribe();
-    console.log('Unsubscribed from broadcast channel');
-  }
-  S.messageSubscriptions = {};
   
   sessionStorage.removeItem('uc_sess');
   S.user=null; 
   S.replyTo=null;
+  S.lastMessageId = 0;
+  S.lastBroadcastId = 0;
   document.getElementById('chatApp').classList.add('hidden');
   document.getElementById('loginPage').classList.remove('hidden');
   document.getElementById('loginUsername').value='';
@@ -955,7 +1068,6 @@ function logout() {
 }
 
 function showMaintenancePage() {
-  console.log('🔧 Showing maintenance page');
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('chatApp').classList.add('hidden');
   document.getElementById('maintenancePage').classList.remove('hidden');
@@ -966,7 +1078,6 @@ function showMaintenancePage() {
 let flappyGame = null;
 
 function startFlappyBird() {
-  console.log('🐦 Starting Flappy Bird game');
   if (flappyGame) return;
   
   const canvas = document.getElementById('gameCanvas');
@@ -1081,11 +1192,7 @@ function startFlappyBird() {
   flappyGame = true;
 }
 
-// FIXED: Deze functie herlaadt NIET meer de pagina
 function checkMaintenanceStatus() {
-  console.log('🔄 Checking maintenance status...');
-  // De pagina opnieuw laden is verwijderd!
-  // In plaats daarvan laten we de gebruiker teruggaan naar login
   document.getElementById('maintenancePage').classList.add('hidden');
   document.getElementById('loginPage').classList.remove('hidden');
   toast('Terug naar inlogpagina', 'info');
@@ -1093,7 +1200,6 @@ function checkMaintenanceStatus() {
 
 // ==================== ENTER APP ====================
 function enterApp() {
-  console.log('🎉 Entering main app...');
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('maintenancePage').classList.add('hidden');
   document.getElementById('chatApp').classList.remove('hidden');
@@ -1106,11 +1212,9 @@ function enterApp() {
   
   if (['admin','owner'].includes(S.user.role)) {
     document.getElementById('adminButton').classList.remove('hidden');
-    console.log('👑 Admin button shown');
   }
   if (S.isOwner) {
     document.getElementById('ownerButton').classList.remove('hidden');
-    console.log('⭐ Owner button shown');
   }
   
   initEmojiPicker();
@@ -1123,178 +1227,38 @@ function enterApp() {
   toast(`Welkom, ${S.user.display_name}! 👋`,'success');
   
   requestNotificationPermission();
-  initRealtimeSubscriptions();
-  console.log('✅ App initialization complete');
+  
+  // Start polling
+  startPolling();
 }
 
-// ==================== REALTIME SUBSCRIPTIONS ====================
-function initRealtimeSubscriptions() {
-  console.log('🔌 Setting up realtime subscriptions...');
-  
-  if (S.messageSubscriptions.main) {
-    console.log('Unsubscribing from existing main channel');
-    S.messageSubscriptions.main.unsubscribe();
-  }
-  if (S.messageSubscriptions.broadcast) {
-    console.log('Unsubscribing from existing broadcast channel');
-    S.messageSubscriptions.broadcast.unsubscribe();
-  }
-  
-  console.log('Creating messages channel subscription...');
-  const channels = supabaseClient.channel('messages-channel')
-    .on('postgres_changes', { 
-      event: 'INSERT', 
-      schema: 'public', 
-      table: 'messages' 
-    }, payload => {
-      console.log('📨 New message received:', payload.new.id);
-      const msg = payload.new;
-      
-      if (msg.channel_id === S.chatId) {
-        const c = document.getElementById('messagesContainer');
-        const m = {
-          id: msg.id,
-          uid: msg.username,
-          un: msg.username,
-          dn: msg.display_name || msg.username,
-          av: msg.avatar,
-          role: msg.role,
-          text: msg.content,
-          img: msg.image_url,
-          ts: new Date(msg.created_at).getTime(),
-          time: fmt(new Date(msg.created_at).getTime()),
-          rx: msg.reactions || {},
-          rep: msg.reply_to_data,
-          sys: msg.is_system || false,
-          sysCard: msg.sys_card
-        };
-        
-        const emptyMsg = c.querySelector('[style*="3rem"]');
-        if (emptyMsg) emptyMsg.remove();
-        
-        renderMsg(m, c);
-        scrollToBottom();
-        
-        if (msg.user_id !== S.user.id && S.settings.sound) beep();
-      }
-      
-      if (msg.user_id !== S.user.id) {
-        const mentionRegex = new RegExp('@' + S.user.username + '\\b', 'i');
-        const isMentioned = mentionRegex.test(msg.content);
-        const isEveryoneMention = msg.content && msg.content.includes('@everyone');
-        
-        if (isMentioned || isEveryoneMention) {
-          console.log('🔔 Mention detected!');
-          showNotification(
-            `🔔 Mention van ${msg.display_name || msg.username}`,
-            msg.content.substring(0, 100),
-            'mention'
-          );
-          
-          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
-          updateUnreadBadges();
-        } else if (msg.channel_id !== S.chatId) {
-          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
-          updateUnreadBadges();
-        }
-      }
-    })
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'messages'
-    }, payload => {
-      console.log('✏️ Message updated:', payload.new.id);
-      const msg = payload.new;
-      if (msg.channel_id === S.chatId) {
-        const msgEl = document.querySelector(`[data-id="${msg.id}"] .message`);
-        if (msgEl) {
-          const newContent = formatMsg(msg.content, msg.image_url);
-          msgEl.innerHTML = newContent;
-          if (msg.edited) {
-            if (!msgEl.querySelector('.edited-indicator')) {
-              const editedSpan = document.createElement('span');
-              editedSpan.className = 'edited-indicator';
-              editedSpan.style.cssText = 'font-size:0.6rem;opacity:0.6;margin-left:0.5rem;';
-              editedSpan.textContent = '(bewerkt)';
-              msgEl.appendChild(editedSpan);
-            }
-          }
-        }
-      }
-    })
-    .on('postgres_changes', {
-      event: 'DELETE',
-      schema: 'public',
-      table: 'messages'
-    }, payload => {
-      console.log('🗑️ Message deleted:', payload.old.id);
-      const oldMsg = payload.old;
-      if (oldMsg.channel_id === S.chatId) {
-        const msgEl = document.querySelector(`[data-id="${oldMsg.id}"]`);
-        if (msgEl) {
-          msgEl.style.opacity = '0';
-          msgEl.style.transition = 'opacity .3s';
-          setTimeout(() => msgEl.remove(), 300);
-        }
-      }
-    })
-    .subscribe((status) => {
-      console.log('📡 Messages channel status:', status);
+// ==================== NOTIFICATION ====================
+let notificationPermission = false;
+
+function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    notificationPermission = true;
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(p => { 
+      notificationPermission = p === "granted";
     });
-    
-  S.messageSubscriptions.main = channels;
-  
-  console.log('Creating broadcast channel subscription...');
-  const broadcastChannel = supabaseClient.channel('broadcasts-channel')
-    .on('postgres_changes', { 
-      event: 'INSERT', 
-      schema: 'public', 
-      table: 'broadcasts' 
-    }, payload => {
-      const broadcast = payload.new;
-      console.log('📢 Broadcast received:', broadcast.type, broadcast.message);
-      
-      if (broadcast.type === 'message') {
-        document.getElementById('broadcastText').textContent = broadcast.message;
-        document.getElementById('broadcastBanner').classList.remove('hidden');
-        toast('Nieuwe broadcast!', 'info');
-      } else if (broadcast.type === 'maintenance_update') {
-        console.log('🔧 Maintenance update received');
-        checkMaintenanceStatus(true);
-      } else if (broadcast.type === 'url_redirect' && S.user) {
-        console.log('🌐 URL redirect received');
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          pendingOwnerUrl = broadcast.url;
-          document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
-          document.getElementById('ownerUrlDialog').style.display = 'flex';
-        }
-      } else if (broadcast.type === 'crash' && S.user) {
-        console.log('💥 Crash received');
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          showIdiotScreen();
-        }
-      } else if (broadcast.type === 'owner_popup' && S.user) {
-        console.log('👑 Owner popup received');
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          showOwnerPopup(broadcast.message);
-        }
-      }
-    })
-    .subscribe((status) => {
-      console.log('📡 Broadcast channel status:', status);
-    });
-    
-  S.messageSubscriptions.broadcast = broadcastChannel;
-  console.log('✅ Subscriptions setup complete');
+  }
+}
+
+function showNotification(title, body, tag = null) {
+  if (!notificationPermission) return;
+  try {
+    const options = { body, icon: '💬' };
+    if (tag) options.tag = tag;
+    new Notification(title, options);
+  } catch(e) {
+    console.error('Notification error:', e);
+  }
 }
 
 // ==================== CHAT LIST ====================
 async function renderChatList(q='') {
-  console.log('📋 Rendering chat list...');
   const list=document.getElementById('chatList');
   list.innerHTML='';
   const ql=q.toLowerCase();
@@ -1345,7 +1309,6 @@ async function renderChatList(q='') {
   }
   
   updateUnreadBadges();
-  console.log('✅ Chat list rendered');
 }
 
 function updateUnreadBadges() {
@@ -1371,7 +1334,6 @@ function addLabel(parent, text) {
 function filterChats(v){ renderChatList(v); }
 
 async function switchToDM(user) {
-  console.log('💬 Switching to DM with:', user.username);
   const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
   
   const { data } = await supabaseClient
@@ -1393,19 +1355,18 @@ async function switchToDM(user) {
         is_system: true,
         created_at: new Date().toISOString()
       }]);
-    console.log('📝 Created new DM chat');
   }
   
   switchChat(dmId, user.display_name || user.username, 'Direct bericht');
 }
 
 async function switchChat(id, name, sub) {
-  console.log('🔄 Switching to chat:', id);
   unreadCounts[id] = 0;
   updateUnreadBadges();
   
   S.chatId=id; 
   cancelReply();
+  S.lastMessageId = 0;
   
   const ch = CHANNELS.find(c=>c.id===id);
   const title = name || (ch ? ch.name : id);
@@ -1440,7 +1401,6 @@ async function switchChat(id, name, sub) {
 
 // ==================== MESSAGES ====================
 async function loadMessages(id) {
-  console.log('📥 Loading messages for:', id);
   const c = document.getElementById('messagesContainer');
   c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:2rem;">Berichten laden...</div>';
   
@@ -1449,7 +1409,7 @@ async function loadMessages(id) {
       .from('messages')
       .select('*')
       .eq('channel_id', id)
-      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
       .limit(100);
     
     if (error) throw error;
@@ -1459,16 +1419,8 @@ async function loadMessages(id) {
     if (!messages || messages.length === 0) {
       c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:3rem 1rem;font-size:.9rem">💬 Nog geen berichten. Wees de eerste!</div>';
     } else {
-      let lastDate = '';
       messages.forEach(msg => {
-        const msgDate = new Date(msg.created_at).toLocaleDateString();
-        if (msgDate !== lastDate) {
-          const div = document.createElement('div'); 
-          div.className = 'date-divider'; 
-          div.innerHTML = `<span>${msgDate === new Date().toLocaleDateString() ? 'Vandaag' : msgDate}</span>`;
-          c.appendChild(div);
-          lastDate = msgDate;
-        }
+        S.lastMessageId = Math.max(S.lastMessageId, msg.id);
         
         const m = {
           id: msg.id,
@@ -1492,7 +1444,6 @@ async function loadMessages(id) {
     }
     
     scrollToBottom();
-    console.log(`✅ Loaded ${messages?.length || 0} messages`);
   } catch (error) {
     console.error('Fout bij laden berichten:', error);
     c.innerHTML = '<div style="text-align:center;color:var(--danger);padding:2rem;">Fout bij laden berichten</div>';
@@ -1612,7 +1563,6 @@ async function sendMessage(overrideText=null, img=null) {
   }
 
   if (editingMessageId) {
-    console.log('✏️ Editing message:', editingMessageId);
     try {
       const { error } = await supabaseClient
         .from('messages')
@@ -1634,7 +1584,6 @@ async function sendMessage(overrideText=null, img=null) {
   }
 
   try {
-    console.log('📤 Sending message to:', S.chatId);
     const msgData = {
       channel_id: S.chatId,
       user_id: S.user.id,
@@ -1691,7 +1640,6 @@ function startReply(msgId) {
 }
 
 async function toggleRx(msgId, emoji) {
-  console.log('❤️ Toggling reaction:', emoji, 'on message:', msgId);
   try {
     const { data: msgs, error } = await supabaseClient
       .from('messages')
@@ -1738,7 +1686,6 @@ function reactMenu(msgId, e) {
 }
 
 async function delMsg(id) {
-  console.log('🗑️ Deleting message:', id);
   if (!confirm('Bericht verwijderen?')) return;
   
   try {
@@ -2928,13 +2875,11 @@ function hide(id) {
 
 // ==================== INIT ====================
 window.addEventListener('load', async () => {
-  console.log('📄 Page loaded, initializing...');
   loadSettings();
   await checkMaintenanceStatus(true);
   
   const sess = sessionStorage.getItem('uc_sess');
   if (sess) {
-    console.log('📦 Found session:', sess);
     try {
       S.user = JSON.parse(sess);
       S.isOwner = isOwnerUser(S.user.username);
@@ -2956,13 +2901,11 @@ window.addEventListener('load', async () => {
         };
         
         if (S.maintenanceMode && !['admin','owner'].includes(data.role)) {
-          console.log('🔧 Maintenance mode active, showing game');
           showMaintenancePage();
         } else {
           enterApp();
         }
       } else {
-        console.log('❌ User not found in database');
         document.getElementById('loginPage').classList.remove('hidden');
       }
     } catch (e) {
@@ -2970,7 +2913,6 @@ window.addEventListener('load', async () => {
       document.getElementById('loginPage').classList.remove('hidden');
     }
   } else {
-    console.log('🔐 No session, showing login page');
     document.getElementById('loginPage').classList.remove('hidden');
   }
   
@@ -2980,15 +2922,7 @@ window.addEventListener('load', async () => {
   document.getElementById('loginUsername').addEventListener('keydown', e => { 
     if (e.key === 'Enter') handleLogin(); 
   });
-  
-  console.log('✅ Initialization complete');
 });
-
-const originalHandleKey = handleKey;
-handleKey = function(e) {
-  handleAutocompleteKeydown(e);
-  originalHandleKey(e);
-};
 </script>
 </body>
 </html>
