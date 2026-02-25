@@ -1,1757 +1,2956 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UltraChat</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Ultimate Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* ===== CSS VARIABLES & THEMES ===== */
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary: #1c2128;
-  --bg-hover: #21262d;
-  --bg-input: #0d1117;
-  --border: #30363d;
-  --border-light: #21262d;
-  --text-primary: #e6edf3;
-  --text-secondary: #7d8590;
-  --text-muted: #484f58;
-  --accent: #2f81f7;
-  --accent-hover: #1f6feb;
-  --accent-dim: #1f3a5c;
-  --success: #3fb950;
-  --warning: #d29922;
-  --danger: #f85149;
-  --owner: #f0c040;
-  --admin: #da7ef7;
-  --mention: rgba(47, 129, 247, 0.15);
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.4);
-  --font: 'DM Sans', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --sidebar-width: 260px;
+  --primary:#60a5fa; --primary-glow:rgba(96,165,250,0.25);
+  --bg:#060d1a; --surface:#0d1a2e; --surface2:#132038; --surface3:#1a2d48;
+  --text:#e2eaf6; --text-muted:#7a93b8; --border:rgba(96,165,250,0.15);
+  --success:#34d399; --warning:#fbbf24; --danger:#f87171; --owner:#fbbf24;
+  --sidebar-w:280px; --msg-font:0.9rem;
 }
 .theme-light {
-  --bg-primary: #f6f8fa; --bg-secondary: #ffffff; --bg-tertiary: #f0f2f4;
-  --bg-hover: #e8eaed; --bg-input: #f6f8fa; --border: #d0d7de;
-  --border-light: #e8eaed; --text-primary: #24292f; --text-secondary: #57606a;
-  --text-muted: #8c959f; --accent-dim: #dbeafe;
-}
-.theme-blue {
-  --bg-primary: #060d1f; --bg-secondary: #0c1a35; --bg-tertiary: #0f2145;
-  --bg-hover: #142858; --border: #1d3461; --border-light: #1a2e55;
-  --text-primary: #cce0ff; --text-secondary: #7fa8d9; --accent-dim: #0e2a50;
-}
-.theme-green {
-  --bg-primary: #06100a; --bg-secondary: #0b1f12; --bg-tertiary: #0f2a19;
-  --bg-hover: #133320; --border: #1a4228; --border-light: #163723;
-  --text-primary: #b7f0c8; --text-secondary: #5da870; --accent: #2ea043; --accent-dim: #0d2818;
+  --primary:#3b82f6; --primary-glow:rgba(59,130,246,0.2);
+  --bg:#f1f5f9; --surface:#ffffff; --surface2:#f8fafc; --surface3:#e2e8f0;
+  --text:#1e293b; --text-muted:#64748b; --border:rgba(0,0,0,0.1);
 }
 .theme-purple {
-  --bg-primary: #0f0a1a; --bg-secondary: #1a1130; --bg-tertiary: #221545;
-  --bg-hover: #2b1a55; --border: #3a2060; --border-light: #2e1850;
-  --text-primary: #e0ccff; --text-secondary: #9c7ec8; --accent: #8b5cf6; --accent-dim: #2a1550;
+  --primary:#a78bfa; --primary-glow:rgba(167,139,250,0.2);
+  --bg:#0d0117; --surface:#160a2e; --surface2:#1e0f3d; --surface3:#2a1550;
+  --text:#ede9fe; --text-muted:#8b7cc8; --border:rgba(167,139,250,0.15);
 }
+.theme-green {
+  --primary:#34d399; --primary-glow:rgba(52,211,153,0.2);
+  --bg:#021a0f; --surface:#062b1a; --surface2:#0a3d22; --surface3:#0e5230;
+  --text:#d1fae5; --text-muted:#6ee7b7; --border:rgba(52,211,153,0.15);
+}
+.theme-red {
+  --primary:#f87171; --primary-glow:rgba(248,113,113,0.2);
+  --bg:#1a0505; --surface:#2d0a0a; --surface2:#3d1010; --surface3:#521515;
+  --text:#fee2e2; --text-muted:#fca5a5; --border:rgba(248,113,113,0.15);
+}
+.theme-blue {
+  --primary:#3498db; --surface:#ecf0f1; --text:#2c3e50;
+}
+.theme-midnight {
+  --primary:#0984e3; --background:#1e272e; --surface:#2d3436; --text:#dfe6e9;
+}
+.theme-cyber {
+  --primary:#00ff9d; --background:#000000; --surface:#1a1a1a; --text:#00ff9d;
+}
+.theme-black-rgb {
+  --primary:#ff0000; --secondary:#00ff00; --background:#000000; --surface:#111111; --text:#ffffff;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;transition:background .3s,color .3s}
 
-/* ===== RESET & BASE ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; }
-body { font-family: var(--font); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; line-height: 1.5; transition: background 0.2s, color 0.2s; }
-button { font-family: var(--font); cursor: pointer; border: none; outline: none; }
-input, textarea { font-family: var(--font); outline: none; border: none; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-.hidden { display: none !important; }
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+#broadcastBanner{position:fixed;top:0;left:0;right:0;z-index:9000;background:linear-gradient(90deg,#1e3a5f,#0f2847);border-bottom:1px solid var(--primary);padding:.6rem 1.2rem;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 20px rgba(96,165,250,.2);animation:slideDown .3s ease}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.broadcast-content{display:flex;align-items:center;gap:.75rem}
+.broadcast-message{font-size:.875rem;color:var(--primary);font-weight:600;font-family:'JetBrains Mono',monospace}
+.broadcast-close{background:transparent;border:1px solid var(--primary);color:var(--primary);padding:.25rem .75rem;border-radius:6px;cursor:pointer;font-size:.75rem;font-family:'Sora',sans-serif;transition:all .2s}
+.broadcast-close:hover{background:var(--primary);color:var(--bg)}
 
-/* ===== ANIMATIONS ===== */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes toastIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
-@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(100%); } }
-@keyframes idiotFlash { 0% { background: #000; } 25% { background: #f00; } 50% { background: #ff0; } 75% { background: #f0f; } 100% { background: #000; } }
-@keyframes idiotText { 0% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.2) rotate(-3deg); } 50% { transform: scale(0.9) rotate(3deg); } 100% { transform: scale(1) rotate(0deg); } }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-@keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 80% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+.toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem}
+.toast{padding:.75rem 1.25rem;border-radius:10px;font-size:.875rem;font-weight:600;animation:toastIn .3s ease;max-width:300px;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.toast.info{background:var(--surface3);border:1px solid var(--border);color:var(--text)}
+.toast.success{background:rgba(52,211,153,.15);border:1px solid var(--success);color:var(--success)}
+.toast.error{background:rgba(248,113,113,.15);border:1px solid var(--danger);color:var(--danger)}
+.toast.warning{background:rgba(251,191,36,.15);border:1px solid var(--warning);color:var(--warning)}
 
-/* ===== BROADCAST BANNER ===== */
-.broadcast-banner {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-  background: linear-gradient(135deg, var(--warning), #b7791f);
-  color: #000; padding: 10px 20px; display: flex; align-items: center;
-  gap: 12px; font-size: 13px; font-weight: 500; animation: fadeIn 0.3s ease;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-}
-.broadcast-banner .broadcast-icon { font-size: 16px; flex-shrink: 0; }
-.broadcast-banner .broadcast-message { flex: 1; }
-.broadcast-banner .broadcast-close {
-  background: rgba(0,0,0,0.2); color: #000; padding: 4px 10px;
-  border-radius: 4px; font-size: 12px; flex-shrink: 0;
-}
-.broadcast-banner .broadcast-close:hover { background: rgba(0,0,0,0.35); }
+.auth-container{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 30% 60%,rgba(96,165,250,.08) 0%,transparent 70%),var(--bg)}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2.5rem;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.auth-box h2{font-size:1.5rem;font-weight:700;margin-bottom:1.5rem;text-align:center}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:.4rem}
+.form-group input{width:100%;padding:.7rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Sora',sans-serif;font-size:.9rem;transition:border-color .2s,box-shadow .2s;outline:none}
+.form-group input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+.auth-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem}
+.auth-tab{flex:1;padding:.5rem;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text-muted);cursor:pointer;font-family:'Sora',sans-serif;font-size:.85rem;transition:all .2s}
+.auth-tab.active{background:var(--primary);border-color:var(--primary);color:white;font-weight:600}
+.auth-panel{display:none}
+.auth-panel.active{display:block}
+.error-msg{background:rgba(248,113,113,.1);border:1px solid var(--danger);color:var(--danger);padding:.6rem 1rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem}
 
-/* ===== TOAST ===== */
-.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
-.toast {
-  background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary);
-  padding: 12px 16px; border-radius: var(--radius); font-size: 13px;
-  animation: toastIn 0.3s ease; max-width: 320px; display: flex; align-items: center; gap: 10px;
-  box-shadow: var(--shadow);
-}
-.toast.success { border-left: 3px solid var(--success); }
-.toast.error { border-left: 3px solid var(--danger); }
-.toast.warning { border-left: 3px solid var(--warning); }
-.toast.info { border-left: 3px solid var(--accent); }
-.toast-icon { font-size: 16px; flex-shrink: 0; }
+.btn{width:100%;padding:.75rem;border:none;border-radius:10px;background:var(--primary);color:var(--bg);font-weight:700;font-family:'Sora',sans-serif;font-size:.9rem;cursor:pointer;transition:opacity .2s,transform .1s}
+.btn:hover{opacity:.9}
+.btn:active{transform:scale(.98)}
+.btn-secondary{background:var(--surface3);color:var(--text-muted);border:1px solid var(--border)}
+.btn-secondary:hover{color:var(--text);border-color:var(--text-muted);opacity:1}
+.btn-danger{background:var(--danger);color:white}
+.btn-small{padding:.35rem .75rem;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text-muted);font-size:.8rem;cursor:pointer;font-family:'Sora',sans-serif;transition:all .2s}
+.btn-small:hover{background:var(--surface3);color:var(--text);border-color:var(--text-muted)}
+.btn-success{background:var(--success);color:white}
+.btn-warning{background:var(--warning);color:var(--bg)}
+.btn-owner{background:linear-gradient(135deg, #f59e0b 0%, #b45309 100%);color:white}
 
-/* ===== LOADING OVERLAY ===== */
-.loading-overlay {
-  position: fixed; inset: 0; background: var(--bg-primary); z-index: 8000;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-}
-.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-.loading-text { color: var(--text-secondary); font-size: 13px; }
+#chatApp{display:flex;height:100vh;width:100%}
+#adminChatIndicator{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:var(--danger);color:white;padding:5px 15px;border-radius:20px;z-index:1000;font-size:.8rem;font-weight:bold;box-shadow:0 0 20px var(--danger);animation:pulse 2s infinite}
+@keyframes pulse{0%{opacity:1}50%{opacity:0.7}100%{opacity:1}}
 
-/* ===== AUTH PAGES ===== */
-.auth-wrapper {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  background: var(--bg-primary); padding: 20px;
-}
-.auth-box {
-  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xl);
-  padding: 36px 32px; width: 100%; max-width: 380px; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  box-shadow: var(--shadow);
-}
-.auth-logo { text-align: center; margin-bottom: 28px; }
-.auth-logo .logo-icon { font-size: 48px; display: block; margin-bottom: 8px; }
-.auth-logo h1 { font-size: 22px; font-weight: 700; color: var(--text-primary); }
-.auth-logo p { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-.form-group input {
-  width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border);
-  border-radius: var(--radius); color: var(--text-primary); font-size: 14px; transition: border 0.2s;
-}
-.form-group input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-.form-group input::placeholder { color: var(--text-muted); }
-.auth-error {
-  background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3);
-  border-radius: var(--radius); padding: 10px 12px; font-size: 13px; color: var(--danger);
-  margin-bottom: 16px; animation: fadeIn 0.2s ease;
-}
-.btn-primary {
-  width: 100%; padding: 11px; background: var(--accent); color: #fff; border-radius: var(--radius);
-  font-size: 14px; font-weight: 600; transition: background 0.2s, transform 0.1s;
-}
-.btn-primary:hover { background: var(--accent-hover); }
-.btn-primary:active { transform: scale(0.98); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-.auth-switch { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
-.auth-switch a { color: var(--accent); font-weight: 500; cursor: pointer; }
+.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh}
+.sidebar-header{padding:1.25rem 1rem;border-bottom:1px solid var(--border)}
+.user-info{display:flex;align-items:center;gap:.75rem}
+.avatar{width:42px;height:42px;border-radius:50%;background:var(--surface3);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;cursor:pointer;transition:transform .2s}
+.avatar:hover{transform:scale(1.08)}
+.username-display{font-weight:700;font-size:.95rem}
+.status-indicator{font-size:.72rem;color:var(--success);display:flex;align-items:center;gap:.3rem;margin-top:2px}
+.status-indicator::before{content:'';width:7px;height:7px;background:var(--success);border-radius:50%;display:inline-block;box-shadow:0 0 6px var(--success)}
+.search-box{padding:.75rem 1rem}
+.search-box input{width:100%;padding:.55rem .9rem;background:var(--surface2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'Sora',sans-serif;font-size:.85rem;outline:none;transition:border-color .2s}
+.search-box input:focus{border-color:var(--primary)}
+.sidebar-section-label{padding:.4rem 1rem;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted)}
+.chat-list{flex:1;overflow-y:auto;padding:.25rem .5rem}
+.chat-list::-webkit-scrollbar{width:4px}
+.chat-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.chat-item{display:flex;align-items:center;gap:.75rem;padding:.65rem .75rem;border-radius:10px;cursor:pointer;transition:background .15s;margin-bottom:2px;position:relative}
+.chat-item:hover{background:var(--surface2)}
+.chat-item.active{background:var(--surface3);border:1px solid var(--border)}
+.chat-item.active .chat-item-name{color:var(--primary);font-weight:700}
+.chat-item-avatar{width:36px;height:36px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.chat-item-info{flex:1;min-width:0}
+.chat-item-name{font-size:.875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-item-preview{font-size:.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.unread-badge{background-color:#ef4444;color:white;border-radius:999px;padding:0.15rem 0.5rem;font-size:0.7rem;font-weight:bold;min-width:1.2rem;text-align:center;margin-left:auto}
+.sidebar-footer{padding:.85rem 1rem;border-top:1px solid var(--border)}
 
-/* ===== MAIN CHAT APP LAYOUT ===== */
-.app-layout {
-  display: flex; height: 100vh; overflow: hidden;
-}
+.main-content{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.chat-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.chat-title-section{display:flex;align-items:center;gap:.75rem}
+.chat-title{font-size:1rem;font-weight:700}
+.chat-subtitle{font-size:.78rem;color:var(--text-muted);margin-top:1px}
+.header-actions{display:flex;align-items:center;gap:.5rem}
+.online-badge{font-size:.75rem;color:var(--success);font-weight:600;display:flex;align-items:center;gap:.3rem}
+.online-badge::before{content:'';width:6px;height:6px;background:var(--success);border-radius:50%;display:inline-block}
 
-/* ===== SIDEBAR ===== */
-.sidebar {
-  width: var(--sidebar-width); background: var(--bg-secondary); border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; flex-shrink: 0; transition: transform 0.3s ease;
-}
-.sidebar-header {
-  padding: 16px; border-bottom: 1px solid var(--border); display: flex;
-  align-items: center; justify-content: space-between;
-}
-.sidebar-logo { font-size: 16px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
-.sidebar-logo span { font-size: 20px; }
-.sidebar-search { padding: 12px 16px; border-bottom: 1px solid var(--border-light); }
-.sidebar-search input {
-  width: 100%; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border);
-  border-radius: 20px; color: var(--text-primary); font-size: 13px;
-}
-.sidebar-search input:focus { border-color: var(--accent); }
-.sidebar-search input::placeholder { color: var(--text-muted); }
-.sidebar-section { padding: 8px 0; }
-.sidebar-section-title {
-  padding: 6px 16px; font-size: 11px; font-weight: 700; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.8px;
-}
-.channel-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer;
-  border-radius: 4px; margin: 1px 8px; transition: background 0.15s; position: relative;
-}
-.channel-item:hover { background: var(--bg-hover); }
-.channel-item.active { background: var(--accent-dim); color: var(--accent); }
-.channel-item.active .channel-name { color: var(--accent); font-weight: 600; }
-.channel-icon { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
-.channel-name { font-size: 14px; color: var(--text-secondary); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.channel-item.active .channel-name { color: var(--accent); }
-.channel-badge {
-  background: var(--danger); color: #fff; font-size: 10px; font-weight: 700;
-  border-radius: 10px; padding: 1px 6px; min-width: 18px; text-align: center;
-}
-.sidebar-users { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+.messages-container{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:.25rem}
+.messages-container::-webkit-scrollbar{width:5px}
+.messages-container::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.date-divider{display:flex;align-items:center;gap:.75rem;margin:.75rem 0}
+.date-divider span{font-size:.72rem;font-weight:600;color:var(--text-muted);white-space:nowrap}
+.date-divider::before,.date-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.message-wrapper{display:flex;flex-direction:column;margin-bottom:.15rem;position:relative}
+.message-wrapper.own{align-items:flex-end}
+.message-wrapper.other{align-items:flex-start}
+.msg-header{display:flex;align-items:baseline;gap:.5rem;padding:0 .25rem;margin-bottom:.25rem}
+.msg-username{font-size:.8rem;font-weight:700}
+.msg-username.owner{color:var(--owner)}
+.msg-username.admin{color:var(--primary)}
+.msg-time{font-size:.68rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.msg-role-badge{font-size:.6rem;font-weight:700;padding:.1rem .4rem;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+.badge-owner{background:rgba(251,191,36,.2);color:var(--owner);border:1px solid rgba(251,191,36,.3)}
+.badge-admin{background:rgba(96,165,250,.15);color:var(--primary);border:1px solid var(--border)}
+.message{padding:.65rem 1rem;border-radius:14px;max-width:72%;font-size:var(--msg-font);line-height:1.5;word-break:break-word;position:relative}
+.message.mention{background:var(--warning);color:var(--bg);border:2px solid var(--danger)}
+.message.mention .msg-username{color:var(--bg)}
+body.compact-mode .message{padding:.4rem .75rem;border-radius:10px}
+body.compact-mode .message-wrapper{margin-bottom:0}
+.message.other-msg{background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px}
+.message.own-msg{background:var(--primary);color:white;border-bottom-right-radius:4px}
+.message.system-msg{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);color:var(--warning);font-size:.82rem;border-radius:8px;align-self:center;max-width:90%;text-align:center;padding:.4rem 1rem}
+.sys-card{width:100%;max-width:580px;align-self:center;margin:.4rem 0;padding:.85rem 1rem 1rem;border-radius:14px;border-left:4px solid;display:flex;flex-direction:column;gap:.45rem}
+.sys-card.type-info{background:rgba(96,165,250,.07);border-color:var(--primary)}
+.sys-card.type-warn{background:rgba(251,191,36,.07);border-color:var(--warning)}
+.sys-card.type-success{background:rgba(52,211,153,.07);border-color:var(--success)}
+.sys-card.type-danger{background:rgba(248,113,113,.07);border-color:var(--danger)}
+.sys-card.type-announce{background:rgba(167,139,250,.08);border-color:#a78bfa}
+.sys-card.type-update{background:rgba(96,165,250,.07);border-color:var(--primary)}
+.sys-card-header{display:flex;align-items:center;gap:.6rem}
+.sys-card-icon{font-size:1.3rem;flex-shrink:0;line-height:1}
+.sys-card-title{font-weight:700;font-size:.875rem;color:var(--text);flex:1}
+.sys-card-badge{font-size:.6rem;font-weight:700;padding:.15rem .5rem;border-radius:6px;text-transform:uppercase;letter-spacing:.8px;flex-shrink:0}
+.badge-info{background:rgba(96,165,250,.15);color:var(--primary);border:1px solid rgba(96,165,250,.4)}
+.badge-warn{background:rgba(251,191,36,.15);color:var(--warning);border:1px solid rgba(251,191,36,.4)}
+.badge-success{background:rgba(52,211,153,.15);color:var(--success);border:1px solid rgba(52,211,153,.4)}
+.badge-danger{background:rgba(248,113,113,.15);color:var(--danger);border:1px solid rgba(248,113,113,.4)}
+.badge-announce{background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid rgba(167,139,250,.4)}
+.badge-update{background:rgba(96,165,250,.15);color:var(--primary);border:1px solid rgba(96,165,250,.4)}
+.sys-card-body{font-size:.855rem;color:var(--text);line-height:1.6;padding-left:1.95rem}
+.sys-card-footer{display:flex;align-items:center;justify-content:space-between;padding-left:1.95rem}
+.sys-card-ts{font-size:.68rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.sys-card-ver{font-size:.68rem;font-family:'JetBrains Mono',monospace;color:var(--text-muted)}
+.sys-divider{display:flex;align-items:center;gap:.5rem;align-self:center;width:90%;margin:.2rem 0}
+.sys-divider-line{flex:1;height:1px;background:var(--border)}
+.sys-divider-text{font-size:.72rem;color:var(--text-muted);white-space:nowrap;padding:0 .4rem}
+.readonly-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:600;color:var(--text-muted);background:var(--surface);pointer-events:none;z-index:5;gap:.5rem;border-top:1px solid var(--border)}
+.mention{color:var(--primary);font-weight:700;background:rgba(255,255,0,0.2);padding:0 2px;border-radius:3px}
+.msg-link{color:var(--primary);text-decoration:underline;word-break:break-all}
+.message-image{max-width:240px;border-radius:8px;margin-top:.5rem;display:block;cursor:pointer}
+.msg-reactions{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.4rem;position:relative;z-index:5}
+.reaction{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.15rem .55rem;font-size:.8rem;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:.25rem}
+.reaction:hover{background:var(--surface3);border-color:var(--primary)}
+.reaction.reacted{background:rgba(96,165,250,.15);border-color:var(--primary)}
+.reaction-count{font-size:.72rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+.msg-actions{display:none;gap:.25rem;margin-top:.3rem}
+.message-wrapper:hover .msg-actions{display:flex}
+.msg-action-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.2rem .5rem;font-size:.72rem;cursor:pointer;color:var(--text-muted);font-family:'Sora',sans-serif;transition:all .15s}
+.msg-action-btn:hover{background:var(--surface3);color:var(--text)}
+.msg-action-btn.danger:hover{color:var(--danger);border-color:var(--danger)}
 
-/* User list items */
-.user-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 16px; cursor: pointer;
-  border-radius: 4px; margin: 1px 8px; transition: background 0.15s;
-}
-.user-item:hover { background: var(--bg-hover); }
-.user-item.active { background: var(--accent-dim); }
-.user-avatar {
-  width: 32px; height: 32px; border-radius: 50%; background: var(--bg-hover);
-  display: flex; align-items: center; justify-content: center; font-size: 16px;
-  flex-shrink: 0; position: relative;
-}
-.user-avatar-lg {
-  width: 40px; height: 40px; font-size: 20px;
-}
-.status-dot {
-  width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--bg-secondary);
-  position: absolute; bottom: -1px; right: -1px;
-}
-.status-dot.online { background: var(--success); }
-.status-dot.offline { background: var(--text-muted); }
-.user-info-text { flex: 1; overflow: hidden; }
-.user-name { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.user-role { font-size: 11px; color: var(--text-muted); }
-.user-role.owner { color: var(--owner); }
-.user-role.admin { color: var(--admin); }
+.reply-bar{background:var(--surface2);border-left:3px solid var(--primary);padding:.45rem .75rem;margin:.25rem 1.25rem;border-radius:0 8px 8px 0;font-size:.8rem;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center}
+.reply-cancel{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:0 .25rem}
+.quoted-msg{background:var(--surface3);border-left:3px solid var(--primary);padding:.4rem .6rem;border-radius:0 6px 6px 0;margin-bottom:.4rem;font-size:.78rem;color:var(--text-muted)}
 
-/* Sidebar bottom */
-.sidebar-bottom {
-  border-top: 1px solid var(--border); padding: 12px 16px;
-  display: flex; align-items: center; gap: 10px;
-}
-.current-user-info { flex: 1; overflow: hidden; }
-.current-user-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.current-user-tag { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
-.sidebar-actions { display: flex; gap: 4px; }
-.icon-btn {
-  width: 30px; height: 30px; border-radius: var(--radius); background: transparent;
-  color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
-  font-size: 16px; transition: background 0.15s, color 0.15s;
-}
-.icon-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.typing-indicator{padding:.4rem .75rem;font-size:.78rem;color:var(--text-muted);display:flex;align-items:center;gap:.5rem;height:28px;flex-shrink:0}
+.typing-dots{display:flex;gap:3px}
+.typing-dots span{width:5px;height:5px;background:var(--text-muted);border-radius:50%;animation:typingBounce 1s infinite}
+.typing-dots span:nth-child(2){animation-delay:.15s}
+.typing-dots span:nth-child(3){animation-delay:.3s}
+@keyframes typingBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
 
-/* ===== MAIN CONTENT ===== */
-.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-.chat-header {
-  padding: 0 20px; height: 52px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 12px; background: var(--bg-secondary);
-  flex-shrink: 0; box-shadow: 0 1px 0 var(--border);
-}
-.chat-header-icon { font-size: 18px; }
-.chat-header-info { flex: 1; }
-.chat-header-name { font-size: 15px; font-weight: 600; }
-.chat-header-desc { font-size: 12px; color: var(--text-secondary); }
-.header-actions { display: flex; align-items: center; gap: 8px; }
-.btn-sm {
-  padding: 6px 12px; border-radius: var(--radius); font-size: 12px; font-weight: 600;
-  transition: background 0.15s; display: flex; align-items: center; gap: 6px;
-}
-.btn-sm.secondary { background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-sm.secondary:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.btn-sm.danger { background: rgba(248,81,73,0.15); color: var(--danger); border: 1px solid rgba(248,81,73,0.3); }
-.btn-sm.danger:hover { background: rgba(248,81,73,0.25); }
-.btn-sm.accent { background: var(--accent); color: #fff; }
-.btn-sm.accent:hover { background: var(--accent-hover); }
+.input-container{padding:.75rem 1.25rem 1rem;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.input-wrapper{display:flex;align-items:center;gap:.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:.4rem .5rem .4rem 1rem;transition:border-color .2s;position:relative}
+.input-wrapper:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-glow)}
+.input-toolbar{display:flex;gap:.25rem}
+.input-tool-btn{background:none;border:none;color:var(--text-muted);font-size:1rem;cursor:pointer;padding:.3rem;border-radius:6px;transition:all .15s}
+.input-tool-btn:hover{background:var(--surface3);color:var(--text)}
+#messageInput{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'Sora',sans-serif;font-size:.9rem;resize:none;line-height:1.4;max-height:120px;overflow-y:auto}
+#messageInput::placeholder{color:var(--text-muted)}
+.char-counter{font-size:.68rem;color:var(--text-muted);font-family:'JetBrains Mono',monospace;align-self:flex-end;padding-bottom:.2rem;white-space:nowrap}
+.char-counter.over{color:var(--danger)}
+.send-btn{background:var(--primary);border:none;border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:opacity .2s,transform .1s}
+.send-btn:hover{opacity:.9}
+.send-btn:active{transform:scale(.93)}
+.send-btn svg{width:18px;height:18px;fill:var(--bg)}
 
-/* ===== MESSAGES ===== */
-.messages-area { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 2px; }
-.messages-area.has-broadcast { padding-top: 56px; }
-.message-group { display: flex; gap: 12px; padding: 4px 0; margin-bottom: 4px; animation: fadeIn 0.25s ease; }
-.message-group:hover { background: rgba(255,255,255,0.02); border-radius: var(--radius); margin: 4px -8px; padding: 4px 8px; }
-.msg-avatar-col { flex-shrink: 0; padding-top: 2px; }
-.msg-content-col { flex: 1; min-width: 0; }
-.msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
-.msg-username { font-size: 14px; font-weight: 600; }
-.msg-username.owner { color: var(--owner); }
-.msg-username.admin { color: var(--admin); }
-.msg-timestamp { font-size: 11px; color: var(--text-muted); }
-.msg-role-badge {
-  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.msg-role-badge.owner { background: rgba(240,192,64,0.2); color: var(--owner); }
-.msg-role-badge.admin { background: rgba(218,126,247,0.2); color: var(--admin); }
-.msg-body { font-size: 14px; line-height: 1.55; color: var(--text-primary); word-break: break-word; white-space: pre-wrap; }
-.msg-body a { color: var(--accent); }
-.msg-body a:hover { text-decoration: underline; }
-.msg-body code {
-  background: var(--bg-input); border: 1px solid var(--border); border-radius: 3px;
-  padding: 1px 5px; font-family: var(--font-mono); font-size: 12px;
-}
-.msg-body pre { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; overflow-x: auto; margin: 6px 0; }
-.msg-body pre code { background: none; border: none; padding: 0; }
-.msg-image { max-width: 400px; max-height: 300px; border-radius: var(--radius); margin-top: 8px; display: block; border: 1px solid var(--border); }
-.msg-continued .msg-avatar-col { visibility: hidden; }
-.msg-continued { margin-bottom: 0; }
-.mention { background: var(--mention); color: var(--accent); border-radius: 3px; padding: 0 3px; font-weight: 500; }
-.mention.own { background: rgba(47, 129, 247, 0.3); }
-.msg-system {
-  text-align: center; color: var(--text-muted); font-size: 12px; padding: 8px 0;
-  display: flex; align-items: center; gap: 8px;
-}
-.msg-system::before, .msg-system::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.empty-chat { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-secondary); }
-.empty-chat .empty-icon { font-size: 48px; }
-.empty-chat h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); }
-.empty-chat p { font-size: 13px; text-align: center; max-width: 300px; }
+.emoji-picker{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:.75rem;width:280px;box-shadow:0 10px 40px rgba(0,0,0,.4);z-index:100;display:none}
+.emoji-picker.open{display:block}
+.emoji-search{width:100%;padding:.4rem .6rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:.82rem;outline:none;margin-bottom:.5rem}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:.25rem}
+.emoji-btn{background:none;border:none;font-size:1.2rem;cursor:pointer;padding:.25rem;border-radius:6px;transition:background .1s}
+.emoji-btn:hover{background:var(--surface2)}
 
-/* Typing indicator */
-.typing-indicator { padding: 0 20px 8px; height: 24px; display: flex; align-items: center; gap: 8px; }
-.typing-dots { display: flex; gap: 3px; }
-.typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text-muted); animation: pulse 1.2s ease infinite; }
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
-.typing-text { font-size: 12px; color: var(--text-secondary); }
+.scroll-bottom-btn{position:absolute;bottom:90px;right:20px;background:var(--primary);border:none;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4);font-size:1rem;color:var(--bg);z-index:10}
 
-/* ===== INPUT AREA ===== */
-.input-area {
-  padding: 12px 20px 16px; background: var(--bg-secondary); border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.input-box {
-  display: flex; align-items: flex-end; gap: 8px; background: var(--bg-input);
-  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 8px 12px;
-  transition: border 0.2s;
-}
-.input-box:focus-within { border-color: var(--accent); }
-.input-actions-left { display: flex; gap: 2px; padding-bottom: 2px; }
-.msg-input {
-  flex: 1; background: transparent; color: var(--text-primary); font-size: 14px;
-  resize: none; max-height: 120px; line-height: 1.5; padding: 2px 0;
-}
-.msg-input::placeholder { color: var(--text-muted); }
-.input-actions-right { display: flex; gap: 4px; align-items: flex-end; padding-bottom: 2px; }
-.send-btn {
-  width: 32px; height: 32px; border-radius: var(--radius); background: var(--accent);
-  color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px;
-  transition: background 0.15s, transform 0.1s; flex-shrink: 0;
-}
-.send-btn:hover { background: var(--accent-hover); }
-.send-btn:active { transform: scale(0.95); }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:2000;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-content{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:2rem;width:90%;max-width:480px;max-height:85vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:1.1rem;font-weight:700;margin-bottom:1.25rem;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;padding:0 .25rem;transition:color .2s}
+.modal-close:hover{color:var(--danger)}
+.modal-section{margin-bottom:1.25rem}
+.modal-section h3{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:.75rem}
+.modal-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border)}
+.modal-row:last-child{border-bottom:none}
+.modal-label{font-size:.875rem;font-weight:500}
+.modal-desc{font-size:.75rem;color:var(--text-muted);margin-top:2px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--surface3);border-radius:24px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+input:checked+.toggle-slider{background:var(--primary)}
+input:checked+.toggle-slider::before{transform:translateX(20px)}
+.theme-grid{display:flex;gap:.5rem;flex-wrap:wrap}
+.theme-swatch{width:34px;height:34px;border-radius:50%;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent}
+.theme-swatch:hover{transform:scale(1.12)}
+.theme-swatch.selected{border-color:white;box-shadow:0 0 0 3px var(--primary)}
+.avatar-grid{display:flex;flex-wrap:wrap;gap:.5rem}
+.avatar-option{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;transition:all .15s}
+.avatar-option:hover{border-color:var(--primary);transform:scale(1.08)}
+.avatar-option.selected{border-color:var(--primary);background:var(--surface3)}
 
-/* ===== MODALS ===== */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 5000;
-  display: flex; align-items: center; justify-content: center; padding: 20px;
-  animation: fadeIn 0.15s ease; backdrop-filter: blur(2px);
-}
-.modal-box {
-  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xl);
-  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
-  animation: popIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: var(--shadow);
-}
-.modal-box.wide { max-width: 600px; }
-.modal-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
-.modal-title { font-size: 16px; font-weight: 700; }
-.modal-close { width: 28px; height: 28px; border-radius: var(--radius); background: var(--bg-hover); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 14px; }
-.modal-close:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-.modal-body { padding: 20px 24px; }
-.modal-footer { padding: 0 24px 20px; display: flex; justify-content: flex-end; gap: 8px; }
-.setting-row { margin-bottom: 20px; }
-.setting-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-.setting-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
-.theme-picker { display: flex; gap: 8px; flex-wrap: wrap; }
-.theme-option {
-  width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent;
-  transition: transform 0.2s, border 0.2s; display: flex; align-items: center; justify-content: center;
-}
-.theme-option:hover { transform: scale(1.1); }
-.theme-option.selected { border-color: var(--accent); }
-.theme-option.t-dark { background: #0d1117; }
-.theme-option.t-light { background: linear-gradient(135deg, #f6f8fa, #ffffff); border: 3px solid var(--border); }
-.theme-option.t-blue { background: #060d1f; }
-.theme-option.t-green { background: #06100a; }
-.theme-option.t-purple { background: #0f0a1a; }
-.avatar-picker { display: flex; gap: 8px; flex-wrap: wrap; }
-.avatar-option {
-  width: 44px; height: 44px; border-radius: 50%; background: var(--bg-hover);
-  display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer;
-  border: 3px solid transparent; transition: border 0.2s, transform 0.2s;
-}
-.avatar-option:hover { transform: scale(1.1); }
-.avatar-option.selected { border-color: var(--accent); }
-.status-picker { display: flex; gap: 8px; }
-.status-option {
-  display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: var(--radius);
-  background: var(--bg-hover); border: 1px solid var(--border); cursor: pointer; font-size: 13px;
-  transition: background 0.15s; border: 2px solid transparent;
-}
-.status-option:hover { background: var(--bg-tertiary); }
-.status-option.selected { border-color: var(--accent); background: var(--accent-dim); }
-.status-dot-sm { width: 8px; height: 8px; border-radius: 50%; }
-.status-dot-sm.online { background: var(--success); }
-.status-dot-sm.offline { background: var(--text-muted); }
+.admin-panel-content{max-width:600px}
+.admin-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
+.admin-stat{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem;text-align:center}
+.admin-stat-value{font-size:1.5rem;font-weight:700;color:var(--primary);font-family:'JetBrains Mono',monospace}
+.admin-stat-label{font-size:.7rem;color:var(--text-muted);margin-top:2px}
+.user-list-item{display:flex;align-items:center;gap:.75rem;padding:.6rem 0;border-bottom:1px solid var(--border)}
+.user-list-item:last-child{border-bottom:none}
+.user-list-item.banned{opacity:.4}
+.user-list-actions{display:flex;gap:.4rem;margin-left:auto;flex-wrap:wrap}
+.action-btn{padding:.25rem .6rem;border-radius:6px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;font-family:'Sora',sans-serif;transition:opacity .2s}
+.action-btn:hover{opacity:.8}
+.action-btn.kick{background:rgba(251,191,36,.15);color:var(--warning);border:1px solid var(--warning)}
+.action-btn.ban{background:rgba(248,113,113,.15);color:var(--danger);border:1px solid var(--danger)}
+.action-btn.mute-btn{background:rgba(96,165,250,.15);color:var(--primary);border:1px solid var(--primary)}
+.action-btn.promote{background:rgba(52,211,153,.15);color:var(--success);border:1px solid var(--success)}
 
-/* Admin panel */
-.admin-section { margin-bottom: 24px; }
-.admin-section h3 { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.admin-user-row { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: var(--radius); margin-bottom: 4px; background: var(--bg-hover); }
-.admin-user-row .user-info-text { flex: 1; }
-.admin-actions { display: flex; gap: 4px; }
-.admin-input-group { display: flex; gap: 8px; }
-.admin-input-group input { flex: 1; padding: 9px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-size: 13px; }
-.admin-input-group input:focus { border-color: var(--accent); }
+.gif-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.5rem;max-height:300px;overflow-y:auto;margin-top:.5rem}
+.gif-item{border-radius:8px;overflow:hidden;cursor:pointer;padding:1rem;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2rem;transition:all .15s;border:1px solid var(--border)}
+.gif-item:hover{background:var(--surface3);transform:scale(1.02)}
 
-/* ===== MAINTENANCE MODE ===== */
-.maintenance-screen {
-  position: fixed; inset: 0; background: var(--bg-primary); z-index: 9000;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
-}
-.maintenance-icon { font-size: 64px; animation: spin 4s linear infinite; }
-.maintenance-title { font-size: 28px; font-weight: 700; }
-.maintenance-desc { font-size: 14px; color: var(--text-secondary); text-align: center; max-width: 360px; }
-.maintenance-game { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.maintenance-game canvas { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-secondary); }
-.maintenance-score { font-size: 14px; color: var(--text-secondary); font-family: var(--font-mono); }
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:5000;display:flex;align-items:center;justify-content:center;cursor:zoom-out}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:10px}
 
-/* ===== IDIOT SCREEN ===== */
-.idiot-screen {
-  position: fixed; inset: 0; z-index: 99999;
-  display: flex; align-items: center; justify-content: center;
-  animation: idiotFlash 0.12s infinite;
-}
-.idiot-text {
-  font-size: clamp(40px, 10vw, 100px); font-weight: 900;
-  color: #fff; text-shadow: 0 0 40px #fff; letter-spacing: 4px;
-  animation: idiotText 0.12s infinite;
-  font-family: Impact, sans-serif;
-}
-.idiot-close {
-  position: absolute; bottom: 40px; padding: 12px 24px; background: rgba(255,255,255,0.2);
-  color: #fff; border-radius: var(--radius); font-size: 14px; border: 2px solid rgba(255,255,255,0.5);
-}
-.idiot-close:hover { background: rgba(255,255,255,0.35); }
+.maintenance-container{position:fixed;inset:0;z-index:7000;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}
+.maintenance-container h1{font-size:2rem;font-weight:700}
+#gameCanvas{border:2px solid var(--primary);border-radius:10px;box-shadow:0 0 30px rgba(96,165,250,.3);cursor:crosshair}
+.game-info{font-family:'JetBrains Mono',monospace;font-size:1.1rem;color:var(--primary)}
+.maintenance-lock{position:fixed;top:20px;right:20px;background:var(--danger);color:white;padding:10px 20px;border-radius:30px;font-weight:bold;z-index:8000;box-shadow:0 0 20px var(--danger);animation:lockPulse 2s infinite}
+@keyframes lockPulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
 
-/* ===== DATE DIVIDER ===== */
-.date-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
-.date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.date-divider-text { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+@keyframes idiotFlash{0%{background:#000}50%{background:#f00}100%{background:#000}}
+.idiot-screen{position:fixed;inset:0;z-index:20000;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1rem;animation:idiotFlash .05s infinite}
+.idiot-text{font-size:4rem;font-weight:900;color:white;text-shadow:0 0 30px white;font-family:'JetBrains Mono',monospace}
+.idiot-close{background:rgba(255,255,255,.2);border:2px solid white;color:white;padding:.5rem 1.5rem;border-radius:8px;cursor:pointer;font-size:1rem;font-family:'Sora',sans-serif}
 
-/* ===== SCROLLTOBOTTOM BTN ===== */
-.scroll-to-bottom {
-  position: absolute; bottom: 80px; right: 24px; width: 36px; height: 36px;
-  border-radius: 50%; background: var(--bg-secondary); border: 1px solid var(--border);
-  color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
-  font-size: 18px; cursor: pointer; box-shadow: var(--shadow); transition: background 0.15s;
-  animation: fadeIn 0.2s ease;
-}
-.scroll-to-bottom:hover { background: var(--bg-hover); color: var(--text-primary); }
+.profile-avatar-large{width:80px;height:80px;border-radius:50%;background:var(--surface3);border:3px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:2.5rem;margin:0 auto .75rem}
+.name-input{width:100%;padding:.6rem .9rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s}
+.name-input:focus{border-color:var(--primary)}
+.profile-stat{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.75rem;text-align:center}
 
-/* ===== PROFILE HOVER CARD ===== */
-.profile-card {
-  position: fixed; z-index: 4000; background: var(--bg-secondary); border: 1px solid var(--border);
-  border-radius: var(--radius-xl); padding: 20px; width: 240px; box-shadow: var(--shadow);
-  animation: popIn 0.2s ease;
-}
-.profile-card-avatar { font-size: 48px; text-align: center; margin-bottom: 12px; }
-.profile-card-name { font-size: 16px; font-weight: 700; text-align: center; }
-.profile-card-role { font-size: 12px; text-align: center; margin-top: 4px; }
-.profile-card-joined { font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 8px; }
-.profile-card-actions { display: flex; gap: 8px; margin-top: 14px; }
-.profile-card-actions button { flex: 1; padding: 7px; border-radius: var(--radius); font-size: 12px; font-weight: 600; }
+.ctx-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.4rem 0;z-index:3000;box-shadow:0 10px 40px rgba(0,0,0,.4);min-width:160px;animation:fadeIn .15s ease}
+.ctx-item{padding:.5rem 1rem;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:.6rem;transition:background .1s}
+.ctx-item:hover{background:var(--surface2)}
+.ctx-item.danger{color:var(--danger)}
 
-/* ===== MOBILE ===== */
-@media (max-width: 680px) {
-  :root { --sidebar-width: 100vw; }
-  .sidebar { position: fixed; inset: 0; z-index: 3000; transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .mobile-menu-btn { display: flex; }
-  .chat-header { padding: 0 12px; }
-}
-.mobile-menu-btn { display: none; }
+.hidden{display:none!important}
+select{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:.45rem .75rem;font-family:'Sora',sans-serif;font-size:.85rem;outline:none;cursor:pointer}
+select:focus{border-color:var(--primary)}
+input[type=range]{accent-color:var(--primary);cursor:pointer}
+.input-gap{display:flex;gap:.5rem}
 </style>
 </head>
-<body class="theme-dark">
+<body>
 
-<!-- Broadcast Banner -->
-<div id="broadcastBanner" class="broadcast-banner hidden">
-  <span class="broadcast-icon">📢</span>
-  <div id="broadcastText" class="broadcast-message"></div>
-  <button class="broadcast-close" onclick="dismissBroadcast()">Dismiss</button>
+<!-- BROADCAST BANNER -->
+<div id="broadcastBanner" class="hidden">
+  <div class="broadcast-content">
+    <span>📢</span>
+    <div class="broadcast-message" id="broadcastText"></div>
+  </div>
+  <button class="broadcast-close" onclick="dismissBroadcast()">Sluiten</button>
 </div>
 
-<!-- Toast Container -->
+<!-- MAINTENANCE LOCK (wordt getoond tijdens onderhoud) -->
+<div id="maintenanceLock" class="maintenance-lock hidden">
+  🔒 Onderhoudsmodus - Alleen admins
+</div>
+
+<!-- ADMIN CHAT INDICATOR (voor admin kanaal) -->
+<div id="adminChatIndicator" class="hidden">
+  👑 ADMIN CHAT - Alleen zichtbaar voor admins
+</div>
+
 <div id="toastContainer" class="toast-container"></div>
 
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-  <div class="spinner"></div>
-  <div class="loading-text" id="loadingText">Connecting to UltraChat...</div>
-</div>
-
-<!-- LOGIN PAGE -->
-<div id="loginPage" class="auth-wrapper hidden">
+<!-- AUTH PAGINA -->
+<div id="loginPage" class="auth-container">
   <div class="auth-box">
-    <div class="auth-logo">
-      <span class="logo-icon">💬</span>
-      <h1>UltraChat</h1>
-      <p>Connect with everyone, instantly.</p>
+    <h2>💬 Ultimate Chat</h2>
+    <div id="authError" class="error-msg hidden"></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login',this)">Inloggen</button>
+      <button class="auth-tab" onclick="switchTab('register',this)">Registreren</button>
     </div>
-    <div id="loginError" class="auth-error hidden"></div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+    <div id="loginPanel" class="auth-panel active">
+      <div class="form-group"><label>Gebruikersnaam</label><input type="text" id="loginUsername" placeholder="gebruikersnaam" autocomplete="username"></div>
+      <div class="form-group"><label>Wachtwoord</label><input type="password" id="loginPassword" placeholder="••••••••"></div>
+      <button class="btn" onclick="handleLogin()">Inloggen</button>
     </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    <div id="registerPanel" class="auth-panel">
+      <div class="form-group"><label>Gebruikersnaam</label><input type="text" id="regUsername" placeholder="kies_gebruikersnaam" autocomplete="username"></div>
+      <div class="form-group"><label>Weergavenaam</label><input type="text" id="regDisplay" placeholder="Jouw Naam"></div>
+      <div class="form-group"><label>Wachtwoord</label><input type="password" id="regPassword" placeholder="min 4 tekens"></div>
+      <div class="form-group"><label>Bevestig Wachtwoord</label><input type="password" id="regConfirm" placeholder="••••••••"></div>
+      <button class="btn" onclick="handleRegister()">Account Aanmaken</button>
     </div>
-    <button class="btn-primary" onclick="doLogin()" id="loginBtn">Sign In</button>
-    <div class="auth-switch">New here? <a onclick="showPage('register')">Create an account</a></div>
   </div>
 </div>
 
-<!-- REGISTER PAGE -->
-<div id="registerPage" class="auth-wrapper hidden">
-  <div class="auth-box">
-    <div class="auth-logo">
-      <span class="logo-icon">🚀</span>
-      <h1>Join UltraChat</h1>
-      <p>Create your free account today.</p>
-    </div>
-    <div id="registerError" class="auth-error hidden"></div>
-    <div class="form-group">
-      <label>Username</label>
-      <input type="text" id="registerUsername" placeholder="cooluser123" maxlength="20">
-    </div>
-    <div class="form-group">
-      <label>Email</label>
-      <input type="email" id="registerEmail" placeholder="you@example.com" autocomplete="email">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="registerPassword" placeholder="At least 6 characters" autocomplete="new-password">
-    </div>
-    <button class="btn-primary" onclick="doRegister()" id="registerBtn">Create Account</button>
-    <div class="auth-switch">Already have one? <a onclick="showPage('login')">Sign in</a></div>
-  </div>
-</div>
-
-<!-- MAIN CHAT APP -->
-<div id="chatApp" class="app-layout hidden">
-  <!-- Sidebar -->
-  <div id="sidebar" class="sidebar">
+<!-- HOOFD CHAT APPLICATIE -->
+<div id="chatApp" class="hidden">
+  <div class="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo"><span>💬</span> UltraChat</div>
-      <button class="icon-btn mobile-menu-btn" onclick="closeMobileSidebar()" title="Close">✕</button>
-    </div>
-    <div class="sidebar-search">
-      <input type="text" id="userSearch" placeholder="🔍 Search users..." oninput="filterUsers()">
-    </div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Channels</div>
-      <div class="channel-item active" id="ch-global" onclick="switchChat('global')">
-        <span class="channel-icon">#</span>
-        <span class="channel-name">global</span>
+      <div class="user-info">
+        <div class="avatar" id="userAvatar" onclick="openProfile()">😀</div>
+        <div>
+          <div class="username-display" id="currentUsername">Gebruiker</div>
+          <div class="status-indicator">Online</div>
+        </div>
       </div>
     </div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Direct Messages</div>
-      <div id="dmList"></div>
+    <div class="search-box">
+      <input type="text" id="userSearch" placeholder="🔍 Zoeken..." oninput="filterChats(this.value)">
     </div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Online <span id="onlineCount" style="color:var(--success)">0</span></div>
-      <div class="sidebar-users" id="userList"></div>
-    </div>
-    <div class="sidebar-bottom">
-      <div class="user-avatar user-avatar-lg" id="sidebarAvatar">😀</div>
-      <div class="current-user-info">
-        <div class="current-user-name" id="sidebarUsername">Loading...</div>
-        <div class="current-user-tag" id="sidebarTag">#0000</div>
-      </div>
-      <div class="sidebar-actions">
-        <button class="icon-btn" onclick="showSettings()" title="Settings">⚙️</button>
-        <button class="icon-btn" onclick="doLogout()" title="Logout">🚪</button>
-      </div>
+    <div class="chat-list" id="chatList"></div>
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary" onclick="logout()" style="width:100%;font-size:.85rem;padding:.55rem">⬅ Uitloggen</button>
     </div>
   </div>
 
-  <!-- Main Content -->
-  <div class="main-content">
+  <div class="main-content" id="mainContent">
     <div class="chat-header">
-      <button class="icon-btn mobile-menu-btn" onclick="openMobileSidebar()" title="Menu">☰</button>
-      <span class="chat-header-icon" id="chatHeaderIcon">#</span>
-      <div class="chat-header-info">
-        <div class="chat-header-name" id="chatHeaderName">global</div>
-        <div class="chat-header-desc" id="chatHeaderDesc">Welcome to the global chat</div>
+      <div class="chat-title-section">
+        <div>
+          <div class="chat-title" id="chatTitle">🌍 Algemene Chat</div>
+          <div class="chat-subtitle" id="chatSubtitle">Iedereen kan hier praten</div>
+        </div>
       </div>
       <div class="header-actions">
-        <button id="adminPanelBtn" class="btn-sm accent hidden" onclick="showAdminPanel()">👑 Admin</button>
+        <span class="online-badge" id="onlineBadge">1 online</span>
+        <button class="btn-small" onclick="openSettings()">⚙️ Instellingen</button>
+        <button class="btn-small hidden" id="adminButton" onclick="openAdmin()">👑 Admin</button>
+        <button class="btn-small hidden" id="ownerButton" onclick="showOwnerTerminal()">💻 Terminal</button>
       </div>
     </div>
 
-    <div id="messagesArea" class="messages-area">
-      <div class="empty-chat" id="emptyChat">
-        <div class="empty-icon">💬</div>
-        <h3>No messages yet</h3>
-        <p>Be the first to say something!</p>
-      </div>
+    <div id="messagesContainer" class="messages-container"></div>
+
+    <div class="typing-indicator hidden" id="typingIndicator">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+      <span id="typingText">Iemand is aan het typen...</span>
     </div>
 
-    <div class="typing-indicator" id="typingIndicator"></div>
+    <div id="replyBar" class="reply-bar hidden">
+      <span id="replyBarText">Beantwoorden...</span>
+      <button class="reply-cancel" onclick="cancelReply()">✕</button>
+    </div>
 
-    <div class="input-area" id="inputArea">
-      <div class="input-box">
-        <textarea id="messageInput" class="msg-input" placeholder="Message #global" rows="1"
-          onkeydown="handleInputKey(event)" oninput="handleInputChange()"></textarea>
-        <div class="input-actions-right">
-          <button class="icon-btn" onclick="toggleEmojiPanel()" title="Emoji">😊</button>
-          <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send">➤</button>
+    <div class="input-container">
+      <div class="input-wrapper">
+        <div class="input-toolbar">
+          <button class="input-tool-btn" onclick="toggleEmoji(event)" title="Emoji">😊</button>
+          <button class="input-tool-btn" title="Afbeelding" onclick="document.getElementById('imgUp').click()">📎</button>
+          <button class="input-tool-btn" title="GIF / Sticker" onclick="openModal('gifModal')">🎬</button>
+        </div>
+        <input type="file" id="imgUp" accept="image/*" style="display:none" onchange="handleImg(event)">
+        <textarea id="messageInput" rows="1" placeholder="Typ een bericht... (Gebruik @ om te mentionen, Enter om te versturen)" onkeydown="handleKey(event)" oninput="handleInput(this); handleMentionAutocomplete(event)" maxlength="2000"></textarea>
+        <span class="char-counter" id="charCounter">0/2000</span>
+        <button class="send-btn" onclick="sendMessage()" title="Versturen">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+        <div class="emoji-picker" id="emojiPicker">
+          <input class="emoji-search" type="text" placeholder="Zoek emoji..." oninput="filterEmoji(this.value)" onclick="event.stopPropagation()">
+          <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+        <div id="autocompleteDropdown" class="hidden" style="position:absolute;bottom:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto;z-index:100;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="scroll-bottom-btn hidden" id="scrollBottomBtn" onclick="scrollToBottom()">↓</button>
+
+<!-- INSTELLINGEN MODAL -->
+<div id="settingsModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-title">⚙️ Instellingen <button class="modal-close" onclick="closeModal('settingsModal')">✕</button></div>
+    <div class="modal-section">
+      <h3>Thema</h3>
+      <div class="modal-row">
+        <div><div class="modal-label">Kleurenthema</div></div>
+        <div class="theme-grid" id="themeGrid">
+          <div class="theme-swatch" style="background:#060d1a;border-color:#60a5fa" onclick="applyTheme('dark',this)" title="Donker"></div>
+          <div class="theme-swatch" style="background:#f1f5f9;border-color:#3b82f6" onclick="applyTheme('light',this)" title="Licht"></div>
+          <div class="theme-swatch" style="background:#0d0117;border-color:#a78bfa" onclick="applyTheme('purple',this)" title="Paars"></div>
+          <div class="theme-swatch" style="background:#021a0f;border-color:#34d399" onclick="applyTheme('green',this)" title="Groen"></div>
+          <div class="theme-swatch" style="background:#1a0505;border-color:#f87171" onclick="applyTheme('red',this)" title="Rood"></div>
+          <div class="theme-swatch" style="background:#ffffff;border-color:#3498db" onclick="applyTheme('blue',this)" title="Blauw"></div>
+          <div class="theme-swatch" style="background:#1e272e;border-color:#0984e3" onclick="applyTheme('midnight',this)" title="Middernacht"></div>
+          <div class="theme-swatch" style="background:#000000;border-color:#00ff9d" onclick="applyTheme('cyber',this)" title="Cyber"></div>
+          <div class="theme-swatch" style="background:#000000;border-color:#ff0000" onclick="applyTheme('black-rgb',this)" title="Black RGB"></div>
         </div>
       </div>
+      <div class="modal-row">
+        <div><div class="modal-label">Lettergrootte</div><div class="modal-desc" id="fontSizeLabel">14px</div></div>
+        <input type="range" min="12" max="20" value="14" id="fontSizeSlider" oninput="applyFontSize(this.value)">
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>Avatar</h3>
+      <div class="avatar-grid" id="settingsAvatarPicker"></div>
+    </div>
+    <div class="modal-section">
+      <h3>Voorkeuren</h3>
+      <div class="modal-row">
+        <div><div class="modal-label">Compacte modus</div><div class="modal-desc">Kleinere berichten</div></div>
+        <label class="toggle"><input type="checkbox" id="compactToggle" onchange="toggleCompact(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="modal-row">
+        <div><div class="modal-label">Toon tijdstippen</div></div>
+        <label class="toggle"><input type="checkbox" id="timestampToggle" checked onchange="toggleTimestamps(this.checked)"><span class="toggle-slider"></span></label>
+      </div>
+      <div class="modal-row">
+        <div><div class="modal-label">Geluiden</div></div>
+        <label class="toggle"><input type="checkbox" id="soundToggle" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="modal-row">
+        <div><div class="modal-label">Enter om te versturen</div><div class="modal-desc">Shift+Enter voor nieuwe regel</div></div>
+        <label class="toggle"><input type="checkbox" id="enterSendToggle" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+    <button class="btn" onclick="closeModal('settingsModal')">Klaar</button>
+  </div>
+</div>
+
+<!-- PROFIEL MODAL -->
+<div id="profileModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-title">👤 Profiel <button class="modal-close" onclick="closeModal('profileModal')">✕</button></div>
+    <div style="text-align:center;margin-bottom:1.25rem">
+      <div class="profile-avatar-large" id="profileAvatarBig">😀</div>
+    </div>
+    <div class="modal-section">
+      <h3>Weergavenaam</h3>
+      <input class="name-input" type="text" id="displayNameInput" placeholder="Jouw weergavenaam" maxlength="24">
+    </div>
+    <div class="modal-section">
+      <h3>Avatar</h3>
+      <div class="avatar-grid" id="profileAvatarPicker"></div>
+    </div>
+    <div class="modal-section">
+      <h3>Stats</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+        <div class="profile-stat"><div style="font-size:1.3rem;font-weight:700;color:var(--primary)" id="statMsgs">0</div><div style="font-size:.7rem;color:var(--text-muted)">Berichten Verstuurd</div></div>
+        <div class="profile-stat"><div style="font-size:1.3rem;font-weight:700;color:var(--primary);text-transform:capitalize" id="statRole">gebruiker</div><div style="font-size:.7rem;color:var(--text-muted)">Rol</div></div>
+      </div>
+    </div>
+    <button class="btn" onclick="saveProfile()">Profiel Opslaan</button>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminModal" class="modal hidden">
+  <div class="modal-content admin-panel-content">
+    <div class="modal-title">👑 Admin Paneel <button class="modal-close" onclick="closeModal('adminModal')">✕</button></div>
+    <div class="admin-stat-grid">
+      <div class="admin-stat"><div class="admin-stat-value" id="statOnline">1</div><div class="admin-stat-label">Jij (Online)</div></div>
+      <div class="admin-stat"><div class="admin-stat-value" id="statTotalMsgs">0</div><div class="admin-stat-label">Totaal Berichten</div></div>
+      <div class="admin-stat"><div class="admin-stat-value" id="statTotalUsers">0</div><div class="admin-stat-label">Geregistreerd</div></div>
+    </div>
+    <div class="modal-section">
+      <h3>📢 Broadcast</h3>
+      <div class="form-group"><input type="text" id="broadcastInput" placeholder="Broadcast bericht..." style="width:100%;padding:.6rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;outline:none;font-size:.9rem"></div>
+      <button class="btn" style="padding:.5rem 1rem;font-size:.85rem" onclick="sendBroadcast()">📢 Verstuur</button>
+    </div>
+    <div class="modal-section">
+      <h3>🔧 Onderhoudsmodus</h3>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="maintenanceSelect">
+          <option value="0">Uitgeschakeld</option>
+          <option value="1">Ingeschakeld (alleen admins)</option>
+        </select>
+      </div>
+      <button class="btn btn-warning" onclick="toggleMaintenance()">Status Wijzigen</button>
+    </div>
+    <div class="modal-section">
+      <h3>📣 Plaats Aankondiging</h3>
+      <div class="form-group"><input type="text" id="annTitle" placeholder="Titel" style="width:100%;padding:.55rem .9rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.88rem"></div>
+      <div class="form-group"><textarea id="annText" placeholder="Bericht" rows="2" style="width:100%;padding:.55rem .9rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.88rem;"></textarea></div>
+      <button class="btn btn-success" onclick="adminPostAnnouncement()">📣 Plaatsen</button>
+    </div>
+    <div class="modal-section">
+      <h3>🛠️ Admin Tools</h3>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-danger btn-small" onclick="clearAllMessages()">🗑 Wis Alle Berichten</button>
+        <button class="btn btn-secondary btn-small" onclick="showIdiotScreen()">🤡 Idiot Scherm</button>
+        <button class="btn btn-warning btn-small" onclick="showUrlRedirect()">🌐 Stuur URL</button>
+        <button class="btn btn-success btn-small" onclick="showPageReloadPanel()">🔄 Herlaad Gebruikers</button>
+      </div>
+    </div>
+    <div class="modal-section">
+      <h3>👥 Gebruikersbeheer</h3>
+      <div id="adminUserList" style="max-height:300px;overflow-y:auto;"></div>
     </div>
   </div>
 </div>
 
-<!-- MAINTENANCE MODE -->
-<div id="maintenancePage" class="maintenance-screen hidden">
-  <div class="maintenance-icon">🔧</div>
-  <div class="maintenance-title">Under Maintenance</div>
-  <div class="maintenance-desc">We're making UltraChat even better. Play while you wait!</div>
-  <div class="maintenance-game">
-    <canvas id="gameCanvas" width="300" height="400"></canvas>
-    <div class="maintenance-score">Score: <span id="gameScore">0</span> | Best: <span id="gameBest">0</span></div>
+<!-- OWNER TERMINAL -->
+<div id="ownerTerminal" style="position:fixed;inset:0;background:#000;color:#0f0;z-index:10000;font-family:'JetBrains Mono',monospace;padding:1rem;display:none;flex-direction:column;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:1rem;">
+    <span>👑 Owner Terminal</span>
+    <button onclick="closeOwnerTerminal()" style="background:#f00;color:#fff;border:none;padding:0.25rem 0.5rem;cursor:pointer;">Sluiten</button>
+  </div>
+  <div id="terminalOutput" style="flex:1;overflow-y:auto;margin-bottom:1rem;"></div>
+  <div style="display:flex;">
+    <span style="margin-right:0.5rem;">#&gt;</span>
+    <input type="text" id="terminalInput" style="flex:1;background:#000;color:#0f0;border:none;outline:none;font-family:'JetBrains Mono',monospace;" placeholder="Typ commando... (help voor lijst)" onkeypress="handleTerminalKeypress(event)">
   </div>
 </div>
 
-<!-- IDIOT SCREEN -->
+<!-- OWNER POPUP -->
+<div id="ownerPopup" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);border:3px solid var(--owner);border-radius:1rem;padding:2rem;z-index:9000;display:none;max-width:500px;">
+  <div style="margin-bottom:1rem;color:var(--owner);font-size:1.5rem;font-weight:bold;">👑 Owner Bericht</div>
+  <div id="ownerPopupContent" style="margin-bottom:2rem;font-size:1.1rem;"></div>
+  <button onclick="closeOwnerPopup()" style="background:var(--owner);color:white;border:none;padding:0.5rem 2rem;border-radius:0.5rem;cursor:pointer;float:right;">OK</button>
+</div>
+
+<!-- OWNER URL DIALOG -->
+<div id="ownerUrlDialog" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:9500;">
+  <div style="background:var(--surface);padding:2rem;border-radius:1rem;max-width:480px;border:2px solid var(--owner);">
+    <h3 style="color:var(--owner);margin-bottom:1rem;">👑 Admin wil een URL openen</h3>
+    <p style="margin-bottom:0.75rem;color:var(--text-secondary);">Een admin heeft een link naar je gestuurd. Wil je deze openen?</p>
+    <div id="ownerUrlPreviewText" style="background:var(--background);padding:0.75rem;border-radius:0.5rem;font-family:monospace;word-break:break-all;margin-bottom:1rem;border-left:3px solid var(--owner);"></div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+      <button class="btn btn-secondary btn-small" onclick="rejectOwnerUrl()">Nee, weigeren</button>
+      <button class="btn btn-owner btn-small" onclick="acceptOwnerUrl()">Ja, openen</button>
+    </div>
+  </div>
+</div>
+
+<!-- GIF / STICKER MODAL -->
+<div id="gifModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-title">🎬 GIF / Sticker <button class="modal-close" onclick="closeModal('gifModal')">✕</button></div>
+    <div class="form-group"><input type="text" id="gifSearch" placeholder="Zoeken..." style="width:100%;padding:.6rem 1rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Sora',sans-serif;outline:none;font-size:.9rem" oninput="filterGifs(this.value)"></div>
+    <div class="gif-grid" id="gifGrid"></div>
+  </div>
+</div>
+
+<!-- URL REDIRECT MODAL -->
+<div id="urlRedirectModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-title">🌐 Stuur Gebruikers naar Website <button class="modal-close" onclick="closeUrlRedirect()">✕</button></div>
+    <div class="form-group">
+      <label>Voer URL in</label>
+      <input type="url" id="redirectUrl" class="form-control" placeholder="https://voorbeeld.nl" style="width:100%;padding:.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem;">
+      <button class="btn" onclick="sendUrlToAll()">Stuur naar Alle Gebruikers</button>
+      <button class="btn btn-secondary" onclick="showUrlUserSelect()">Selecteer Gebruikers</button>
+    </div>
+    <div id="urlUserList" class="hidden" style="max-height:300px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- PAGE RELOAD MODAL -->
+<div id="pageReloadModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-title">🔄 Herlaad Gebruikerspagina's <button class="modal-close" onclick="closePageReloadModal()">✕</button></div>
+    <p style="margin-bottom:1rem;color:var(--text-muted);">Dit zal de pagina forceren te herladen voor geselecteerde gebruikers.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem;">
+      <button class="btn" onclick="sendReloadToAll()">🔄 Herlaad Alle Gebruikers</button>
+      <button class="btn btn-secondary" onclick="showReloadUserSelect()">Selecteer Gebruikers</button>
+    </div>
+    <div id="reloadUserList" class="hidden" style="max-height:300px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<!-- ONDERHOUDSMODUS / GAME -->
+<div id="maintenancePage" class="maintenance-container hidden">
+  <h1>🔧 Systeem Onderhoud</h1>
+  <p style="color:var(--text-muted);font-size:.9rem">Het systeem wordt bijgewerkt. Speel Flappy Bird terwijl je wacht!</p>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+  <div class="game-info">Score: <span id="gameScore">0</span></div>
+  <p style="font-size:.75rem;color:var(--text-muted)">Klik of druk op spatie om te springen</p>
+  <button class="btn btn-secondary" style="width:auto;padding:.55rem 1.5rem;margin-top:1rem;" onclick="checkMaintenanceStatus()">Status Controleren</button>
+</div>
+
+<!-- IDIOT SCHERM -->
 <div id="idiotScreen" class="idiot-screen hidden">
-  <div class="idiot-text">YOU ARE AN IDIOT</div>
-  <button class="idiot-close" onclick="document.getElementById('idiotScreen').classList.add('hidden')">Close</button>
+  <div class="idiot-text">JE BENT EEN IDIOOT</div>
+  <button class="idiot-close" onclick="hideIdiotScreen()">Ik weet het 😔</button>
 </div>
-
-<!-- SETTINGS MODAL -->
-<div id="settingsModal" class="modal-overlay hidden">
-  <div class="modal-box">
-    <div class="modal-header">
-      <div class="modal-title">⚙️ Settings</div>
-      <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="setting-row">
-        <div class="setting-label">Avatar</div>
-        <div class="avatar-picker" id="avatarPicker">
-          <div class="avatar-option selected" data-emoji="😀" onclick="selectAvatar(this)">😀</div>
-          <div class="avatar-option" data-emoji="😎" onclick="selectAvatar(this)">😎</div>
-          <div class="avatar-option" data-emoji="🥷" onclick="selectAvatar(this)">🥷</div>
-          <div class="avatar-option" data-emoji="🧑‍💻" onclick="selectAvatar(this)">🧑‍💻</div>
-          <div class="avatar-option" data-emoji="🦊" onclick="selectAvatar(this)">🦊</div>
-          <div class="avatar-option" data-emoji="🐉" onclick="selectAvatar(this)">🐉</div>
-          <div class="avatar-option" data-emoji="👾" onclick="selectAvatar(this)">👾</div>
-          <div class="avatar-option" data-emoji="🤖" onclick="selectAvatar(this)">🤖</div>
-          <div class="avatar-option" data-emoji="🎭" onclick="selectAvatar(this)">🎭</div>
-          <div class="avatar-option" data-emoji="🌙" onclick="selectAvatar(this)">🌙</div>
-          <div class="avatar-option" data-emoji="⚡" onclick="selectAvatar(this)">⚡</div>
-          <div class="avatar-option" data-emoji="🌸" onclick="selectAvatar(this)">🌸</div>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-label">Theme</div>
-        <div class="theme-picker">
-          <div class="theme-option t-dark selected" data-theme="dark" onclick="selectTheme(this)" title="Dark"></div>
-          <div class="theme-option t-light" data-theme="light" onclick="selectTheme(this)" title="Light"></div>
-          <div class="theme-option t-blue" data-theme="blue" onclick="selectTheme(this)" title="Blue"></div>
-          <div class="theme-option t-green" data-theme="green" onclick="selectTheme(this)" title="Green"></div>
-          <div class="theme-option t-purple" data-theme="purple" onclick="selectTheme(this)" title="Purple"></div>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-label">Status</div>
-        <div class="status-picker">
-          <div class="status-option selected" data-status="online" onclick="selectStatus(this)">
-            <div class="status-dot-sm online"></div> Online
-          </div>
-          <div class="status-option" data-status="offline" onclick="selectStatus(this)">
-            <div class="status-dot-sm offline"></div> Invisible
-          </div>
-        </div>
-      </div>
-      <div class="setting-row">
-        <div class="setting-label">Username</div>
-        <div class="admin-input-group">
-          <input type="text" id="changeUsernameInput" placeholder="New username" maxlength="20">
-          <button class="btn-sm accent" onclick="changeUsername()">Update</button>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-sm secondary" onclick="closeModal('settingsModal')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ADMIN PANEL MODAL -->
-<div id="adminModal" class="modal-overlay hidden">
-  <div class="modal-box wide">
-    <div class="modal-header">
-      <div class="modal-title">👑 Admin Panel</div>
-      <button class="modal-close" onclick="closeModal('adminModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="admin-section">
-        <h3>📢 Broadcast Message</h3>
-        <div class="admin-input-group" style="margin-bottom:8px">
-          <input type="text" id="broadcastInput" placeholder="Message to all users...">
-          <button class="btn-sm accent" onclick="sendBroadcast()">Send</button>
-        </div>
-        <button class="btn-sm secondary" style="width:100%" onclick="clearBroadcast()">Clear Active Broadcast</button>
-      </div>
-      <div class="admin-section">
-        <h3>🛠️ Server Controls</h3>
-        <div style="display:flex; gap:8px; flex-wrap:wrap">
-          <button class="btn-sm secondary" onclick="adminAction('reload')">🔄 Force Reload All</button>
-          <button class="btn-sm danger" onclick="adminAction('maintenance')">🔧 Toggle Maintenance</button>
-          <button class="btn-sm danger" onclick="clearAllMessages()">🗑️ Clear All Messages</button>
-        </div>
-      </div>
-      <div class="admin-section">
-        <h3>👥 Users</h3>
-        <div id="adminUserList"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SIMPLE EMOJI PANEL -->
-<div id="emojiPanel" class="modal-overlay hidden" onclick="closeEmojiPanel(event)">
-  <div style="position:fixed; bottom:80px; right:24px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:var(--radius-xl); padding:12px; display:flex; flex-wrap:wrap; gap:4px; max-width:280px; box-shadow:var(--shadow); animation:popIn 0.2s ease;" onclick="event.stopPropagation()">
-    <div style="width:100%; font-size:11px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid var(--border);">Emoji</div>
-    <span class="emoji-pick">😀</span><span class="emoji-pick">😂</span><span class="emoji-pick">😍</span>
-    <span class="emoji-pick">🤔</span><span class="emoji-pick">😎</span><span class="emoji-pick">🥺</span>
-    <span class="emoji-pick">😭</span><span class="emoji-pick">🔥</span><span class="emoji-pick">💯</span>
-    <span class="emoji-pick">👍</span><span class="emoji-pick">👎</span><span class="emoji-pick">❤️</span>
-    <span class="emoji-pick">⚡</span><span class="emoji-pick">🎉</span><span class="emoji-pick">🚀</span>
-    <span class="emoji-pick">💀</span><span class="emoji-pick">🤡</span><span class="emoji-pick">🐉</span>
-    <span class="emoji-pick">🌙</span><span class="emoji-pick">⭐</span><span class="emoji-pick">💎</span>
-    <span class="emoji-pick">🎮</span><span class="emoji-pick">🏆</span><span class="emoji-pick">👾</span>
-  </div>
-</div>
-
-<style>
-.emoji-pick { font-size: 22px; cursor: pointer; padding: 4px; border-radius: 6px; transition: background 0.15s; }
-.emoji-pick:hover { background: var(--bg-hover); }
-</style>
-
-<!-- SUPABASE SDK (dual CDN fallback) -->
-<script>
-// Utility functions defined FIRST so they always exist
-function _el(id) { return document.getElementById(id); }
-function _show(id) { var e=_el(id); if(e) e.classList.remove('hidden'); }
-function _hide(id) { var e=_el(id); if(e) e.classList.add('hidden'); }
-function _showLogin() { _hide('loadingOverlay'); _show('loginPage'); }
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
-  onerror="document.getElementById('loadingText').textContent='CDN failed, trying backup...';var s=document.createElement('script');s.src='https://unpkg.com/@supabase/supabase-js@2';s.onerror=function(){document.getElementById('loadingText').textContent='Could not load Supabase SDK. Check your internet connection.';};document.head.appendChild(s);">
-</script>
 
 <script>
-// ============================================================
-// ⚠️  CONFIGURATION — Replace with your Supabase project details
-// ============================================================
-const SUPABASE_URL = 'https://xwealghjsjitdetsnluy._sb.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3ZWFsZ2hqc2ppdGRldHNubHV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NTYzNDcsImV4cCI6MjA4NzUzMjM0N30.KUvGJwDZIuGNBoEk7KbXv7fAOmvqH-iVHNL9_6d_nNM';
-// ============================================================
+// ==================== SUPABASE INIT ====================
+const { createClient } = supabase;
+const supabaseUrl = 'https://nsaaiwxjhcvdmsywazxl.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zYWFpd3hqaGN2ZG1zeXdhenhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDkyOTEsImV4cCI6MjA4NzUyNTI5MX0.cfQ91DxXvYf9uydVucHhrW0d3zOERD1lDFVX9oYo6-M';
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-// Guard: if SDK didn't load, show login immediately
-if (!window.supabase) {
-  console.error('Supabase SDK not loaded!');
-  _showLogin();
-  throw new Error('Supabase SDK missing');
-}
+// ==================== STATE ====================
+let S = {
+  user: null,
+  chatId: 'global',
+  replyTo: null,
+  emojiOpen: false,
+  tempAvatar: null,
+  settings: { theme:'dark', fontSize:14, compact:false, timestamps:true, sound:true, enterSend:true },
+  isOwner: false,
+  maintenanceMode: false,
+  messageSubscriptions: {},
+  typingTimeouts: {}
+};
 
-const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ===== STATE =====
-let currentUser = null;
-let currentProfile = null;
-let currentChat = 'global';
-let allUsers = [];
-let messageSubscription = null;
-let broadcastSubscription = null;
-let presenceChannel = null;
+let gameObj = null;
+let autocompleteUsers = [];
+let autocompleteIndex = -1;
+let mentionStartPos = -1;
 let typingTimeout = null;
-let isNearBottom = true;
-let lastMessageDate = null;
-let gameBest = parseInt(localStorage.getItem('gameBest') || '0');
+let editingMessageId = null;
+let pendingOwnerUrl = null;
+let unreadCounts = {};
 
-// ===== INIT =====
-// Hard 5s failsafe set immediately - no waiting for load event
-const _hardTimeout = setTimeout(() => {
-  console.warn('UltraChat: hard timeout hit');
-  _showLogin();
-}, 5000);
+// Owner specifiek
+const OWNER_USERNAME = 'juroadmin';
 
-window.addEventListener('load', async () => {
-  applyTheme(localStorage.getItem('theme') || 'dark');
+function isOwnerUser(username) {
+  return username === OWNER_USERNAME;
+}
 
+// ==================== CONSTANTEN ====================
+const CHANNELS = [
+  {id:'global', name:'🌍 Algemeen', desc:"Iedereen kan hier praten", readOnly:false},
+  {id:'admin', name:'👑 Admin Chat', desc:'Alleen zichtbaar voor admins', readOnly:false, adminOnly:true},
+  {id:'announcements', name:'📣 Aankondigingen', desc:'Belangrijke updates', readOnly:true}
+];
+
+const EMOJIS = ['😀','😂','😍','🥰','😎','🤔','😅','😭','😢','😡','🤯','🥺','🤗','😴','🤑','👀','💀','🙏','✨','🌟','💪','🎮','🚀','🍕','🔥','❤️','👍','👎','💯','🎉','🤖','👻','🦊','🐺','🦁','🌈','⭐','🎵','🏆','🎃','🦋','🧙','🤠','👽','🐱','🦄','🐸','🐬','🦅','☕','🎸','⚡','🌙','☀️','🌊','🏔️','🍔','🎂','🍎','🍣'];
+const AVATARS = ['😀','😎','🤠','👻','🦊','🐺','🦁','🐯','🐻','🦋','🌟','🎭','👽','🤖','🧙','🧜','🦸','🧛','👾','🎃','🐱','🦄','🐸','🐬','🦅','🐺','🦊','🧝','🧞','🧟'];
+const GIFS = [
+  {label:'🎉 Feest',txt:'🎉🎊🥳🎈'},{label:'😂 Lach',txt:'😂🤣😹'},{label:'❤️ Liefde',txt:'❤️💕💖🥰'},
+  {label:'🔥 Vuur',txt:'🔥💥⚡'},{label:'😎 Cool',txt:'😎🕶️✨🌟'},{label:'😢 Verdrietig',txt:'😢😭💔'},
+  {label:'🚀 Hype',txt:'🚀🎯💯🏆'},{label:'🍕 Eten',txt:'🍕🍔🌮🍣'},{label:'👍 Leuk',txt:'👍✅💪😤'},
+  {label:'👎 Nee',txt:'👎❌😒🙄'},{label:'🤔 Denk',txt:'🤔💭🧐🔍'},{label:'🎵 Muziek',txt:'🎵🎶🎸🥁'},
+];
+
+// ==================== NOTIFICATIES ====================
+let notificationPermission = false;
+
+function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    notificationPermission = true;
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(p => { notificationPermission = p === "granted"; });
+  }
+}
+
+function showNotification(title, body, tag = null) {
+  if (!notificationPermission) return;
   try {
-    const { data, error } = await _sb.auth.getSession();
-    clearTimeout(_hardTimeout);
+    const options = { body, icon: '💬' };
+    if (tag) options.tag = tag;
+    new Notification(title, options);
+  } catch(e) {}
+}
+
+// ==================== TOAST ====================
+function toast(msg, type='info') {
+  const c=document.getElementById('toastContainer');
+  const t=document.createElement('div'); t.className='toast '+type; t.textContent=msg; c.appendChild(t);
+  setTimeout(()=>{t.style.cssText='opacity:0;transform:translateX(40px);transition:all .3s';setTimeout(()=>t.remove(),300);},3500);
+}
+
+// ==================== MAINTENANCE MODE ====================
+async function checkMaintenanceStatus(showLock = true) {
+  try {
+    const { data, error } = await supabaseClient
+      .from('admin_settings')
+      .select('maintenance_mode')
+      .eq('id', 1)
+      .single();
+    
+    if (error && error.code === 'PGRST116') {
+      // Tabel bestaat nog niet, maak hem aan
+      await supabaseClient.rpc('create_admin_settings_table');
+      return false;
+    }
+    
+    S.maintenanceMode = data?.maintenance_mode || false;
+    
+    if (showLock) {
+      const lockEl = document.getElementById('maintenanceLock');
+      if (S.maintenanceMode) {
+        lockEl.classList.remove('hidden');
+      } else {
+        lockEl.classList.add('hidden');
+      }
+    }
+    
+    return S.maintenanceMode;
+  } catch (e) {
+    console.error('Error checking maintenance:', e);
+    return false;
+  }
+}
+
+async function setMaintenanceMode(enabled) {
+  if (!S.user || !['admin','owner'].includes(S.user.role)) return;
+  
+  try {
+    const { error } = await supabaseClient
+      .from('admin_settings')
+      .upsert({ id: 1, maintenance_mode: enabled, updated_by: S.user.id, updated_at: new Date().toISOString() });
+    
     if (error) throw error;
-    const session = data && data.session;
-    if (session && session.user) {
-      currentUser = session.user;
-      await loadProfile();
-      await enterApp();
+    
+    S.maintenanceMode = enabled;
+    const lockEl = document.getElementById('maintenanceLock');
+    if (enabled) {
+      lockEl.classList.remove('hidden');
+      toast('🔒 Onderhoudsmodus ingeschakeld - Alleen admins kunnen inloggen', 'warning');
     } else {
-      _showLogin();
+      lockEl.classList.add('hidden');
+      toast('🔓 Onderhoudsmodus uitgeschakeld', 'success');
     }
-  } catch (err) {
-    clearTimeout(_hardTimeout);
-    console.error('Init failed:', err);
-    _showLogin();
-    setTimeout(() => toast('Connection error: ' + err.message, 'error'), 100);
+    
+    // Update alle gebruikers real-time
+    await supabaseClient
+      .from('broadcasts')
+      .insert([{
+        type: 'maintenance_update',
+        maintenance_mode: enabled,
+        created_at: new Date().toISOString()
+      }]);
+      
+  } catch (e) {
+    console.error('Error setting maintenance:', e);
+    toast('Fout bij wijzigen onderhoudsmodus', 'error');
   }
-});
-
-// ===== AUTH =====
-async function doLogin() {
-  const email = val('loginEmail');
-  const password = val('loginPassword');
-  if (!email || !password) return showAuthError('loginError', 'Please fill in all fields.');
-
-  setLoading('loginBtn', true);
-  const { data, error } = await _sb.auth.signInWithPassword({ email, password });
-  setLoading('loginBtn', false);
-
-  if (error) return showAuthError('loginError', error.message);
-  currentUser = data.user;
-  await loadProfile();
-  await enterApp();
 }
 
-async function doRegister() {
-  const username = val('registerUsername').trim();
-  const email = val('registerEmail');
-  const password = val('registerPassword');
+// ==================== LOAD SETTINGS ====================
+function loadSettings() {
+  const s = localStorage.getItem('uc_settings');
+  if (s) Object.assign(S.settings, JSON.parse(s));
+  document.body.className = 'theme-'+S.settings.theme+(S.settings.compact?' compact-mode':'');
+  document.documentElement.style.setProperty('--msg-font', S.settings.fontSize+'px');
+}
 
-  if (!username || !email || !password) return showAuthError('registerError', 'Please fill in all fields.');
-  if (username.length < 2) return showAuthError('registerError', 'Username must be at least 2 characters.');
-  if (password.length < 6) return showAuthError('registerError', 'Password must be at least 6 characters.');
-  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) return showAuthError('registerError', 'Username can only contain letters, numbers, _ . -');
+// ==================== AUTH ====================
+function switchTab(tab, el) {
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('loginPanel').classList.toggle('active',tab==='login');
+  document.getElementById('registerPanel').classList.toggle('active',tab==='register');
+}
 
-  setLoading('registerBtn', true);
+function authErr(msg) {
+  const e=document.getElementById('authError'); e.textContent=msg; e.classList.remove('hidden');
+  setTimeout(()=>e.classList.add('hidden'),4000);
+}
 
-  // Check username not taken
-  const { data: existing } = await _sb.from('profiles').select('id').eq('username', username).single();
-  if (existing) {
-    setLoading('registerBtn', false);
-    return showAuthError('registerError', 'Username already taken.');
+async function handleLogin() {
+  const un=document.getElementById('loginUsername').value.trim().toLowerCase();
+  const pw=document.getElementById('loginPassword').value;
+  if(!un||!pw){authErr('Vul alle velden in');return;}
+  
+  try {
+    // Check maintenance mode
+    await checkMaintenanceStatus(false);
+    
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('username', un);
+    
+    if (error) throw error;
+    if (!users || users.length === 0) { authErr('Account niet gevonden'); return; }
+    
+    const user = users[0];
+    if (user.password !== pw) { authErr('Verkeerd wachtwoord'); return; }
+    if (user.is_banned) { authErr('Dit account is verbannen'); return; }
+    
+    // Als onderhoudsmodus aan staat en gebruiker is geen admin, stuur naar maintenance
+    if (S.maintenanceMode && !['admin','owner'].includes(user.role)) {
+      showMaintenancePage();
+      return;
+    }
+    
+    await supabaseClient
+      .from('users')
+      .update({ last_login: new Date().toISOString() })
+      .eq('id', user.id);
+    
+    S.user = {
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name || user.username,
+      avatar: user.avatar,
+      role: user.role,
+      message_count: user.message_count || 0
+    };
+    S.isOwner = isOwnerUser(un);
+    
+    sessionStorage.setItem('uc_sess', JSON.stringify(S.user));
+    enterApp();
+  } catch (error) {
+    console.error('Login error:', error);
+    authErr('Fout bij inloggen');
   }
+}
 
-  const { data, error } = await _sb.auth.signUp({ email, password });
-  if (error) { setLoading('registerBtn', false); return showAuthError('registerError', error.message); }
-
-  // data.user can be null if email confirmation is required
-  if (!data.user) {
-    setLoading('registerBtn', false);
-    return showAuthError('registerError', 'Please check your email to confirm your account, then log in.');
+async function handleRegister() {
+  const un=document.getElementById('regUsername').value.trim().toLowerCase();
+  const dn=document.getElementById('regDisplay').value.trim()||un;
+  const pw=document.getElementById('regPassword').value;
+  const cf=document.getElementById('regConfirm').value;
+  if(!un||!pw){authErr('Vul alle velden in');return;}
+  if(un.length<3){authErr('Gebruikersnaam: min 3 tekens');return;}
+  if(!/^[a-z0-9_]+$/.test(un)){authErr('Gebruikersnaam: alleen letters, cijfers, _');return;}
+  if(pw.length<4){authErr('Wachtwoord: min 4 tekens');return;}
+  if(pw!==cf){authErr("Wachtwoorden komen niet overeen");return;}
+  
+  try {
+    // Check of registratie is toegestaan tijdens onderhoud
+    await checkMaintenanceStatus(false);
+    if (S.maintenanceMode) {
+      authErr('Registratie is tijdelijk uitgeschakeld vanwege onderhoud');
+      return;
+    }
+    
+    const { data: existing } = await supabaseClient
+      .from('users')
+      .select('username')
+      .eq('username', un);
+    
+    if (existing && existing.length > 0) { authErr('Gebruikersnaam bestaat al'); return; }
+    
+    const { error } = await supabaseClient
+      .from('users')
+      .insert([{ 
+        username: un, 
+        display_name: dn, 
+        avatar: '😀', 
+        password: pw, 
+        role: 'user',
+        message_count: 0,
+        created_at: new Date().toISOString()
+      }]);
+    
+    if (error) throw error;
+    
+    toast('Account aangemaakt! Je kunt nu inloggen','success');
+    document.getElementById('loginUsername').value = un;
+    document.getElementById('loginPassword').value = pw;
+    switchTab('login', document.querySelector('.auth-tab'));
+  } catch (error) {
+    console.error('Register error:', error);
+    authErr('Fout bij registreren');
   }
+}
 
-  // Create profile
-  const { error: profileError } = await _sb.from('profiles').insert({
-    id: data.user.id,
-    username,
-    avatar: '😀',
-    role: 'user',
-    status: 'online'
+function logout() {
+  // Cleanup subscriptions
+  Object.values(S.messageSubscriptions).forEach(sub => {
+    if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
   });
-
-  if (profileError) {
-    console.error('Profile insert error:', profileError);
-    // Profile might already exist (e.g. re-registration), try to continue
-  }
-
-  currentUser = data.user;
-  setLoading('registerBtn', false);
-  await loadProfile();
-  await enterApp();
-}
-
-async function doLogout() {
-  if (presenceChannel) await _sb.removeChannel(presenceChannel);
-  await _sb.from('profiles').update({ status: 'offline' }).eq('id', currentUser.id);
-  await _sb.auth.signOut();
-  currentUser = null; currentProfile = null; currentChat = 'global';
-  allUsers = [];
-  if (messageSubscription) _sb.removeChannel(messageSubscription);
-  if (broadcastSubscription) _sb.removeChannel(broadcastSubscription);
-  hide('chatApp');
+  S.messageSubscriptions = {};
+  
+  sessionStorage.removeItem('uc_sess');
+  S.user=null; 
+  S.replyTo=null;
+  hide('chatApp'); 
   show('loginPage');
-  el('loginEmail').value = '';
-  el('loginPassword').value = '';
-  toast('👋 You have been logged out.', 'info');
+  document.getElementById('loginUsername').value='';
+  document.getElementById('loginPassword').value='';
+  toast('Uitgelogd','info');
 }
 
-// ===== PROFILE =====
-async function loadProfile() {
-  try {
-    const { data, error } = await _sb.from('profiles').select('*').eq('id', currentUser.id).single();
-    if (data) {
-      currentProfile = data;
-    } else {
-      // Create profile if missing (new user via Google OAuth etc)
-      const username = (currentUser.user_metadata?.username) || currentUser.email.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g,'_');
-      const { error: insertError } = await _sb.from('profiles').insert({ id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' });
-      if (insertError) console.error('Profile create error:', insertError);
-      currentProfile = { id: currentUser.id, username, avatar: '😀', role: 'user', status: 'online' };
+function showMaintenancePage() {
+  hide('loginPage');
+  hide('chatApp');
+  document.getElementById('maintenancePage').classList.remove('hidden');
+  startFlappyBird();
+}
+
+// ==================== FLAPPY BIRD ====================
+let flappyGame = null;
+
+function startFlappyBird() {
+  if (flappyGame) return;
+  
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('gameScore');
+  
+  let bird = { y: 200, vy: 0, gravity: 0.5, jump: -8 };
+  let pipes = [];
+  let frame = 0;
+  let score = 0;
+  let gameOver = false;
+  
+  function reset() {
+    bird.y = 200;
+    bird.vy = 0;
+    pipes = [];
+    score = 0;
+    gameOver = false;
+    scoreEl.textContent = '0';
+  }
+  
+  function addPipe() {
+    let gap = 150;
+    let top = Math.random() * (canvas.height - gap - 100) + 50;
+    pipes.push({ x: canvas.width, top: top, bottom: top + gap, passed: false });
+  }
+  
+  function update() {
+    if (gameOver) return;
+    
+    bird.vy += bird.gravity;
+    bird.y += bird.vy;
+    
+    if (bird.y > canvas.height - 30) {
+      bird.y = canvas.height - 30;
+      bird.vy = 0;
     }
-  } catch (err) {
-    console.error('loadProfile error:', err);
-    // Fallback profile so the app doesnt crash
-    currentProfile = { id: currentUser.id, username: 'User', avatar: '😀', role: 'user', status: 'online' };
-  }
-}
-
-// ===== ENTER APP =====
-async function enterApp() {
-  try {
-    hide('loginPage');
-    hide('registerPage');
-
-    // Update status to online (non-blocking, ignore errors)
-    _sb.from('profiles').update({ status: 'online' }).eq('id', currentUser.id).then();
-
-    // Update UI
-    el('sidebarAvatar').textContent = currentProfile.avatar || '😀';
-    el('sidebarUsername').textContent = currentProfile.username || 'User';
-    el('sidebarTag').textContent = '#' + (currentProfile.id || '0000').slice(-4).toUpperCase();
-
-    // Show admin button if applicable
-    if (currentProfile.role === 'admin' || currentProfile.role === 'owner') {
-      show('adminPanelBtn');
+    if (bird.y < 0) {
+      bird.y = 0;
+      bird.vy = 0;
     }
-
-    // Load users (non-fatal)
-    try { await loadUsers(); } catch(e) { console.warn('loadUsers failed:', e); }
-
-    // Subscribe to presence + broadcasts
-    try { subscribePresence(); } catch(e) { console.warn('presence failed:', e); }
-    try { subscribeBroadcasts(); } catch(e) { console.warn('broadcasts failed:', e); }
-
-    // Load messages
-    await switchChat('global');
-
-    hide('loadingOverlay');
-    show('chatApp');
-  } catch (err) {
-    console.error('enterApp failed:', err);
-    hide('loadingOverlay');
-    show('chatApp'); // Show app anyway, user can still try
-    toast('Some features may not load correctly', 'warning');
+    
+    if (frame % 90 === 0) addPipe();
+    
+    for (let i = pipes.length - 1; i >= 0; i--) {
+      pipes[i].x -= 2;
+      
+      if (!pipes[i].passed && pipes[i].x < 50) {
+        pipes[i].passed = true;
+        score++;
+        scoreEl.textContent = score;
+      }
+      
+      if (pipes[i].x < -50) {
+        pipes.splice(i, 1);
+        continue;
+      }
+      
+      // Collision detection
+      if (50 > pipes[i].x && 50 < pipes[i].x + 50) {
+        if (bird.y < pipes[i].top || bird.y + 20 > pipes[i].bottom) {
+          gameOver = true;
+        }
+      }
+    }
+    
+    frame++;
   }
-}
-
-// ===== USERS =====
-async function loadUsers() {
-  const { data } = await _sb.from('profiles').select('*').order('username');
-  if (data) {
-    allUsers = data;
-    renderUserList(data);
+  
+  function draw() {
+    ctx.fillStyle = '#70c5ce';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Bird
+    ctx.fillStyle = '#f1c40f';
+    ctx.beginPath();
+    ctx.arc(50, bird.y, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e67e22';
+    ctx.beginPath();
+    ctx.arc(60, bird.y - 5, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(62, bird.y - 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Pipes
+    pipes.forEach(pipe => {
+      ctx.fillStyle = '#27ae60';
+      ctx.fillRect(pipe.x, 0, 50, pipe.top);
+      ctx.fillRect(pipe.x, pipe.bottom, 50, canvas.height - pipe.bottom);
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillRect(pipe.x - 5, pipe.top - 20, 60, 20);
+      ctx.fillRect(pipe.x - 5, pipe.bottom, 60, 20);
+    });
   }
-}
-
-function renderUserList(users) {
-  const list = el('userList');
-  const dmList = el('dmList');
-  list.innerHTML = '';
-  dmList.innerHTML = '';
-  let onlineCount = 0;
-
-  users.forEach(u => {
-    if (u.id === currentUser.id) return;
-    if (u.status === 'online') onlineCount++;
-
-    const div = document.createElement('div');
-    div.className = 'user-item';
-    div.dataset.uid = u.id;
-    div.innerHTML = `
-      <div class="user-avatar" style="position:relative">
-        ${u.avatar}
-        <div class="status-dot ${u.status === 'online' ? 'online' : 'offline'}"></div>
-      </div>
-      <div class="user-info-text">
-        <div class="user-name">${escHtml(u.username)}</div>
-        <div class="user-role ${u.role}">${u.role}</div>
-      </div>`;
-    div.onclick = () => startDM(u);
-    list.appendChild(div);
-
-    // Also add to DM list if has DM
-    const dmId = getDMId(currentUser.id, u.id);
-    const dmDiv = document.createElement('div');
-    dmDiv.className = 'channel-item';
-    dmDiv.id = 'ch-dm-' + u.id;
-    dmDiv.innerHTML = `<span class="channel-icon">${u.avatar}</span><span class="channel-name">${escHtml(u.username)}</span>`;
-    dmDiv.onclick = () => startDM(u);
-    dmList.appendChild(dmDiv);
+  
+  function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop);
+  }
+  
+  canvas.addEventListener('click', () => { if (!gameOver) bird.vy = bird.jump; });
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && !gameOver) {
+      e.preventDefault();
+      bird.vy = bird.jump;
+    }
   });
-
-  el('onlineCount').textContent = onlineCount;
+  
+  reset();
+  gameLoop();
+  flappyGame = true;
 }
 
-function filterUsers() {
-  const q = val('userSearch').toLowerCase();
-  document.querySelectorAll('#userList .user-item').forEach(item => {
-    const name = item.querySelector('.user-name').textContent.toLowerCase();
-    item.style.display = name.includes(q) ? '' : 'none';
-  });
+function checkMaintenanceStatus() {
+  location.reload();
 }
 
-function getDMId(uid1, uid2) {
-  return 'dm_' + [uid1, uid2].sort().join('_');
-}
-
-function startDM(user) {
-  const chatId = getDMId(currentUser.id, user.id);
-  switchChat(chatId, user);
-}
-
-// ===== CHAT SWITCHING =====
-async function switchChat(chatId, dmUser = null) {
-  currentChat = chatId;
-  lastMessageDate = null;
-
-  // Update active channel styling
-  document.querySelectorAll('.channel-item, .ch-global').forEach(i => i.classList.remove('active'));
-  if (chatId === 'global') {
-    el('ch-global').classList.add('active');
-    el('chatHeaderIcon').textContent = '#';
-    el('chatHeaderName').textContent = 'global';
-    el('chatHeaderDesc').textContent = 'The main chat room';
-    el('messageInput').placeholder = 'Message #global';
-  } else {
-    const userEl = el('ch-dm-' + (dmUser ? dmUser.id : ''));
-    if (userEl) userEl.classList.add('active');
-    el('chatHeaderIcon').textContent = dmUser ? dmUser.avatar : '💬';
-    el('chatHeaderName').textContent = dmUser ? dmUser.username : 'Direct Message';
-    el('chatHeaderDesc').textContent = dmUser ? 'Direct message' : '';
-    el('messageInput').placeholder = 'Message ' + (dmUser ? dmUser.username : '');
+// ==================== ENTER APP ====================
+function enterApp() {
+  hide('loginPage'); 
+  hide('maintenancePage');
+  show('chatApp');
+  
+  document.getElementById('currentUsername').textContent = S.user.display_name;
+  document.getElementById('userAvatar').textContent = S.user.avatar;
+  
+  const us = localStorage.getItem('us_'+S.user.username);
+  if (us) { Object.assign(S.settings, JSON.parse(us)); applySettingsUI(); }
+  
+  if (['admin','owner'].includes(S.user.role)) {
+    document.getElementById('adminButton').classList.remove('hidden');
   }
-
-  // Unsubscribe old message channel
-  if (messageSubscription) {
-    await _sb.removeChannel(messageSubscription);
-    messageSubscription = null;
+  if (S.isOwner) {
+    document.getElementById('ownerButton').classList.remove('hidden');
   }
+  
+  initEmojiPicker();
+  initGifGrid();
+  renderChatList();
+  
+  // Start met global chat
+  switchChat('global');
+  
+  document.getElementById('messagesContainer').addEventListener('scroll', onScroll);
+  toast(`Welkom, ${S.user.display_name}! 👋`,'success');
+  
+  requestNotificationPermission();
+  initRealtimeSubscriptions();
+}
 
-  // Clear messages
-  el('messagesArea').innerHTML = '<div class="empty-chat" id="emptyChat"><div class="empty-icon">💬</div><h3>No messages yet</h3><p>Be the first to say something!</p></div>';
-
-  // Load history
-  await loadMessages(chatId);
-
-  // Subscribe to new messages
-  messageSubscription = _sb.channel('msgs-' + chatId)
-    .on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'messages',
-      filter: `chat_id=eq.${chatId}`
+// ==================== REALTIME SUBSCRIPTIONS ====================
+function initRealtimeSubscriptions() {
+  // Luister naar nieuwe berichten in alle kanalen
+  const channels = supabaseClient.channel('messages-channel')
+    .on('postgres_changes', { 
+      event: 'INSERT', 
+      schema: 'public', 
+      table: 'messages' 
     }, payload => {
-      appendMessage(payload.new, true);
+      const msg = payload.new;
+      
+      // Check of bericht voor huidige chat is
+      if (msg.channel_id === S.chatId) {
+        const c = document.getElementById('messagesContainer');
+        const m = {
+          id: msg.id,
+          uid: msg.username,
+          un: msg.username,
+          dn: msg.display_name || msg.username,
+          av: msg.avatar,
+          role: msg.role,
+          text: msg.content,
+          img: msg.image_url,
+          ts: new Date(msg.created_at).getTime(),
+          time: fmt(new Date(msg.created_at).getTime()),
+          rx: msg.reactions || {},
+          rep: msg.reply_to_data,
+          sys: msg.is_system || false,
+          sysCard: msg.sys_card
+        };
+        
+        // Verwijder leeg bericht indicatie als die er is
+        const emptyMsg = c.querySelector('[style*="3rem"]');
+        if (emptyMsg) emptyMsg.remove();
+        
+        renderMsg(m, c);
+        scrollToBottom();
+        
+        // Geluid afspelen als het niet van onszelf is
+        if (msg.user_id !== S.user.id && S.settings.sound) beep();
+      }
+      
+      // Check voor mentions en notificaties
+      if (msg.user_id !== S.user.id) {
+        const mentionRegex = new RegExp('@' + S.user.username + '\\b', 'i');
+        const isMentioned = mentionRegex.test(msg.content);
+        const isEveryoneMention = msg.content && msg.content.includes('@everyone');
+        
+        if (isMentioned || isEveryoneMention) {
+          showNotification(
+            `🔔 Mention van ${msg.display_name || msg.username}`,
+            msg.content.substring(0, 100),
+            'mention'
+          );
+          
+          // Update unread voor channel
+          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
+          updateUnreadBadges();
+        } else if (msg.channel_id !== S.chatId) {
+          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
+          updateUnreadBadges();
+          
+          // Notificatie voor privé berichten
+          if (msg.channel_id.startsWith('dm_')) {
+            showNotification(
+              `💬 Nieuw bericht van ${msg.display_name || msg.username}`,
+              msg.content.substring(0, 100),
+              'dm'
+            );
+          }
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'messages'
+    }, payload => {
+      const msg = payload.new;
+      if (msg.channel_id === S.chatId) {
+        // Update bestaand bericht in UI
+        const msgEl = document.querySelector(`[data-id="${msg.id}"] .message`);
+        if (msgEl) {
+          const newContent = formatMsg(msg.content, msg.image_url);
+          msgEl.innerHTML = newContent;
+          if (msg.edited) {
+            if (!msgEl.querySelector('.edited-indicator')) {
+              const editedSpan = document.createElement('span');
+              editedSpan.className = 'edited-indicator';
+              editedSpan.style.cssText = 'font-size:0.6rem;opacity:0.6;margin-left:0.5rem;';
+              editedSpan.textContent = '(bewerkt)';
+              msgEl.appendChild(editedSpan);
+            }
+          }
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: 'DELETE',
+      schema: 'public',
+      table: 'messages'
+    }, payload => {
+      const oldMsg = payload.old;
+      if (oldMsg.channel_id === S.chatId) {
+        const msgEl = document.querySelector(`[data-id="${oldMsg.id}"]`);
+        if (msgEl) {
+          msgEl.style.opacity = '0';
+          msgEl.style.transition = 'opacity .3s';
+          setTimeout(() => msgEl.remove(), 300);
+        }
+      }
+    })
+    .subscribe();
+    
+  S.messageSubscriptions.main = channels;
+  
+  // Luister naar broadcasts
+  supabaseClient
+    .channel('broadcasts-channel')
+    .on('postgres_changes', { 
+      event: 'INSERT', 
+      schema: 'public', 
+      table: 'broadcasts' 
+    }, payload => {
+      const broadcast = payload.new;
+      
+      if (broadcast.type === 'message') {
+        document.getElementById('broadcastText').textContent = broadcast.message;
+        document.getElementById('broadcastBanner').classList.remove('hidden');
+        toast('Nieuwe broadcast!', 'info');
+      } else if (broadcast.type === 'maintenance_update') {
+        checkMaintenanceStatus(true);
+      } else if (broadcast.type === 'url_redirect' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          pendingOwnerUrl = broadcast.url;
+          document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
+          document.getElementById('ownerUrlDialog').style.display = 'flex';
+        }
+      } else if (broadcast.type === 'force_reload' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          setTimeout(() => location.reload(), 1000);
+        }
+      } else if (broadcast.type === 'crash' && S.user) {
+        if (broadcast.target_users === 'all' || 
+            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
+          showIdiotScreen();
+        }
+      }
     })
     .subscribe();
 }
 
-// ===== MESSAGES =====
-async function loadMessages(chatId) {
-  const { data, error } = await supabase
-    .from('messages').select('*').eq('chat_id', chatId)
-    .order('created_at', { ascending: true }).limit(100);
+// ==================== CHAT LIST ====================
+async function renderChatList(q='') {
+  const list=document.getElementById('chatList');
+  list.innerHTML='';
+  const ql=q.toLowerCase();
 
-  if (error) { toast('Failed to load messages', 'error'); return; }
+  addLabel(list,'Kanalen');
+  
+  // Filter kanalen op basis van admin status
+  const visibleChannels = CHANNELS.filter(ch => {
+    if (ch.adminOnly && !['admin','owner'].includes(S.user.role)) return false;
+    return ch.name.toLowerCase().includes(ql);
+  });
+  
+  visibleChannels.forEach(ch => {
+    const el=document.createElement('div');
+    el.className='chat-item'+(ch.id===S.chatId?' active':'');
+    el.setAttribute('data-channel', ch.id);
+    el.onclick=()=>switchChat(ch.id);
+    el.innerHTML=`<div class="chat-item-avatar">${ch.name.split(' ')[0]}</div>
+    <div class="chat-item-info"><div class="chat-item-name">${ch.name}</div>
+    <div class="chat-item-preview">${ch.desc}</div></div>
+    <div class="unread-badge hidden" id="unread-${ch.id}"></div>`;
+    list.appendChild(el);
+  });
 
-  const area = el('messagesArea');
-  area.innerHTML = '';
-  lastMessageDate = null;
+  const { data: users, error } = await supabaseClient
+    .from('users')
+    .select('*')
+    .neq('username', S.user.username);
+  
+  if (users && users.length > 0) {
+    addLabel(list,'Directe Berichten');
+    users.forEach(user => {
+      const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
+      let badge = '';
+      if (isOwnerUser(user.username)) badge = '<span class="badge owner" style="font-size:0.6rem;margin-left:0.25rem;">⭐</span>';
+      else if (user.role === 'admin') badge = '<span class="badge admin" style="font-size:0.6rem;margin-left:0.25rem;">👑</span>';
+      
+      const el=document.createElement('div');
+      el.className='chat-item'+(dmId===S.chatId?' active':'');
+      el.onclick=()=>switchToDM(user);
+      el.innerHTML=`<div class="chat-item-avatar">${user.avatar}</div>
+      <div class="chat-item-info"><div class="chat-item-name">${esc(user.display_name || user.username)}${badge}</div>
+      <div class="chat-item-preview">Klik om te chatten</div></div>
+      <div class="unread-badge hidden" id="unread-${dmId}"></div>`;
+      list.appendChild(el);
+      
+      if (!unreadCounts[dmId]) unreadCounts[dmId] = 0;
+    });
+  }
+  
+  updateUnreadBadges();
+}
 
+function updateUnreadBadges() {
+  Object.keys(unreadCounts).forEach(chatId => {
+    const badge = document.getElementById(`unread-${chatId}`);
+    if (badge) {
+      const count = unreadCounts[chatId] || 0;
+      if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+  });
+}
+
+function addLabel(parent, text) {
+  const d=document.createElement('div'); d.className='sidebar-section-label'; d.textContent=text;
+  parent.appendChild(d);
+}
+
+function filterChats(v){ renderChatList(v); }
+
+async function switchToDM(user) {
+  const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
+  
+  // Controleer of er al berichten zijn
+  const { data } = await supabaseClient
+    .from('messages')
+    .select('id')
+    .eq('channel_id', dmId)
+    .limit(1);
+  
   if (!data || data.length === 0) {
-    area.innerHTML = '<div class="empty-chat" id="emptyChat"><div class="empty-icon">💬</div><h3>No messages yet</h3><p>Be the first to say something!</p></div>';
+    // Stuur systeembericht
+    await supabaseClient
+      .from('messages')
+      .insert([{
+        channel_id: dmId,
+        username: 'system',
+        display_name: 'Systeem',
+        avatar: '⚙️',
+        role: 'system',
+        content: `👋 Chat gestart met ${user.display_name || user.username}`,
+        is_system: true,
+        created_at: new Date().toISOString()
+      }]);
+  }
+  
+  switchChat(dmId, user.display_name || user.username, 'Direct bericht');
+}
+
+async function switchChat(id, name, sub) {
+  // Reset unread voor deze chat
+  unreadCounts[id] = 0;
+  updateUnreadBadges();
+  
+  S.chatId=id; 
+  cancelReply();
+  
+  const ch = CHANNELS.find(c=>c.id===id);
+  const title = name || (ch ? ch.name : id);
+  const subtitle = sub || (ch ? ch.desc : 'Direct bericht');
+  
+  document.getElementById('chatTitle').textContent = title;
+  document.getElementById('chatSubtitle').textContent = subtitle;
+  
+  // Toon admin indicator voor admin chat
+  const adminIndicator = document.getElementById('adminChatIndicator');
+  if (id === 'admin' && ['admin','owner'].includes(S.user.role)) {
+    adminIndicator.classList.remove('hidden');
+  } else {
+    adminIndicator.classList.add('hidden');
+  }
+  
+  // Read-only overlay voor aankondigingen
+  const isRO = ch && ch.readOnly && !['admin','owner'].includes(S.user?.role||'user');
+  const ic = document.querySelector('.input-container');
+  let ro = document.getElementById('readonlyOverlay');
+  
+  if(isRO){
+    if(!ro){ro=document.createElement('div');ro.id='readonlyOverlay';ro.className='readonly-overlay';ro.innerHTML='<span style="font-size:1.2rem">📣</span><span>Aankondigingen zijn alleen-lezen</span>';ic.style.position='relative';ic.appendChild(ro);}
+    ro.style.display='flex';
+    document.getElementById('messageInput').disabled=true;
+  }else{
+    if(ro) ro.style.display='none';
+    document.getElementById('messageInput').disabled=false;
+  }
+  
+  renderChatList(); 
+  loadMessages(id);
+}
+
+// ==================== MESSAGES ====================
+async function loadMessages(id) {
+  const c = document.getElementById('messagesContainer');
+  c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:2rem;">Berichten laden...</div>';
+  
+  try {
+    const { data: messages, error } = await supabaseClient
+      .from('messages')
+      .select('*')
+      .eq('channel_id', id)
+      .order('created_at', { ascending: true })
+      .limit(100);
+    
+    if (error) throw error;
+    
+    c.innerHTML = '';
+    
+    if (!messages || messages.length === 0) {
+      c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:3rem 1rem;font-size:.9rem">💬 Nog geen berichten. Wees de eerste!</div>';
+    } else {
+      // Groepeer per dag
+      let lastDate = '';
+      messages.forEach(msg => {
+        const msgDate = new Date(msg.created_at).toLocaleDateString();
+        if (msgDate !== lastDate) {
+          const div = document.createElement('div'); 
+          div.className = 'date-divider'; 
+          div.innerHTML = `<span>${msgDate === new Date().toLocaleDateString() ? 'Vandaag' : msgDate}</span>`;
+          c.appendChild(div);
+          lastDate = msgDate;
+        }
+        
+        const m = {
+          id: msg.id,
+          uid: msg.username,
+          un: msg.username,
+          dn: msg.display_name || msg.username,
+          av: msg.avatar,
+          role: msg.role,
+          text: msg.content,
+          img: msg.image_url,
+          ts: new Date(msg.created_at).getTime(),
+          time: fmt(new Date(msg.created_at).getTime()),
+          rx: msg.reactions || {},
+          rep: msg.reply_to_data,
+          sys: msg.is_system || false,
+          sysCard: msg.sys_card,
+          edited: msg.edited
+        };
+        renderMsg(m, c);
+      });
+    }
+    
+    scrollToBottom();
+  } catch (error) {
+    console.error('Fout bij laden berichten:', error);
+    c.innerHTML = '<div style="text-align:center;color:var(--danger);padding:2rem;">Fout bij laden berichten</div>';
+  }
+}
+
+function renderMsg(m, c) {
+  const isOwn = m.uid === S.user.username;
+  const w = document.createElement('div');
+  w.className = 'message-wrapper ' + (isOwn ? 'own' : (m.sys ? '' : 'other'));
+  w.dataset.id = m.id;
+
+  const mentionRegex = new RegExp('@' + S.user?.username + '\\b', 'i');
+  const isMentioned = mentionRegex.test(m.text);
+  const isEveryoneMention = m.text && m.text.includes('@everyone');
+
+  if(m.sys){
+    if(m.sysCard){
+      const sc=m.sysCard, bc='badge-'+(sc.badge||'info'), cc='sys-card type-'+(sc.type||'info');
+      let body=esc(m.text);
+      body=body.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+      body=body.replace(/\*(.+?)\*/g,'<em>$1</em>');
+      body=body.replace(/`(.+?)`/g,'<code style="background:var(--surface3);padding:.1em .3em;border-radius:4px;font-family:monospace;font-size:.85em">$1</code>');
+      body=body.replace(/@(\w+)/g,'<span class="mention">@$1</span>');
+      w.innerHTML=`<div class="${cc}">
+        <div class="sys-card-header">
+          <span class="sys-card-icon">${sc.icon||'⚙️'}</span>
+          <span class="sys-card-title">${esc(sc.title||'Systeem')}</span>
+          <span class="sys-card-badge ${bc}">${esc(sc.badge||'info')}</span>
+        </div>
+        <div class="sys-card-body">${body}</div>
+        <div class="sys-card-footer">
+          <span class="sys-card-ts">${m.time}</span>
+          ${sc.ver?`<span class="sys-card-ver">${esc(sc.ver)}</span>`:''}
+        </div>
+      </div>`;
+    } else {
+      w.innerHTML=`<div class="sys-divider"><div class="sys-divider-line"></div><span class="sys-divider-text">${esc(m.text)}</span><div class="sys-divider-line"></div></div>`;
+    }
+    c.appendChild(w); 
     return;
   }
 
-  data.forEach(msg => appendMessage(msg, false));
-  scrollToBottom();
-}
+  const quot = m.rep ? `<div class="quoted-msg">↩ <b>${esc(m.rep.dn)}</b>: ${esc(m.rep.text.substring(0,80))}${m.rep.text.length>80?'…':''}</div>` : '';
+  const body = formatMsg(m.text, m.img);
+  const rxHtml = buildReactions(m);
+  const rb = m.role==='owner' ? '<span class="msg-role-badge badge-owner">Owner</span>' : (m.role==='admin' ? '<span class="msg-role-badge badge-admin">Admin</span>' : '');
+  const mentionBadge = (isMentioned || isEveryoneMention) ? '<span class="msg-role-badge" style="background:var(--warning);color:var(--bg);">🔔</span>' : '';
+  const editedBadge = m.edited ? '<span class="edited-indicator" style="font-size:0.6rem;opacity:0.6;margin-left:0.3rem;">(bewerkt)</span>' : '';
+  const ts = S.settings.timestamps ? `<span class="msg-time">${m.time}</span>` : `<span class="msg-time" style="display:none">${m.time}</span>`;
+  const isAdm = ['admin','owner'].includes(S.user.role);
 
-let lastMsgUserId = null;
-let lastMsgTime = null;
-
-function appendMessage(msg, scrollIfNeeded = true) {
-  const area = el('messagesArea');
-
-  // Remove empty state
-  const empty = el('emptyChat');
-  if (empty) empty.remove();
-
-  const msgDate = new Date(msg.created_at);
-  const dateStr = msgDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-  // Add date divider if needed
-  if (lastMessageDate !== dateStr) {
-    const div = document.createElement('div');
-    div.className = 'date-divider';
-    div.innerHTML = `<span class="date-divider-text">${dateStr}</span>`;
-    area.appendChild(div);
-    lastMessageDate = dateStr;
-    lastMsgUserId = null;
-  }
-
-  const isContinued = lastMsgUserId === msg.user_id &&
-    lastMsgTime && (msgDate - lastMsgTime) < 5 * 60 * 1000;
-
-  lastMsgUserId = msg.user_id;
-  lastMsgTime = msgDate;
-
-  const profile = allUsers.find(u => u.id === msg.user_id) || {};
-  const avatar = profile.avatar || '😀';
-  const role = profile.role || 'user';
-  const isOwn = msg.user_id === currentUser.id;
-
-  const timeStr = msgDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-  const roleBadge = (role === 'owner' || role === 'admin')
-    ? `<span class="msg-role-badge ${role}">${role}</span>` : '';
-
-  const group = document.createElement('div');
-  group.className = `message-group${isContinued ? ' msg-continued' : ''}`;
-  group.dataset.msgId = msg.id;
-
-  group.innerHTML = `
-    <div class="msg-avatar-col">
-      <div class="user-avatar" style="cursor:pointer" onclick="showProfileCard(event, '${msg.user_id}')">${avatar}</div>
-    </div>
-    <div class="msg-content-col">
-      ${!isContinued ? `<div class="msg-header">
-        <span class="msg-username ${role}" style="cursor:pointer" onclick="showProfileCard(event, '${msg.user_id}')">${escHtml(msg.username)}</span>
-        ${roleBadge}
-        <span class="msg-timestamp">${timeStr}</span>
-      </div>` : ''}
-      <div class="msg-body">${formatMessage(msg.content, isOwn)}</div>
-    </div>`;
-
-  // Add delete option for admins/owners/own messages
-  if (isOwn || currentProfile.role === 'admin' || currentProfile.role === 'owner') {
-    group.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      showContextMenu(e, msg.id);
-    });
-  }
-
-  area.appendChild(group);
-
-  if (scrollIfNeeded) {
-    if (isNearBottom) scrollToBottom();
-  }
-}
-
-function formatMessage(content, isOwn) {
-  let text = escHtml(content);
-
-  // Code blocks
-  text = text.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-  // Inline code
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // Bold
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  // Italic
-  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  // Mentions
-  text = text.replace(/@(\w+)/g, `<span class="mention${isOwn ? ' own' : ''}">@$1</span>`);
-  // URLs
-  text = text.replace(/(https?:\/\/[^\s<>"]+)/g, (url) => {
-    const escaped = escHtml(url);
-    if (/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(url)) {
-      return `<a href="${escaped}" target="_blank" rel="noopener">${escaped}</a><br><img src="${escaped}" class="msg-image" loading="lazy" onerror="this.style.display='none'">`;
-    }
-    return `<a href="${escaped}" target="_blank" rel="noopener">${escaped}</a>`;
-  });
-
-  return text;
-}
-
-async function sendMessage() {
-  const input = el('messageInput');
-  const content = input.value.trim();
-  if (!content || !currentUser) return;
-
-  input.value = '';
-  input.style.height = 'auto';
-
-  const { error } = await _sb.from('messages').insert({
-    user_id: currentUser.id,
-    username: currentProfile.username,
-    chat_id: currentChat,
-    content
-  });
-
-  if (error) {
-    toast('Failed to send message: ' + error.message, 'error');
-    input.value = content;
-  }
-}
-
-async function deleteMessage(msgId) {
-  await _sb.from('messages').delete().eq('id', msgId);
-  const el2 = document.querySelector(`[data-msg-id="${msgId}"]`);
-  if (el2) el2.remove();
-  toast('Message deleted.', 'info');
-}
-
-// ===== SUBSCRIPTIONS =====
-function subscribePresence() {
-  presenceChannel = _sb.channel('presence-room', {
-    config: { presence: { key: currentUser.id } }
-  });
-
-  presenceChannel
-    .on('presence', { event: 'sync' }, () => {
-      loadUsers();
-    })
-    .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await presenceChannel.track({ userId: currentUser.id, online_at: new Date().toISOString() });
-      }
-    });
-}
-
-function subscribeBroadcasts() {
-  broadcastSubscription = _sb.channel('broadcasts-channel')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'broadcasts'
-    }, payload => {
-      const b = payload.new;
-      if (!b || !b.active) {
-        dismissBroadcast();
-        return;
-      }
-      if (b.type === 'reload') {
-        toast('🔄 Server requesting reload...', 'warning');
-        setTimeout(() => location.reload(), 2000);
-      } else if (b.type === 'maintenance') {
-        showMaintenancePage();
-      } else if (b.type === 'idiot') {
-        show('idiotScreen');
-      } else if (b.type === 'idiot_target') {
-        // Only show to the targeted user
-        const targetId = b.message.replace('idiot:', '');
-        if (currentUser && currentUser.id === targetId) {
-          show('idiotScreen');
-        }
-      } else {
-        showBroadcast(b.message);
-      }
-    })
-    .subscribe();
-
-  // Check for existing active broadcast on load
-  _sb.from('broadcasts').select('*').eq('active', true).order('created_at', { ascending: false }).limit(1).then(({ data }) => {
-    if (data && data.length > 0) {
-      const b = data[0];
-      if (b.type === 'message') showBroadcast(b.message);
-      else if (b.type === 'maintenance') showMaintenancePage();
-    }
-  });
-}
-
-function showBroadcast(msg) {
-  el('broadcastText').textContent = msg;
-  el('broadcastBanner').classList.remove('hidden');
-  el('messagesArea').classList.add('has-broadcast');
-}
-
-function dismissBroadcast() {
-  el('broadcastBanner').classList.add('hidden');
-  el('messagesArea').classList.remove('has-broadcast');
-}
-
-// ===== SETTINGS =====
-function showSettings() {
-  // Sync current avatar
-  document.querySelectorAll('.avatar-option').forEach(o => {
-    o.classList.toggle('selected', o.dataset.emoji === currentProfile.avatar);
-  });
-  // Sync current theme
-  const theme = localStorage.getItem('theme') || 'dark';
-  document.querySelectorAll('.theme-option').forEach(o => {
-    o.classList.toggle('selected', o.dataset.theme === theme);
-  });
-  show('settingsModal');
-}
-
-function selectAvatar(el2) {
-  document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
-  el2.classList.add('selected');
-  const emoji = el2.dataset.emoji;
-  updateProfile({ avatar: emoji });
-}
-
-function selectTheme(el2) {
-  document.querySelectorAll('.theme-option').forEach(o => o.classList.remove('selected'));
-  el2.classList.add('selected');
-  applyTheme(el2.dataset.theme);
-}
-
-function selectStatus(el2) {
-  document.querySelectorAll('.status-option').forEach(o => o.classList.remove('selected'));
-  el2.classList.add('selected');
-  const status = el2.dataset.status;
-  updateProfile({ status });
-}
-
-async function changeUsername() {
-  const newName = val('changeUsernameInput').trim();
-  if (!newName || newName.length < 2) return toast('Username must be at least 2 characters', 'error');
-  if (!/^[a-zA-Z0-9_.-]+$/.test(newName)) return toast('Invalid characters in username', 'error');
-
-  const { data: existing } = await _sb.from('profiles').select('id').eq('username', newName).neq('id', currentUser.id).single();
-  if (existing) return toast('Username already taken', 'error');
-
-  await updateProfile({ username: newName });
-  el('changeUsernameInput').value = '';
-  toast('Username updated!', 'success');
-}
-
-async function updateProfile(updates) {
-  const { error } = await _sb.from('profiles').update(updates).eq('id', currentUser.id);
-  if (!error) {
-    Object.assign(currentProfile, updates);
-    el('sidebarAvatar').textContent = currentProfile.avatar;
-    el('sidebarUsername').textContent = currentProfile.username;
-    await loadUsers();
-  }
-}
-
-// ===== ADMIN PANEL =====
-async function showAdminPanel() {
-  // Load all users for admin panel
-  const { data } = await _sb.from('profiles').select('*').order('username');
-  const list = el('adminUserList');
-  list.innerHTML = '';
-
-  (data || []).forEach(u => {
-    const row = document.createElement('div');
-    row.className = 'admin-user-row';
-    row.innerHTML = `
-      <div class="user-avatar">${u.avatar}</div>
-      <div class="user-info-text">
-        <div class="user-name">${escHtml(u.username)}</div>
-        <div class="user-role ${u.role}">${u.role} · ${u.status}</div>
-      </div>
-      <div class="admin-actions">
-        ${u.id !== currentUser.id ? `
-          <button class="btn-sm secondary" onclick="setUserRole('${u.id}', 'admin')" title="Make Admin">👑</button>
-          <button class="btn-sm secondary" onclick="setUserRole('${u.id}', 'user')" title="Make User">👤</button>
-          <button class="btn-sm danger" onclick="triggerIdiot('${u.id}')" title="Idiot Screen">🤡</button>
-        ` : '<span style="font-size:11px;color:var(--text-muted)">You</span>'}
+  if(isOwn){
+    w.innerHTML=`
+      <div class="msg-header" style="justify-content:flex-end">${ts}${editedBadge}</div>
+      ${quot}<div class="message own-msg${(isMentioned||isEveryoneMention)?' mention':''}">${body}</div>${rxHtml}
+      <div class="msg-actions">
+        <button class="msg-action-btn" onclick="reactMenu('${m.id}',event)">😊</button>
+        <button class="msg-action-btn" onclick="startReply('${m.id}')">↩</button>
+        <button class="msg-action-btn" onclick="editMessage('${m.id}')">✏️</button>
+        <button class="msg-action-btn danger" onclick="delMsg('${m.id}')">🗑</button>
       </div>`;
-    list.appendChild(row);
+  } else {
+    w.innerHTML=`
+      <div class="msg-header"><span class="msg-username ${m.role}">${m.av} ${esc(m.dn||m.un)}</span>${rb}${mentionBadge}${ts}${editedBadge}</div>
+      ${quot}<div class="message other-msg${(isMentioned||isEveryoneMention)?' mention':''}">${body}</div>${rxHtml}
+      <div class="msg-actions">
+        <button class="msg-action-btn" onclick="reactMenu('${m.id}',event)">😊</button>
+        <button class="msg-action-btn" onclick="startReply('${m.id}')">↩</button>
+        ${isAdm ? `<button class="msg-action-btn danger" onclick="delMsg('${m.id}')">🗑</button>` : ''}
+      </div>`;
+  }
+  c.appendChild(w);
+}
+
+function buildReactions(m) {
+  const rx=Object.entries(m.rx||{});
+  if(!rx.length) return '';
+  return '<div class="msg-reactions">'+rx.map(([em,users])=>
+    `<button class="reaction ${users.includes(S.user.username)?'reacted':''}" onclick="toggleRx('${m.id}','${em}')">${em}<span class="reaction-count">${users.length}</span></button>`
+  ).join('')+'</div>';
+}
+
+function formatMsg(text, img) {
+  if (!text) return '';
+  let s = esc(text);
+  
+  // URLs en afbeeldingen
+  s = s.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+    if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?$/i)) {
+      return `<br><img src="${url}" class="message-image" onclick="openLightbox('${url}')" onerror="this.replaceWith(Object.assign(document.createElement('a'),{href:'${url}',target:'_blank',textContent:'${url}'}))">`;
+    }
+    return `<a class="msg-link" href="${url}" target="_blank" rel="noopener">${url}</a>`;
   });
-
-  show('adminModal');
+  
+  // Mentions
+  s = s.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
+  
+  // Formatting
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  s = s.replace(/`(.+?)`/g, '<code style="background:var(--surface3);padding:.1em .3em;border-radius:4px;font-family:monospace;font-size:.85em">$1</code>');
+  
+  if(img && !text.includes(img)) {
+    s += `<br><img src="${img}" class="message-image" onclick="openLightbox('${img}')">`;
+  }
+  
+  return s;
 }
 
-async function setUserRole(userId, role) {
-  await _sb.from('profiles').update({ role }).eq('id', userId);
-  toast(`User role updated to ${role}`, 'success');
-  showAdminPanel();
-}
+async function sendMessage(overrideText=null, img=null) {
+  const input = document.getElementById('messageInput');
+  const text = overrideText || input.value.trim();
+  if(!text && !img) return;
+  if(text.length > 2000){ toast('Bericht te lang','error'); return; }
+  
+  const ch = CHANNELS.find(ch=>ch.id===S.chatId);
+  if(ch && ch.readOnly && !['admin','owner'].includes(S.user.role)) {
+    toast('📣 Dit kanaal is alleen-lezen','error'); 
+    return;
+  }
 
-async function sendBroadcast() {
-  const msg = val('broadcastInput').trim();
-  if (!msg) return;
-  // Clear old active broadcasts
-  await _sb.from('broadcasts').update({ active: false }).eq('active', true);
-  await _sb.from('broadcasts').insert({ message: msg, type: 'message', active: true });
-  el('broadcastInput').value = '';
-  toast('Broadcast sent!', 'success');
-}
+  if (editingMessageId) {
+    try {
+      const { error } = await supabaseClient
+        .from('messages')
+        .update({ content: text, edited: true })
+        .eq('id', editingMessageId);
+      
+      if (error) throw error;
+      
+      editingMessageId = null;
+      input.value = '';
+      input.style.height = 'auto';
+      document.getElementById('charCounter').textContent = '0/2000';
+      cancelReply();
+    } catch (error) {
+      console.error('Fout bij bewerken:', error);
+      toast('Fout bij bewerken','error');
+    }
+    return;
+  }
 
-async function clearBroadcast() {
-  await _sb.from('broadcasts').update({ active: false }).eq('active', true);
-  toast('Broadcast cleared.', 'info');
-}
+  try {
+    const msgData = {
+      channel_id: S.chatId,
+      user_id: S.user.id,
+      username: S.user.username,
+      display_name: S.user.display_name,
+      avatar: S.user.avatar,
+      role: S.user.role,
+      content: text,
+      image_url: img || null,
+      reply_to_data: S.replyTo ? { dn: S.replyTo.dn || S.replyTo.un, text: S.replyTo.text } : null,
+      reactions: {},
+      created_at: new Date().toISOString()
+    };
 
-async function adminAction(action) {
-  if (action === 'reload') {
-    await _sb.from('broadcasts').update({ active: false }).eq('active', true);
-    await _sb.from('broadcasts').insert({ message: 'Server reload requested', type: 'reload', active: true });
-    toast('Reload signal sent to all users.', 'success');
-  } else if (action === 'maintenance') {
-    await _sb.from('broadcasts').update({ active: false }).eq('active', true);
-    await _sb.from('broadcasts').insert({ message: 'Maintenance mode', type: 'maintenance', active: true });
-    toast('Maintenance mode activated.', 'warning');
+    const { error } = await supabaseClient
+      .from('messages')
+      .insert([msgData]);
+
+    if (error) throw error;
+
+    // Update message count
+    await supabaseClient
+      .from('users')
+      .update({ message_count: (S.user.message_count || 0) + 1 })
+      .eq('id', S.user.id);
+    
+    S.user.message_count = (S.user.message_count || 0) + 1;
+
+    input.value = ''; 
+    input.style.height = 'auto';
+    document.getElementById('charCounter').textContent = '0/2000';
+    cancelReply();
+    
+    if (S.chatId === S.chatId) {
+      // Message wordt al real-time toegevoegd via subscription
+    }
+
+  } catch (error) {
+    console.error('Fout bij versturen:', error);
+    toast('Fout bij versturen','error');
   }
 }
 
-async function triggerIdiot(userId) {
-  // Store a notification in a special broadcasts row targeting a user
-  await _sb.from('broadcasts').insert({ message: `idiot:${userId}`, type: 'idiot_target', active: true });
-  toast('🤡 Done!', 'success');
+function cancelReply() {
+  S.replyTo = null;
+  document.getElementById('replyBar').classList.add('hidden');
+}
+
+function startReply(msgId) {
+  const msgEl = document.querySelector(`[data-id="${msgId}"] .message`);
+  if (!msgEl) return;
+  const msgText = msgEl.innerText;
+  const msgUser = msgEl.parentElement.querySelector('.msg-username')?.innerText || 'Gebruiker';
+  
+  S.replyTo = { dn: msgUser, text: msgText };
+  document.getElementById('replyBar').classList.remove('hidden');
+  document.getElementById('replyBarText').textContent = `↩ Beantwoorden aan ${msgUser}: "${msgText.substring(0,50)}${msgText.length>50?'…':''}"`;
+  document.getElementById('messageInput').focus();
+}
+
+async function toggleRx(msgId, emoji) {
+  try {
+    const { data: msgs, error } = await supabaseClient
+      .from('messages')
+      .select('reactions')
+      .eq('id', msgId);
+    
+    if (error || !msgs || msgs.length === 0) return;
+    
+    let reactions = msgs[0].reactions || {};
+    if (!reactions[emoji]) reactions[emoji] = [];
+    
+    const idx = reactions[emoji].indexOf(S.user.username);
+    if (idx === -1) {
+      reactions[emoji].push(S.user.username);
+    } else {
+      reactions[emoji].splice(idx, 1);
+      if (reactions[emoji].length === 0) delete reactions[emoji];
+    }
+    
+    await supabaseClient
+      .from('messages')
+      .update({ reactions })
+      .eq('id', msgId);
+    
+    // UI wordt geüpdatet via subscription
+    
+  } catch (error) {
+    console.error('Fout bij reactie:', error);
+  }
+}
+
+function reactMenu(msgId, e) {
+  e.stopPropagation();
+  document.getElementById('ctxMenu')?.remove();
+  const menu = document.createElement('div'); 
+  menu.className = 'ctx-menu'; 
+  menu.id = 'ctxMenu';
+  const quick = ['❤️','😂','😮','👍','👎','🔥','💯','🎉'];
+  menu.innerHTML = `<div style="display:flex;gap:.3rem;padding:.4rem .75rem;flex-wrap:wrap">` + 
+    quick.map(em => `<button class="emoji-btn" onclick="toggleRx('${msgId}','${em}');document.getElementById('ctxMenu')?.remove()">${em}</button>`).join('') + 
+    '</div>';
+  const r = e.target.getBoundingClientRect();
+  menu.style.cssText = `top:${r.top-60}px;left:${r.left}px`;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click',() => document.getElementById('ctxMenu')?.remove(),{once:true}),50);
+}
+
+async function delMsg(id) {
+  if (!confirm('Bericht verwijderen?')) return;
+  
+  try {
+    await supabaseClient
+      .from('messages')
+      .delete()
+      .eq('id', id);
+    
+    toast('Bericht verwijderd','success');
+  } catch (error) {
+    console.error('Fout bij verwijderen:', error);
+    toast('Fout bij verwijderen','error');
+  }
+}
+
+function editMessage(msgId) {
+  const msgEl = document.querySelector(`[data-id="${msgId}"] .message`);
+  if (!msgEl) return;
+  
+  const text = msgEl.innerText.replace(/\(bewerkt\)$/, '').trim();
+  editingMessageId = msgId;
+  document.getElementById('messageInput').value = text;
+  document.getElementById('messageInput').focus();
+  toast('Bericht aan het bewerken...','info');
 }
 
 async function clearAllMessages() {
-  if (!confirm('Are you sure? This will delete ALL messages in the current channel.')) return;
-  await _sb.from('messages').delete().eq('chat_id', currentChat);
-  await switchChat(currentChat);
-  toast('All messages cleared.', 'success');
+  if (!confirm('Alle berichten in deze chat wissen? Dit kan niet ongedaan gemaakt worden.')) return;
+  
+  try {
+    await supabaseClient
+      .from('messages')
+      .delete()
+      .eq('channel_id', S.chatId);
+    
+    loadMessages(S.chatId);
+    toast('Alle berichten gewist','warning');
+    closeModal('adminModal');
+  } catch (error) {
+    console.error('Fout bij wissen:', error);
+    toast('Fout bij wissen','error');
+  }
 }
 
-// ===== PROFILE CARD =====
-function showProfileCard(event, userId) {
-  // Remove existing
-  document.querySelectorAll('.profile-card').forEach(c => c.remove());
-
-  const user = allUsers.find(u => u.id === userId);
-  if (!user) return;
-
-  const card = document.createElement('div');
-  card.className = 'profile-card';
-  card.style.left = Math.min(event.clientX, window.innerWidth - 260) + 'px';
-  card.style.top = Math.min(event.clientY + 10, window.innerHeight - 220) + 'px';
-
-  const roleBadge = user.role !== 'user' ? `<div class="user-role ${user.role}" style="font-size:13px;font-weight:600">${user.role}</div>` : '';
-
-  card.innerHTML = `
-    <div class="profile-card-avatar">${user.avatar}</div>
-    <div class="profile-card-name">${escHtml(user.username)}</div>
-    ${roleBadge}
-    <div class="profile-card-joined" style="margin-top:8px">
-      <div class="status-dot-sm ${user.status}" style="display:inline-block;margin-right:5px;vertical-align:middle"></div>
-      ${user.status === 'online' ? 'Online' : 'Offline'}
-    </div>
-    <div class="profile-card-actions">
-      <button class="btn-sm accent" onclick="startDMById('${user.id}');document.querySelectorAll('.profile-card').forEach(c=>c.remove())">💬 DM</button>
-    </div>`;
-
-  document.body.appendChild(card);
-  document.addEventListener('click', () => card.remove(), { once: true });
-}
-
-function startDMById(userId) {
-  const user = allUsers.find(u => u.id === userId);
-  if (user) startDM(user);
-}
-
-// ===== CONTEXT MENU =====
-let contextMenu = null;
-function showContextMenu(e, msgId) {
-  if (contextMenu) contextMenu.remove();
-  const menu = document.createElement('div');
-  menu.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow);z-index:9000;min-width:160px;animation:fadeIn 0.1s ease`;
-  menu.innerHTML = `<button onclick="deleteMessage('${msgId}');this.closest('div').remove()" style="display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;background:none;color:var(--danger);border-radius:4px;font-size:13px;text-align:left">🗑️ Delete Message</button>`;
-  document.body.appendChild(menu);
-  contextMenu = menu;
-  document.addEventListener('click', () => menu.remove(), { once: true });
-}
-
-// ===== MAINTENANCE MODE GAME (Snake) =====
-let gameActive = false, gameLoop = null;
-let snake, food, dir, score;
-
-function showMaintenancePage() {
-  closeModal('adminModal');
-  show('maintenancePage');
-  el('gameBest').textContent = gameBest;
-  startGame();
-}
-
-function startGame() {
-  const canvas = el('gameCanvas');
-  const ctx = canvas.getContext('2d');
-  const CELL = 20, COLS = 15, ROWS = 20;
-  canvas.width = COLS * CELL;
-  canvas.height = ROWS * CELL;
-
-  snake = [{ x: 7, y: 10 }, { x: 6, y: 10 }, { x: 5, y: 10 }];
-  dir = { x: 1, y: 0 };
-  score = 0;
-  placeFood();
-  gameActive = true;
-  el('gameScore').textContent = '0';
-
-  if (gameLoop) clearInterval(gameLoop);
-  gameLoop = setInterval(() => {
-    if (!gameActive) return;
-    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-
-    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-        snake.some(s => s.x === head.x && s.y === head.y)) {
-      gameActive = false;
-      if (score > gameBest) { gameBest = score; localStorage.setItem('gameBest', gameBest); el('gameBest').textContent = gameBest; }
-      ctx.fillStyle = 'rgba(0,0,0,0.7)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 20px DM Sans, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 16);
-      ctx.font = '14px DM Sans, sans-serif';
-      ctx.fillStyle = 'var(--text-secondary)';
-      ctx.fillText('Press Space to restart', canvas.width / 2, canvas.height / 2 + 10);
-      return;
-    }
-
-    snake.unshift(head);
-    if (head.x === food.x && head.y === food.y) {
-      score++;
-      el('gameScore').textContent = score;
-      placeFood();
-    } else {
-      snake.pop();
-    }
-
-    // Draw
-    ctx.fillStyle = '#0d1117';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-    for (let x = 0; x < COLS; x++) for (let y = 0; y < ROWS; y++) {
-      ctx.strokeRect(x * CELL, y * CELL, CELL, CELL);
-    }
-
-    // Draw food
-    ctx.fillStyle = '#f85149';
-    ctx.beginPath();
-    ctx.arc(food.x * CELL + CELL/2, food.y * CELL + CELL/2, CELL/2 - 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Draw snake
-    snake.forEach((s, i) => {
-      ctx.fillStyle = i === 0 ? '#2f81f7' : `hsl(${210 - i * 3}, 70%, ${55 - i * 0.5}%)`;
-      ctx.beginPath();
-      const r = i === 0 ? 6 : 4;
-      ctx.roundRect(s.x * CELL + 1, s.y * CELL + 1, CELL - 2, CELL - 2, r);
-      ctx.fill();
+// ==================== TYPING ====================
+function handleTyping() {
+  if (!S.user) return;
+  
+  const typingKey = `typing_${S.chatId}`;
+  
+  if (S.typingTimeouts[typingKey]) {
+    clearTimeout(S.typingTimeouts[typingKey]);
+  }
+  
+  // Stuur typing indicator naar andere gebruikers via broadcast
+  supabaseClient
+    .from('typing_indicator')
+    .upsert({ 
+      channel_id: S.chatId, 
+      user_id: S.user.id, 
+      username: S.user.username,
+      timestamp: new Date().toISOString() 
+    })
+    .then(() => {
+      S.typingTimeouts[typingKey] = setTimeout(() => {
+        supabaseClient
+          .from('typing_indicator')
+          .delete()
+          .eq('channel_id', S.chatId)
+          .eq('user_id', S.user.id);
+      }, 2000);
     });
-  }, 120);
+}
 
-  function placeFood() {
-    do { food = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) }; }
-    while (snake.some(s => s.x === food.x && s.y === food.y));
+function showTyping(name) { 
+  document.getElementById('typingText').textContent = name + ' is aan het typen...'; 
+  document.getElementById('typingIndicator').classList.remove('hidden'); 
+}
+
+function hideTyping() { 
+  document.getElementById('typingIndicator').classList.add('hidden'); 
+}
+
+// ==================== MENTION AUTOCOMPLETE ====================
+async function handleMentionAutocomplete(event) {
+  const input = document.getElementById('messageInput');
+  const cursorPos = input.selectionStart;
+  const text = input.value;
+  const dropdown = document.getElementById('autocompleteDropdown');
+  
+  let lastAtIndex = -1;
+  for (let i = cursorPos - 1; i >= 0; i--) {
+    if (text[i] === '@') {
+      if (i === 0 || text[i-1].match(/\s/)) {
+        lastAtIndex = i;
+        break;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  if (lastAtIndex !== -1) {
+    const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
+    mentionStartPos = lastAtIndex;
+    
+    const { data: users } = await supabaseClient
+      .from('users')
+      .select('username, avatar, role')
+      .neq('username', S.user.username)
+      .ilike('username', searchTerm + '%')
+      .limit(5);
+    
+    autocompleteUsers = users || [];
+    
+    if (autocompleteUsers.length > 0) {
+      renderAutocomplete(searchTerm);
+      dropdown.classList.remove('hidden');
+      autocompleteIndex = 0;
+      highlightAutocompleteItem();
+    } else {
+      hideAutocomplete();
+    }
+  } else {
+    hideAutocomplete();
   }
 }
 
-document.addEventListener('keydown', (e) => {
-  if (el('maintenancePage').classList.contains('hidden')) return;
-  const map = { ArrowUp: {x:0,y:-1}, ArrowDown: {x:0,y:1}, ArrowLeft: {x:-1,y:0}, ArrowRight: {x:1,y:0} };
-  if (map[e.key]) {
-    const d = map[e.key];
-    if (!(d.x === -dir.x && d.y === -dir.y)) dir = d;
-    e.preventDefault();
-  }
-  if (e.key === ' ' && !gameActive) startGame();
-});
+function renderAutocomplete(searchTerm) {
+  const dropdown = document.getElementById('autocompleteDropdown');
+  dropdown.innerHTML = '';
+  
+  autocompleteUsers.forEach((user, index) => {
+    const item = document.createElement('div');
+    item.className = 'autocomplete-item';
+    item.style.cssText = 'padding:0.5rem;display:flex;align-items:center;gap:0.5rem;cursor:pointer;border-bottom:1px solid var(--border);';
+    item.dataset.index = index;
+    item.onclick = () => selectAutocompleteUser(user.username);
+    
+    let badge = '';
+    if (isOwnerUser(user.username)) {
+      badge = '<span style="background:var(--owner);color:black;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.6rem;">⭐</span>';
+    } else if (user.role === 'admin') {
+      badge = '<span style="background:var(--primary);color:white;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.6rem;">👑</span>';
+    }
+    
+    item.innerHTML = `
+      <span style="font-size:1.2rem;">${user.avatar}</span>
+      <span style="flex:1;">${user.username}</span>
+      ${badge}
+    `;
+    dropdown.appendChild(item);
+  });
+}
 
-// ===== INPUT HANDLING =====
-function handleInputKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
+function highlightAutocompleteItem() {
+  const items = document.querySelectorAll('#autocompleteDropdown .autocomplete-item');
+  items.forEach((item, index) => {
+    if (index === autocompleteIndex) {
+      item.style.background = 'var(--primary)';
+      item.style.color = 'white';
+    } else {
+      item.style.background = '';
+      item.style.color = '';
+    }
+  });
+}
+
+function handleAutocompleteKeydown(event) {
+  const dropdown = document.getElementById('autocompleteDropdown');
+  if (dropdown.classList.contains('hidden')) return;
+  
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    autocompleteIndex = (autocompleteIndex + 1) % autocompleteUsers.length;
+    highlightAutocompleteItem();
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    autocompleteIndex = (autocompleteIndex - 1 + autocompleteUsers.length) % autocompleteUsers.length;
+    highlightAutocompleteItem();
+  } else if (event.key === 'Tab' || event.key === 'Enter') {
+    if (autocompleteIndex >= 0 && autocompleteUsers[autocompleteIndex]) {
+      event.preventDefault();
+      selectAutocompleteUser(autocompleteUsers[autocompleteIndex].username);
+    }
+  } else if (event.key === 'Escape') {
+    hideAutocomplete();
+  }
+}
+
+function selectAutocompleteUser(username) {
+  const input = document.getElementById('messageInput');
+  const text = input.value;
+  const beforeMention = text.substring(0, mentionStartPos + 1);
+  const afterMention = text.substring(input.selectionStart);
+  
+  input.value = beforeMention + username + ' ' + afterMention;
+  input.focus();
+  input.selectionStart = input.selectionEnd = mentionStartPos + 1 + username.length + 1;
+  
+  hideAutocomplete();
+}
+
+function hideAutocomplete() {
+  document.getElementById('autocompleteDropdown').classList.add('hidden');
+  autocompleteUsers = [];
+  autocompleteIndex = -1;
+  mentionStartPos = -1;
+}
+
+// ==================== INPUT ====================
+function handleKey(e) {
+  handleAutocompleteKeydown(e);
+  const es = document.getElementById('enterSendToggle')?.checked ?? S.settings.enterSend;
+  if (es && e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
 }
 
-function handleInputChange() {
-  const input = el('messageInput');
-  input.style.height = 'auto';
-  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+function handleInput(el) {
+  el.style.height = 'auto'; 
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  const n = el.value.length;
+  const c = document.getElementById('charCounter'); 
+  c.textContent = n + '/2000'; 
+  c.classList.toggle('over', n > 1900);
+  handleTyping();
 }
 
-// ===== EMOJI =====
-function toggleEmojiPanel() {
-  el('emojiPanel').classList.toggle('hidden');
+function handleImg(e) {
+  const f = e.target.files[0]; 
+  if (!f) return;
+  if (f.size > 5 * 1024 * 1024) { toast('Max 5MB','error'); return; }
+  const r = new FileReader(); 
+  r.onload = ev => sendMessage(null, ev.target.result); 
+  r.readAsDataURL(f);
+  e.target.value = '';
 }
 
-function closeEmojiPanel(e) {
-  if (e.target === el('emojiPanel')) el('emojiPanel').classList.add('hidden');
+function openLightbox(src) {
+  const lb = document.createElement('div'); 
+  lb.className = 'lightbox'; 
+  lb.onclick = () => lb.remove();
+  lb.innerHTML = `<img src="${src}" alt="img">`; 
+  document.body.appendChild(lb);
 }
 
-document.querySelectorAll('.emoji-pick').forEach(e => {
-  e.onclick = () => {
-    el('messageInput').value += e.textContent;
-    el('messageInput').focus();
-    el('emojiPanel').classList.add('hidden');
-  };
+function onScroll() {
+  const c = document.getElementById('messagesContainer'), 
+        btn = document.getElementById('scrollBottomBtn');
+  btn.classList.toggle('hidden', c.scrollHeight - c.scrollTop - c.clientHeight < 100);
+}
+
+function scrollToBottom() { 
+  const c = document.getElementById('messagesContainer'); 
+  c.scrollTop = c.scrollHeight; 
+}
+
+// ==================== EMOJI PICKER ====================
+function initEmojiPicker() {
+  renderEmojiGrid(EMOJIS);
+  document.addEventListener('click', e => { 
+    if (!e.target.closest('.input-wrapper')) closeEmoji(); 
+  });
+}
+
+function renderEmojiGrid(list) {
+  const g = document.getElementById('emojiGrid'); 
+  g.innerHTML = '';
+  list.forEach(em => { 
+    const b = document.createElement('button'); 
+    b.className = 'emoji-btn'; 
+    b.textContent = em; 
+    b.onclick = () => insertEmoji(em); 
+    g.appendChild(b); 
+  });
+}
+
+function filterEmoji(v) { 
+  renderEmojiGrid(v ? EMOJIS.filter(e => e.includes(v)) : EMOJIS); 
+}
+
+function toggleEmoji(e) {
+  e.stopPropagation(); 
+  S.emojiOpen = !S.emojiOpen;
+  document.getElementById('emojiPicker').classList.toggle('open', S.emojiOpen);
+}
+
+function closeEmoji() { 
+  S.emojiOpen = false; 
+  document.getElementById('emojiPicker').classList.remove('open'); 
+}
+
+function insertEmoji(em) {
+  const inp = document.getElementById('messageInput');
+  const pos = inp.selectionStart; 
+  inp.value = inp.value.slice(0, pos) + em + inp.value.slice(pos);
+  inp.setSelectionRange(pos + em.length, pos + em.length); 
+  inp.focus(); 
+  handleInput(inp);
+}
+
+// ==================== GIF MODAL ====================
+function initGifGrid() { 
+  filterGifs(''); 
+}
+
+function filterGifs(v) {
+  const g = document.getElementById('gifGrid'), 
+        items = v ? GIFS.filter(x => x.label.toLowerCase().includes(v.toLowerCase())) : GIFS;
+  g.innerHTML = '';
+  items.forEach(item => {
+    const d = document.createElement('div'); 
+    d.className = 'gif-item';
+    d.innerHTML = `<div style="font-size:1.8rem">${item.txt}</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.25rem">${item.label}</div>`;
+    d.onclick = () => { 
+      const inp = document.getElementById('messageInput'); 
+      inp.value += ' ' + item.txt + ' '; 
+      handleInput(inp); 
+      closeModal('gifModal'); 
+      inp.focus(); 
+    };
+    g.appendChild(d);
+  });
+}
+
+// ==================== SETTINGS ====================
+function openSettings() {
+  applySettingsUI();
+  buildAvatarPicker('settingsAvatarPicker');
+  openModal('settingsModal');
+}
+
+function applySettingsUI() {
+  const s = S.settings;
+  const ids = {compact:'compactToggle', timestamps:'timestampToggle', sound:'soundToggle', enterSend:'enterSendToggle'};
+  Object.entries(ids).forEach(([k,id]) => { 
+    const el = document.getElementById(id); 
+    if (el) el.checked = s[k]; 
+  });
+  const fs = document.getElementById('fontSizeSlider'); 
+  if (fs) fs.value = s.fontSize;
+  const fl = document.getElementById('fontSizeLabel'); 
+  if (fl) fl.textContent = s.fontSize + 'px';
+  
+  const map = {dark:0, light:1, purple:2, green:3, red:4, blue:5, midnight:6, cyber:7, 'black-rgb':8};
+  document.querySelectorAll('.theme-swatch').forEach(sw => sw.classList.remove('selected'));
+  const sw = document.querySelectorAll('.theme-swatch')[map[s.theme] || 0]; 
+  if (sw) sw.classList.add('selected');
+}
+
+function applyTheme(theme, el) {
+  S.settings.theme = theme;
+  document.body.className = 'theme-' + theme + (S.settings.compact ? ' compact-mode' : '');
+  if (el) { 
+    document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected')); 
+    el.classList.add('selected'); 
+  }
+  saveSettings();
+}
+
+function applyFontSize(v) {
+  v = parseInt(v); 
+  S.settings.fontSize = v;
+  document.documentElement.style.setProperty('--msg-font', v + 'px');
+  const fl = document.getElementById('fontSizeLabel'); 
+  if (fl) fl.textContent = v + 'px';
+  saveSettings();
+}
+
+function toggleCompact(v) {
+  S.settings.compact = v; 
+  document.body.classList.toggle('compact-mode', v); 
+  saveSettings();
+}
+
+function toggleTimestamps(v) {
+  S.settings.timestamps = v; 
+  document.querySelectorAll('.msg-time').forEach(t => t.style.display = v ? '' : 'none'); 
+  saveSettings();
+}
+
+function saveSettings() {
+  localStorage.setItem('uc_settings', JSON.stringify(S.settings));
+  if (S.user) localStorage.setItem('us_' + S.user.username, JSON.stringify(S.settings));
+}
+
+function buildAvatarPicker(gridId) {
+  const g = document.getElementById(gridId); 
+  if (!g) return; 
+  g.innerHTML = '';
+  AVATARS.forEach(a => {
+    const d = document.createElement('div'); 
+    d.className = 'avatar-option' + (a === S.user.avatar ? ' selected' : '');
+    d.textContent = a;
+    d.onclick = () => {
+      document.querySelectorAll(`#${gridId} .avatar-option`).forEach(x => x.classList.remove('selected'));
+      d.classList.add('selected'); 
+      S.user.avatar = a; 
+      S.tempAvatar = a;
+      document.getElementById('userAvatar').textContent = a;
+      const pab = document.getElementById('profileAvatarBig'); 
+      if (pab) pab.textContent = a;
+      
+      supabaseClient
+        .from('users')
+        .update({ avatar: a })
+        .eq('id', S.user.id)
+        .then(() => {
+          toast('Avatar bijgewerkt','success');
+        })
+        .catch(err => {
+          console.error('Fout bij updaten avatar:', err);
+        });
+    };
+    g.appendChild(d);
+  });
+}
+
+// ==================== PROFILE ====================
+function openProfile() {
+  document.getElementById('profileAvatarBig').textContent = S.user.avatar;
+  document.getElementById('displayNameInput').value = S.user.display_name;
+  document.getElementById('statMsgs').textContent = S.user.message_count || 0;
+  document.getElementById('statRole').textContent = S.user.role;
+  buildAvatarPicker('profileAvatarPicker');
+  openModal('profileModal');
+}
+
+function saveProfile() {
+  const dn = document.getElementById('displayNameInput').value.trim();
+  if (!dn) { toast('Naam mag niet leeg zijn','error'); return; }
+  if (dn.length > 24) { toast('Max 24 tekens','error'); return; }
+  
+  S.user.display_name = dn;
+  document.getElementById('currentUsername').textContent = dn;
+  
+  supabaseClient
+    .from('users')
+    .update({ display_name: dn })
+    .eq('id', S.user.id)
+    .then(() => {
+      closeModal('profileModal'); 
+      toast('Profiel opgeslagen ✅','success');
+    })
+    .catch(err => {
+      console.error('Fout bij opslaan profiel:', err);
+      toast('Fout bij opslaan','error');
+    });
+}
+
+// ==================== ADMIN ====================
+function adminPostAnnouncement() {
+  const title = (document.getElementById('annTitle') || {value:''}).value.trim();
+  const text  = (document.getElementById('annText') || {value:''}).value.trim();
+  if (!title) { toast('Voer een titel in','error'); return; }
+  if (!text) { toast('Voer een bericht in','error'); return; }
+  
+  const icons = {announce:'📣', info:'ℹ️', warn:'⚠️', success:'✅', danger:'🚨', update:'🚀'};
+  
+  supabaseClient
+    .from('messages')
+    .insert([{
+      channel_id: 'announcements',
+      username: 'system',
+      display_name: 'Systeem',
+      avatar: '⚙️',
+      role: 'system',
+      content: text,
+      is_system: true,
+      sys_card: {
+        type: 'announce',
+        icon: '📣',
+        title: title,
+        badge: 'announce'
+      },
+      created_at: new Date().toISOString()
+    }])
+    .then(() => {
+      if (S.chatId === 'announcements') loadMessages('announcements');
+      toast('Aankondiging geplaatst!','success');
+      document.getElementById('annTitle').value = '';
+      document.getElementById('annText').value = '';
+      closeModal('adminModal');
+    })
+    .catch(err => {
+      console.error('Fout bij aankondiging:', err);
+      toast('Fout bij plaatsen','error');
+    });
+}
+
+async function toggleMaintenance() {
+  const select = document.getElementById('maintenanceSelect');
+  const enabled = select.value === '1';
+  await setMaintenanceMode(enabled);
+}
+
+async function openAdmin() {
+  if (!['admin','owner'].includes(S.user.role)) return;
+  
+  const { count: msgCount } = await supabaseClient
+    .from('messages')
+    .select('*', { count: 'exact', head: true });
+  
+  const { count: userCount } = await supabaseClient
+    .from('users')
+    .select('*', { count: 'exact', head: true });
+  
+  document.getElementById('statTotalMsgs').textContent = msgCount || 0;
+  document.getElementById('statTotalUsers').textContent = userCount || 0;
+  document.getElementById('statOnline').textContent = '1'; // Vereenvoudigd
+  
+  // Haal huidige maintenance status op
+  const { data } = await supabaseClient
+    .from('admin_settings')
+    .select('maintenance_mode')
+    .eq('id', 1)
+    .single();
+  
+  document.getElementById('maintenanceSelect').value = data?.maintenance_mode ? '1' : '0';
+  
+  renderAdminUsers();
+  openModal('adminModal');
+}
+
+async function renderAdminUsers() {
+  const list = document.getElementById('adminUserList'); 
+  list.innerHTML = '';
+  
+  const { data: users } = await supabaseClient
+    .from('users')
+    .select('*')
+    .neq('username', S.user.username);
+  
+  if (!users) return;
+  
+  users.forEach(user => {
+    const d = document.createElement('div'); 
+    d.className = 'user-list-item' + (user.is_banned ? ' banned' : '');
+    d.innerHTML = `<div class="chat-item-avatar">${user.avatar}</div>
+    <div><div style="font-size:.875rem;font-weight:600">${esc(user.display_name || user.username)}</div>
+    <div style="font-size:.7rem;color:var(--text-muted)">${user.role} · ${user.message_count||0} berichten${user.is_banned?' · VERBANNEN':''}${user.is_muted?' · GEDEMPT':''}</div></div>
+    <div class="user-list-actions">
+      <button class="action-btn mute-btn" onclick="adminMute('${user.id}')">${user.is_muted?'Ontdemp':'Dempen'}</button>
+      <button class="action-btn ban" onclick="adminBan('${user.id}')">${user.is_banned?'Debannen':'Verban'}</button>
+      <button class="action-btn promote" onclick="adminPromote('${user.id}','${user.role}')">${user.role==='admin'?'Degraderen':'Promoten'}</button>
+      <button class="action-btn" onclick="viewUserPassword('${user.id}')">🔑</button>
+    </div>`;
+    list.appendChild(d);
+  });
+}
+
+async function viewUserPassword(userId) {
+  const { data } = await supabaseClient
+    .from('users')
+    .select('username, password')
+    .eq('id', userId)
+    .single();
+  
+  if (data) {
+    alert(`Wachtwoord voor ${data.username}: ${data.password}`);
+  }
+}
+
+async function adminMute(userId) {
+  const { data } = await supabaseClient
+    .from('users')
+    .select('is_muted')
+    .eq('id', userId)
+    .single();
+  
+  const newMuted = !data.is_muted;
+  
+  await supabaseClient
+    .from('users')
+    .update({ is_muted: newMuted })
+    .eq('id', userId);
+  
+  toast(newMuted ? 'Gebruiker gedempt' : 'Gebruiker ontdempt', newMuted ? 'warning' : 'success');
+  renderAdminUsers();
+}
+
+async function adminBan(userId) {
+  const { data } = await supabaseClient
+    .from('users')
+    .select('is_banned')
+    .eq('id', userId)
+    .single();
+  
+  const newBanned = !data.is_banned;
+  
+  await supabaseClient
+    .from('users')
+    .update({ is_banned: newBanned })
+    .eq('id', userId);
+  
+  toast(newBanned ? 'Gebruiker verbannen' : 'Gebruiker gedebanned', newBanned ? 'error' : 'success');
+  renderAdminUsers();
+}
+
+async function adminPromote(userId, currentRole) {
+  const newRole = currentRole === 'admin' ? 'user' : 'admin';
+  
+  await supabaseClient
+    .from('users')
+    .update({ role: newRole })
+    .eq('id', userId);
+  
+  toast(`Gebruiker is nu ${newRole}`, 'success');
+  renderAdminUsers();
+}
+
+// ==================== BROADCAST ====================
+function sendBroadcast() {
+  const t = document.getElementById('broadcastInput').value.trim(); 
+  if (!t) { toast('Voer bericht in','error'); return; }
+  
+  supabaseClient
+    .from('broadcasts')
+    .insert([{
+      message: t,
+      type: 'message',
+      target_users: 'all',
+      sent_by: S.user.id,
+      sent_by_name: S.user.username,
+      created_at: new Date().toISOString()
+    }])
+    .then(() => {
+      document.getElementById('broadcastInput').value = ''; 
+      toast('Broadcast verzonden!','success');
+    })
+    .catch(err => {
+      console.error('Fout bij broadcast:', err);
+      toast('Fout bij verzenden','error');
+    });
+}
+
+function dismissBroadcast() { 
+  document.getElementById('broadcastBanner').classList.add('hidden'); 
+}
+
+// ==================== OWNER TERMINAL ====================
+function showOwnerTerminal() {
+  if (!S.isOwner) {
+    toast('Toegang geweigerd','error');
+    return;
+  }
+  document.getElementById('ownerTerminal').style.display = 'flex';
+  const output = document.getElementById('terminalOutput');
+  output.innerHTML = '';
+  addTerminalLine('Owner Terminal - Gebruik "help" voor commando\'s', 'info');
+  document.getElementById('terminalInput').focus();
+}
+
+function closeOwnerTerminal() {
+  document.getElementById('ownerTerminal').style.display = 'none';
+}
+
+function addTerminalLine(text, type = 'normal') {
+  const output = document.getElementById('terminalOutput');
+  const line = document.createElement('div');
+  line.className = 'terminal-line';
+  
+  if (type === 'error') line.style.color = '#ff4444';
+  else if (type === 'success') line.style.color = '#44ff44';
+  else if (type === 'info') line.style.color = '#ffff44';
+  
+  line.textContent = text;
+  output.appendChild(line);
+  output.scrollTop = output.scrollHeight;
+}
+
+function handleTerminalKeypress(event) {
+  if (event.key === 'Enter') {
+    const input = document.getElementById('terminalInput');
+    const command = input.value.trim();
+    if (command) {
+      addTerminalLine(`# ${command}`);
+      executeTerminalCommand(command);
+      input.value = '';
+    }
+  }
+}
+
+async function executeTerminalCommand(command) {
+  const args = command.split(' ');
+  const cmd = args[0].toLowerCase();
+
+  switch(cmd) {
+    case 'help':
+      addTerminalLine('Beschikbare commando\'s:', 'info');
+      addTerminalLine('  users - Lijst alle gebruikers');
+      addTerminalLine('  msg <username> <message> - Stuur popup naar gebruiker');
+      addTerminalLine('  broadcast <message> - Stuur popup naar alle gebruikers');
+      addTerminalLine('  crash <username> - Toon idiot screen op gebruiker');
+      addTerminalLine('  crashall - Toon idiot screen op alle gebruikers');
+      addTerminalLine('  url <username> <url> - Open URL op gebruiker');
+      addTerminalLine('  urlall <url> - Open URL op alle gebruikers');
+      addTerminalLine('  reload <username> - Herlaad gebruikerspagina');
+      addTerminalLine('  reloadall - Herlaad alle gebruikers');
+      addTerminalLine('  getpass <username> - Haal wachtwoord op');
+      addTerminalLine('  clear - Maak terminal leeg');
+      break;
+
+    case 'users':
+      const { data: users } = await supabaseClient.from('users').select('*');
+      addTerminalLine(`Totaal gebruikers: ${users.length}`, 'info');
+      users.forEach(u => {
+        addTerminalLine(`  ${u.username} (${u.role}) ${isOwnerUser(u.username) ? '(OWNER)' : ''}`);
+      });
+      break;
+
+    case 'msg':
+      if (args.length < 3) {
+        addTerminalLine('Gebruik: msg <username> <message>', 'error');
+        return;
+      }
+      const targetUsername = args[1];
+      const message = args.slice(2).join(' ');
+      
+      const { data: targetUser } = await supabaseClient
+        .from('users')
+        .select('id, username')
+        .eq('username', targetUsername)
+        .single();
+      
+      if (!targetUser) {
+        addTerminalLine(`Gebruiker ${targetUsername} niet gevonden`, 'error');
+        return;
+      }
+
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'owner_popup',
+          message: message,
+          target_users: [targetUser.id],
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+        
+      addTerminalLine(`Popup verzonden naar ${targetUsername}`, 'success');
+      break;
+
+    case 'broadcast':
+      if (args.length < 2) {
+        addTerminalLine('Gebruik: broadcast <message>', 'error');
+        return;
+      }
+      const broadcastMsg = args.slice(1).join(' ');
+      
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'owner_popup',
+          message: broadcastMsg,
+          target_users: 'all',
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+        
+      addTerminalLine('Popup verzonden naar alle gebruikers', 'success');
+      break;
+
+    case 'crash':
+      if (args.length < 2) {
+        addTerminalLine('Gebruik: crash <username>', 'error');
+        return;
+      }
+      const crashTarget = args[1];
+      
+      const { data: crashUser } = await supabaseClient
+        .from('users')
+        .select('id, username')
+        .eq('username', crashTarget)
+        .single();
+      
+      if (!crashUser) {
+        addTerminalLine(`Gebruiker ${crashTarget} niet gevonden`, 'error');
+        return;
+      }
+
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'crash',
+          target_users: [crashUser.id],
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+        
+      addTerminalLine(`💥 CRASH verzonden naar ${crashTarget}`, 'success');
+      break;
+
+    case 'crashall':
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'crash',
+          target_users: 'all',
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+      addTerminalLine('💥 CRASH verzonden naar alle gebruikers', 'success');
+      break;
+
+    case 'url':
+      if (args.length < 3) {
+        addTerminalLine('Gebruik: url <username> <url>', 'error');
+        return;
+      }
+      const urlTarget = args[1];
+      const url = args[2];
+      
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        addTerminalLine('URL moet beginnen met http:// of https://', 'error');
+        return;
+      }
+
+      const { data: urlUser } = await supabaseClient
+        .from('users')
+        .select('id, username')
+        .eq('username', urlTarget)
+        .single();
+      
+      if (!urlUser) {
+        addTerminalLine(`Gebruiker ${urlTarget} niet gevonden`, 'error');
+        return;
+      }
+
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'url_redirect',
+          url: url,
+          target_users: [urlUser.id],
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+        
+      addTerminalLine(`URL verzonden naar ${urlTarget}`, 'success');
+      break;
+
+    case 'urlall':
+      if (args.length < 2) {
+        addTerminalLine('Gebruik: urlall <url>', 'error');
+        return;
+      }
+      const urlAll = args[1];
+      
+      if (!urlAll.startsWith('http://') && !urlAll.startsWith('https://')) {
+        addTerminalLine('URL moet beginnen met http:// of https://', 'error');
+        return;
+      }
+
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'url_redirect',
+          url: urlAll,
+          target_users: 'all',
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+        
+      addTerminalLine('URL verzonden naar alle gebruikers', 'success');
+      break;
+
+    case 'reload':
+      if (args.length < 2) {
+        addTerminalLine('Gebruik: reload <username>', 'error');
+        return;
+      }
+      const reloadTarget = args[1];
+      
+      const { data: reloadUser } = await supabaseClient
+        .from('users')
+        .select('id, username')
+        .eq('username', reloadTarget)
+        .single();
+      
+      if (!reloadUser) {
+        addTerminalLine(`Gebruiker ${reloadTarget} niet gevonden`, 'error');
+        return;
+      }
+
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'force_reload',
+          target_users: [reloadUser.id],
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+        
+      addTerminalLine(`Herlaad verzonden naar ${reloadTarget}`, 'success');
+      break;
+
+    case 'reloadall':
+      await supabaseClient
+        .from('broadcasts')
+        .insert([{
+          type: 'force_reload',
+          target_users: 'all',
+          sent_by: S.user.id,
+          created_at: new Date().toISOString()
+        }]);
+      addTerminalLine('Herlaad verzonden naar alle gebruikers', 'success');
+      break;
+
+    case 'getpass':
+      if (args.length < 2) {
+        addTerminalLine('Gebruik: getpass <username>', 'error');
+        return;
+      }
+      const passTarget = args[1];
+      
+      const { data: passUser } = await supabaseClient
+        .from('users')
+        .select('username, password')
+        .eq('username', passTarget)
+        .single();
+      
+      if (!passUser) {
+        addTerminalLine(`Gebruiker ${passTarget} niet gevonden`, 'error');
+        return;
+      }
+
+      addTerminalLine(`Wachtwoord voor ${passTarget}: ${passUser.password}`, 'success');
+      break;
+
+    case 'clear':
+      document.getElementById('terminalOutput').innerHTML = '';
+      break;
+
+    default:
+      addTerminalLine(`Onbekend commando: ${cmd}`, 'error');
+  }
+}
+
+function showOwnerPopup(message) {
+  const popup = document.getElementById('ownerPopup');
+  const content = document.getElementById('ownerPopupContent');
+  content.textContent = message;
+  popup.style.display = 'block';
+}
+
+function closeOwnerPopup() {
+  document.getElementById('ownerPopup').style.display = 'none';
+}
+
+// ==================== URL REDIRECT ====================
+function showUrlRedirect() {
+  if (!['admin','owner'].includes(S.user.role)) return;
+  document.getElementById('urlRedirectModal').classList.remove('hidden');
+}
+
+function closeUrlRedirect() {
+  document.getElementById('urlRedirectModal').classList.add('hidden');
+  document.getElementById('urlUserList').classList.add('hidden');
+}
+
+async function sendUrlToAll() {
+  const url = document.getElementById('redirectUrl').value.trim();
+  if (!url) { toast('Voer een URL in', 'warning'); return; }
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    toast('URL moet beginnen met http:// of https://', 'error');
+    return;
+  }
+  
+  await supabaseClient
+    .from('broadcasts')
+    .insert([{
+      type: 'url_redirect',
+      url: url,
+      target_users: 'all',
+      sent_by: S.user.id,
+      created_at: new Date().toISOString()
+    }]);
+  
+  toast(`URL zal openen voor alle gebruikers: ${url}`, 'success');
+  closeUrlRedirect();
+}
+
+async function showUrlUserSelect() {
+  const userList = document.getElementById('urlUserList');
+  userList.classList.remove('hidden');
+  userList.innerHTML = '<h4 style="margin-bottom:0.5rem;">Selecteer Gebruikers:</h4>';
+  
+  const { data: users } = await supabaseClient
+    .from('users')
+    .select('id, username, avatar')
+    .neq('username', S.user.username);
+  
+  users.forEach(user => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--surface2);border-radius:0.5rem;margin-bottom:0.25rem;';
+    div.innerHTML = `
+      <input type="checkbox" class="user-select" value="${user.id}">
+      <span style="font-size:1.2rem;">${user.avatar}</span>
+      <label style="flex:1;cursor:pointer;">${user.username}</label>
+    `;
+    userList.appendChild(div);
+  });
+  
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'btn';
+  sendBtn.textContent = 'Verstuur naar Geselecteerden';
+  sendBtn.style.marginTop = '1rem';
+  sendBtn.onclick = sendUrlToSelected;
+  userList.appendChild(sendBtn);
+}
+
+async function sendUrlToSelected() {
+  const url = document.getElementById('redirectUrl').value.trim();
+  if (!url) { toast('Voer een URL in', 'warning'); return; }
+  
+  const checkboxes = document.querySelectorAll('#urlUserList .user-select:checked');
+  if (checkboxes.length === 0) { toast('Selecteer minstens één gebruiker', 'warning'); return; }
+  
+  const selected = Array.from(checkboxes).map(cb => cb.value);
+  
+  await supabaseClient
+    .from('broadcasts')
+    .insert([{
+      type: 'url_redirect',
+      url: url,
+      target_users: selected,
+      sent_by: S.user.id,
+      created_at: new Date().toISOString()
+    }]);
+  
+  toast(`URL verzonden naar ${selected.length} gebruiker(s)`, 'success');
+  closeUrlRedirect();
+}
+
+function acceptOwnerUrl() {
+  document.getElementById('ownerUrlDialog').style.display = 'none';
+  if (pendingOwnerUrl) {
+    window.open(pendingOwnerUrl, '_blank', 'noopener,noreferrer');
+  }
+  pendingOwnerUrl = null;
+}
+
+function rejectOwnerUrl() {
+  document.getElementById('ownerUrlDialog').style.display = 'none';
+  pendingOwnerUrl = null;
+  toast('URL geweigerd', 'info');
+}
+
+// ==================== PAGE RELOAD ====================
+function showPageReloadPanel() {
+  if (!['admin','owner'].includes(S.user.role)) return;
+  document.getElementById('pageReloadModal').classList.remove('hidden');
+}
+
+function closePageReloadModal() {
+  document.getElementById('pageReloadModal').classList.add('hidden');
+  document.getElementById('reloadUserList').classList.add('hidden');
+}
+
+function sendReloadToAll() {
+  if (confirm('Herlaad alle gebruikers?')) {
+    supabaseClient
+      .from('broadcasts')
+      .insert([{
+        type: 'force_reload',
+        target_users: 'all',
+        sent_by: S.user.id,
+        created_at: new Date().toISOString()
+      }]);
+    
+    toast('Herlaad commando verzonden naar alle gebruikers', 'success');
+    closePageReloadModal();
+  }
+}
+
+async function showReloadUserSelect() {
+  const listEl = document.getElementById('reloadUserList');
+  listEl.classList.remove('hidden');
+  listEl.innerHTML = '<h4 style="margin-bottom:0.5rem;">Selecteer Gebruikers om te Herladen:</h4>';
+  
+  const { data: users } = await supabaseClient
+    .from('users')
+    .select('id, username, avatar')
+    .neq('username', S.user.username);
+  
+  users.forEach(user => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--surface2);border-radius:0.5rem;margin-bottom:0.25rem;';
+    div.innerHTML = `
+      <input type="checkbox" class="reload-select" value="${user.id}">
+      <span style="font-size:1.2rem;">${user.avatar}</span>
+      <label style="flex:1;cursor:pointer;">${user.username}</label>
+    `;
+    listEl.appendChild(div);
+  });
+  
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'btn';
+  sendBtn.textContent = 'Herlaad Geselecteerde Gebruikers';
+  sendBtn.style.marginTop = '1rem';
+  sendBtn.onclick = sendReloadToSelected;
+  listEl.appendChild(sendBtn);
+}
+
+function sendReloadToSelected() {
+  const checkboxes = document.querySelectorAll('#reloadUserList .reload-select:checked');
+  if (checkboxes.length === 0) { toast('Selecteer minstens één gebruiker', 'warning'); return; }
+  
+  const selected = Array.from(checkboxes).map(cb => cb.value);
+  
+  supabaseClient
+    .from('broadcasts')
+    .insert([{
+      type: 'force_reload',
+      target_users: selected,
+      sent_by: S.user.id,
+      created_at: new Date().toISOString()
+    }]);
+  
+  toast(`Herlaad commando verzonden naar ${selected.length} gebruiker(s)`, 'success');
+  closePageReloadModal();
+}
+
+// ==================== IDIOT SCREEN ====================
+function showIdiotScreen() { 
+  closeModal('adminModal'); 
+  document.getElementById('idiotScreen').classList.remove('hidden'); 
+}
+
+function hideIdiotScreen() { 
+  document.getElementById('idiotScreen').classList.add('hidden'); 
+}
+
+// ==================== MODALS ====================
+function openModal(id) { 
+  document.getElementById(id).classList.remove('hidden'); 
+}
+
+function closeModal(id) { 
+  document.getElementById(id).classList.add('hidden'); 
+}
+
+document.addEventListener('click', e => { 
+  if (e.target.classList.contains('modal')) e.target.classList.add('hidden'); 
 });
 
-// ===== SCROLL =====
-function scrollToBottom() {
-  const area = el('messagesArea');
-  area.scrollTop = area.scrollHeight;
+// ==================== GELUID ====================
+let actx;
+function beep() {
+  if (!S.settings.sound) return;
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.frequency.setValueAtTime(880, actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(440, actx.currentTime + .1);
+    g.gain.setValueAtTime(.08, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, actx.currentTime + .18);
+    o.start(actx.currentTime); o.stop(actx.currentTime + .18);
+  } catch(e) {}
 }
 
-el('messagesArea').addEventListener('scroll', () => {
-  const area = el('messagesArea');
-  isNearBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 100;
-});
-
-// ===== MOBILE SIDEBAR =====
-function openMobileSidebar() { el('sidebar').classList.add('open'); }
-function closeMobileSidebar() { el('sidebar').classList.remove('open'); }
-
-// ===== MODAL HELPERS =====
-function showPage(page) {
-  hide('loginPage'); hide('registerPage');
-  show(page + 'Page');
+// ==================== UTILS ====================
+function esc(s) { 
+  if (!s) return ''; 
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); 
 }
 
-function closeModal(id) {
-  el(id).classList.add('hidden');
+function fmt(ts) { 
+  return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); 
 }
 
-// Close modals on overlay click
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.classList.add('hidden');
+function rel(ts) { 
+  const d = Date.now() - ts; 
+  if (d < 60000) return 'nu'; 
+  if (d < 3600000) return Math.floor(d / 60000) + 'm'; 
+  if (d < 86400000) return Math.floor(d / 3600000) + 'u'; 
+  return Math.floor(d / 86400000) + 'd'; 
+}
+
+function show(id) { 
+  document.getElementById(id).classList.remove('hidden'); 
+}
+
+function hide(id) { 
+  document.getElementById(id).classList.add('hidden'); 
+}
+
+// ==================== INIT ====================
+window.addEventListener('load', async () => {
+  loadSettings();
+  await checkMaintenanceStatus(true);
+  
+  const sess = sessionStorage.getItem('uc_sess');
+  if (sess) {
+    try {
+      S.user = JSON.parse(sess);
+      S.isOwner = isOwnerUser(S.user.username);
+      
+      const { data } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('id', S.user.id)
+        .single();
+      
+      if (data) {
+        S.user = {
+          id: data.id,
+          username: data.username,
+          display_name: data.display_name || data.username,
+          avatar: data.avatar,
+          role: data.role,
+          message_count: data.message_count || 0
+        };
+        
+        // Check maintenance mode bij inloggen
+        if (S.maintenanceMode && !['admin','owner'].includes(data.role)) {
+          showMaintenancePage();
+        } else {
+          enterApp();
+        }
+      } else {
+        show('loginPage');
+      }
+    } catch (e) {
+      console.error('Sessie fout:', e);
+      show('loginPage');
+    }
+  } else {
+    show('loginPage');
+  }
+  
+  document.getElementById('loginPassword').addEventListener('keydown', e => { 
+    if (e.key === 'Enter') handleLogin(); 
+  });
+  document.getElementById('loginUsername').addEventListener('keydown', e => { 
+    if (e.key === 'Enter') handleLogin(); 
   });
 });
 
-// ===== THEME =====
-function applyTheme(theme) {
-  document.body.className = 'theme-' + theme;
-  localStorage.setItem('theme', theme);
-}
-
-// ===== TOAST =====
-function toast(msg, type = 'info') {
-  const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-  const container = el('toastContainer');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span class="toast-icon">${icons[type]}</span> ${escHtml(msg)}`;
-  container.appendChild(t);
-  setTimeout(() => {
-    t.style.animation = 'toastOut 0.3s ease forwards';
-    setTimeout(() => t.remove(), 300);
-  }, 4000);
-}
-
-// ===== UTILS =====
-function el(id) { return document.getElementById(id); }
-function val(id) { return el(id) ? el(id).value : ''; }
-function show(id) { el(id) && el(id).classList.remove('hidden'); }
-function hide(id) { el(id) && el(id).classList.add('hidden'); }
-function escHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
-function setLoading(btnId, loading) {
-  const b = el(btnId);
-  if (!b) return;
-  b.disabled = loading;
-  b.textContent = loading ? 'Loading...' : (btnId === 'loginBtn' ? 'Sign In' : 'Create Account');
-}
-function showAuthError(id, msg) {
-  const e = el(id);
-  e.textContent = msg;
-  e.classList.remove('hidden');
-  setTimeout(() => e.classList.add('hidden'), 5000);
-}
-
-// Enter key on auth forms
-['loginEmail','loginPassword'].forEach(id => {
-  el(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-});
-['registerUsername','registerEmail','registerPassword'].forEach(id => {
-  el(id).addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
-});
+const originalHandleKey = handleKey;
+handleKey = function(e) {
+  handleAutocompleteKeydown(e);
+  originalHandleKey(e);
+};
 </script>
-
-<!-- SQL SETUP INSTRUCTIONS (as a comment) -->
-<!--
-=======================================================================
-  SUPABASE SETUP — Run this SQL in your Supabase SQL editor
-=======================================================================
-
--- 1. PROFILES TABLE
-create table profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  username text not null unique,
-  avatar text default '😀',
-  role text default 'user' check (role in ('user', 'admin', 'owner')),
-  status text default 'online' check (status in ('online', 'offline')),
-  created_at timestamptz default now()
-);
-
--- 2. MESSAGES TABLE
-create table messages (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  username text not null,
-  chat_id text not null default 'global',
-  content text not null,
-  created_at timestamptz default now()
-);
-create index on messages(chat_id, created_at);
-
--- 3. BROADCASTS TABLE
-create table broadcasts (
-  id uuid primary key default gen_random_uuid(),
-  message text not null,
-  type text default 'message' check (type in ('message', 'reload', 'maintenance', 'idiot', 'idiot_target')),
-  active boolean default true,
-  created_at timestamptz default now()
-);
-
--- 4. ROW LEVEL SECURITY
-alter table profiles enable row level security;
-alter table messages enable row level security;
-alter table broadcasts enable row level security;
-
--- Profiles: anyone can read, users can update their own
-create policy "Public read" on profiles for select using (true);
-create policy "Self update" on profiles for update using (auth.uid() = id);
-create policy "Self insert" on profiles for insert with check (auth.uid() = id);
-
--- Messages: anyone can read, authenticated can insert, own can delete
-create policy "Public read" on messages for select using (true);
-create policy "Auth insert" on messages for insert with check (auth.uid() = user_id);
-create policy "Own delete" on messages for delete using (
-  auth.uid() = user_id or
-  exists (select 1 from profiles where id = auth.uid() and role in ('admin','owner'))
-);
-
--- Broadcasts: authenticated can read, only admin/owner can write
-create policy "Public read" on broadcasts for select using (true);
-create policy "Admin write" on broadcasts for insert with check (
-  exists (select 1 from profiles where id = auth.uid() and role in ('admin','owner'))
-);
-create policy "Admin update" on broadcasts for update using (
-  exists (select 1 from profiles where id = auth.uid() and role in ('admin','owner'))
-);
-
--- 5. ENABLE REALTIME
-alter publication supabase_realtime add table messages;
-alter publication supabase_realtime add table broadcasts;
-alter publication supabase_realtime add table profiles;
-
-=======================================================================
-  DEPLOY STEPS:
-  1. Go to https://_sb.com → create a new project (free)
-  2. Go to SQL Editor → run the SQL above
-  3. Go to Project Settings → API → copy:
-     - "Project URL"     → paste as SUPABASE_URL above
-     - "anon public key" → paste as SUPABASE_ANON_KEY above
-  4. Push index.html to GitHub → enable GitHub Pages
-  5. Done! Share your URL.
-=======================================================================
--->
 </body>
 </html>
