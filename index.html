@@ -254,7 +254,7 @@ input:checked+.toggle-slider::before{transform:translateX(20px)}
 .theme-swatch:hover{transform:scale(1.12)}
 .theme-swatch.selected{border-color:white;box-shadow:0 0 0 3px var(--primary)}
 .avatar-grid{display:flex;flex-wrap:wrap;gap:.5rem}
-.avatar-option{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;transition:all .15s}
+.avatar-option{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:2px solid transparent;display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;transition:all .15px}
 .avatar-option:hover{border-color:var(--primary);transform:scale(1.08)}
 .avatar-option.selected{border-color:var(--primary);background:var(--surface3)}
 
@@ -634,7 +634,7 @@ input[type=range]{accent-color:var(--primary);cursor:pointer}
   <canvas id="gameCanvas" width="400" height="600"></canvas>
   <div class="game-info">Score: <span id="gameScore">0</span></div>
   <p style="font-size:.75rem;color:var(--text-muted)">Klik of druk op spatie om te springen</p>
-  <button class="btn btn-secondary" style="width:auto;padding:.55rem 1.5rem;margin-top:1rem;" onclick="checkMaintenanceStatus()">Status Controleren</button>
+  <button class="btn btn-secondary" style="width:auto;padding:.55rem 1.5rem;margin-top:1rem;" onclick="goBackToLogin()">Status Controleren</button>
 </div>
 
 <!-- IDIOT SCHERM -->
@@ -660,13 +660,11 @@ let S = {
   settings: { theme:'dark', fontSize:14, compact:false, timestamps:true, sound:true, enterSend:true },
   isOwner: false,
   maintenanceMode: false,
-  messageSubscriptions: {},
-  typingTimeouts: {},
   lastMessageId: 0,
-  lastBroadcastId: 0
+  lastBroadcastId: 0,
+  isLoadingMessages: false   // FIX: guard against poll-during-load duplicates
 };
 
-let gameObj = null;
 let autocompleteUsers = [];
 let autocompleteIndex = -1;
 let mentionStartPos = -1;
@@ -674,6 +672,14 @@ let typingTimeout = null;
 let editingMessageId = null;
 let pendingOwnerUrl = null;
 let unreadCounts = {};
+
+// FIX: polling intervals separated so we can adjust rates independently
+let msgPollInterval = null;
+let broadcastPollInterval = null;
+let maintenancePollInterval = null;
+
+// FIX: flag to prevent renderChatList from running concurrently
+let chatListRendering = false;
 
 const OWNER_USERNAME = 'juroadmin';
 
@@ -696,28 +702,42 @@ const GIFS = [
   {label:'👎 Nee',txt:'👎❌😒🙄'},{label:'🤔 Denk',txt:'🤔💭🧐🔍'},{label:'🎵 Muziek',txt:'🎵🎶🎸🥁'},
 ];
 
-// ==================== POLLING FUNCTIONS (elke 0.1 sec) ====================
-let pollingInterval = null;
+// ==================== POLLING ====================
+// FIX: Reduced from 100ms to sane intervals:
+//   messages    → every 2 seconds
+//   broadcasts  → every 3 seconds
+//   maintenance → every 10 seconds
 
 function startPolling() {
-  if (pollingInterval) clearInterval(pollingInterval);
-  
-  pollingInterval = setInterval(async () => {
+  stopPolling();
+
+  msgPollInterval = setInterval(async () => {
     if (!S.user) return;
-    
-    try {
-      await Promise.all([
-        pollNewMessages(),
-        pollNewBroadcasts(),
-        pollMaintenanceStatus()
-      ]);
-    } catch (error) {
-      console.error('Polling error:', error);
-    }
-  }, 100);
+    try { await pollNewMessages(); } catch(e) { console.error('msg poll error:', e); }
+  }, 2000);
+
+  broadcastPollInterval = setInterval(async () => {
+    if (!S.user) return;
+    try { await pollNewBroadcasts(); } catch(e) { console.error('broadcast poll error:', e); }
+  }, 3000);
+
+  maintenancePollInterval = setInterval(async () => {
+    if (!S.user) return;
+    try { await pollMaintenanceStatus(); } catch(e) { console.error('maintenance poll error:', e); }
+  }, 10000);
+}
+
+function stopPolling() {
+  if (msgPollInterval)         { clearInterval(msgPollInterval);         msgPollInterval = null; }
+  if (broadcastPollInterval)   { clearInterval(broadcastPollInterval);   broadcastPollInterval = null; }
+  if (maintenancePollInterval) { clearInterval(maintenancePollInterval); maintenancePollInterval = null; }
 }
 
 async function pollNewMessages() {
+  // FIX: don't poll while we're doing the initial loadMessages, avoids
+  //      racing where the same msgs get rendered twice.
+  if (S.isLoadingMessages) return;
+
   const { data: messages, error } = await supabaseClient
     .from('messages')
     .select('*')
@@ -726,60 +746,59 @@ async function pollNewMessages() {
     .order('id', { ascending: true });
 
   if (error) throw error;
+  if (!messages || messages.length === 0) return;
 
-  if (messages && messages.length > 0) {
-    messages.forEach(msg => {
-      S.lastMessageId = Math.max(S.lastMessageId, msg.id);
-      
-      if (msg.channel_id === S.chatId) {
-        const container = document.getElementById('messagesContainer');
-        
-        const messageObj = {
-          id: msg.id,
-          uid: msg.username,
-          un: msg.username,
-          dn: msg.display_name || msg.username,
-          av: msg.avatar,
-          role: msg.role,
-          text: msg.content,
-          img: msg.image_url,
-          ts: new Date(msg.created_at).getTime(),
-          time: fmt(new Date(msg.created_at).getTime()),
-          rx: msg.reactions || {},
-          rep: msg.reply_to_data,
-          sys: msg.is_system || false,
-          sysCard: msg.sys_card,
-          edited: msg.edited
-        };
-        
-        renderMsg(messageObj, container);
-        
-        if (msg.user_id !== S.user.id && S.settings.sound) beep();
-      }
+  const container = document.getElementById('messagesContainer');
 
-      if (msg.user_id !== S.user.id) {
-        const mentionRegex = new RegExp('@' + S.user.username + '\\b', 'i');
-        const isMentioned = mentionRegex.test(msg.content);
-        const isEveryoneMention = msg.content && msg.content.includes('@everyone');
-        
-        if (isMentioned || isEveryoneMention) {
-          showNotification(
-            `🔔 Mention van ${msg.display_name || msg.username}`,
-            msg.content.substring(0, 100),
-            'mention'
-          );
-          
-          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
-          updateUnreadBadges();
-        } else if (msg.channel_id !== S.chatId) {
-          unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
-          updateUnreadBadges();
-        }
+  messages.forEach(msg => {
+    S.lastMessageId = Math.max(S.lastMessageId, msg.id);
+
+    // FIX: skip if this message element already exists in the DOM
+    if (document.querySelector(`[data-id="${msg.id}"]`)) return;
+
+    const messageObj = {
+      id: msg.id,
+      uid: msg.username,
+      un: msg.username,
+      dn: msg.display_name || msg.username,
+      av: msg.avatar,
+      role: msg.role,
+      text: msg.content,
+      img: msg.image_url,
+      ts: new Date(msg.created_at).getTime(),
+      time: fmt(new Date(msg.created_at).getTime()),
+      rx: msg.reactions || {},
+      rep: msg.reply_to_data,
+      sys: msg.is_system || false,
+      sysCard: msg.sys_card,
+      edited: msg.edited
+    };
+
+    renderMsg(messageObj, container);
+
+    if (msg.user_id !== S.user.id && S.settings.sound) beep();
+
+    if (msg.user_id !== S.user.id) {
+      const mentionRegex = new RegExp('@' + S.user.username + '\\b', 'i');
+      const isMentioned = mentionRegex.test(msg.content);
+      const isEveryoneMention = msg.content && msg.content.includes('@everyone');
+
+      if (isMentioned || isEveryoneMention) {
+        showNotification(
+          `🔔 Mention van ${msg.display_name || msg.username}`,
+          msg.content.substring(0, 100),
+          'mention'
+        );
+        unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
+        updateUnreadBadges();
+      } else if (msg.channel_id !== S.chatId) {
+        unreadCounts[msg.channel_id] = (unreadCounts[msg.channel_id] || 0) + 1;
+        updateUnreadBadges();
       }
-    });
-    
-    scrollToBottom();
-  }
+    }
+  });
+
+  scrollToBottom();
 }
 
 async function pollNewBroadcasts() {
@@ -790,43 +809,42 @@ async function pollNewBroadcasts() {
     .order('id', { ascending: true });
 
   if (error) throw error;
+  if (!broadcasts || broadcasts.length === 0) return;
 
-  if (broadcasts && broadcasts.length > 0) {
-    broadcasts.forEach(broadcast => {
-      S.lastBroadcastId = Math.max(S.lastBroadcastId, broadcast.id);
-      
-      if (broadcast.type === 'message') {
-        document.getElementById('broadcastText').textContent = broadcast.message;
-        document.getElementById('broadcastBanner').classList.remove('hidden');
-        toast('Nieuwe broadcast!', 'info');
-      } else if (broadcast.type === 'maintenance_update') {
-        S.maintenanceMode = broadcast.maintenance_mode;
-        checkMaintenanceStatus(true);
-      } else if (broadcast.type === 'url_redirect' && S.user) {
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          pendingOwnerUrl = broadcast.url;
-          document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
-          document.getElementById('ownerUrlDialog').style.display = 'flex';
-        }
-      } else if (broadcast.type === 'crash' && S.user) {
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          showIdiotScreen();
-        }
-      } else if (broadcast.type === 'owner_popup' && S.user) {
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          showOwnerPopup(broadcast.message);
-        }
-      } else if (broadcast.type === 'force_reload' && S.user) {
-        if (broadcast.target_users === 'all' || 
-            (broadcast.target_users && broadcast.target_users.includes(S.user.id))) {
-          location.reload();
-        }
+  broadcasts.forEach(broadcast => {
+    S.lastBroadcastId = Math.max(S.lastBroadcastId, broadcast.id);
+
+    if (broadcast.type === 'message') {
+      document.getElementById('broadcastText').textContent = broadcast.message;
+      document.getElementById('broadcastBanner').classList.remove('hidden');
+      toast('Nieuwe broadcast!', 'info');
+    } else if (broadcast.type === 'maintenance_update') {
+      S.maintenanceMode = broadcast.maintenance_mode;
+      applyMaintenanceState(S.maintenanceMode);
+    } else if (broadcast.type === 'url_redirect' && S.user) {
+      if (broadcast.target_users === 'all' ||
+          (Array.isArray(broadcast.target_users) && broadcast.target_users.includes(S.user.id))) {
+        pendingOwnerUrl = broadcast.url;
+        document.getElementById('ownerUrlPreviewText').textContent = broadcast.url;
+        document.getElementById('ownerUrlDialog').style.display = 'flex';
       }
-    });
-  }
+    } else if (broadcast.type === 'crash' && S.user) {
+      if (broadcast.target_users === 'all' ||
+          (Array.isArray(broadcast.target_users) && broadcast.target_users.includes(S.user.id))) {
+        showIdiotScreen();
+      }
+    } else if (broadcast.type === 'owner_popup' && S.user) {
+      if (broadcast.target_users === 'all' ||
+          (Array.isArray(broadcast.target_users) && broadcast.target_users.includes(S.user.id))) {
+        showOwnerPopup(broadcast.message);
+      }
+    } else if (broadcast.type === 'force_reload' && S.user) {
+      if (broadcast.target_users === 'all' ||
+          (Array.isArray(broadcast.target_users) && broadcast.target_users.includes(S.user.id))) {
+        location.reload();
+      }
+    }
+  });
 }
 
 async function pollMaintenanceStatus() {
@@ -835,26 +853,28 @@ async function pollMaintenanceStatus() {
     .select('maintenance_mode')
     .eq('id', 1)
     .single();
-  
-  if (error && error.code !== 'PGRST116') throw error;
-  
-  if (data && data.maintenance_mode !== S.maintenanceMode) {
+
+  if (error && error.code !== 'PGRST116') return;
+  if (!data) return;
+
+  if (data.maintenance_mode !== S.maintenanceMode) {
     S.maintenanceMode = data.maintenance_mode;
-    
-    const lockEl = document.getElementById('maintenanceLock');
-    if (S.maintenanceMode) {
-      lockEl.classList.remove('hidden');
-      if (!['admin','owner'].includes(S.user?.role)) {
-        showMaintenancePage();
-      }
-    } else {
-      lockEl.classList.add('hidden');
-      if (document.getElementById('maintenancePage').classList.contains('hidden') === false) {
-        document.getElementById('maintenancePage').classList.add('hidden');
-        if (S.user) {
-          document.getElementById('chatApp').classList.remove('hidden');
-        }
-      }
+    applyMaintenanceState(S.maintenanceMode);
+  }
+}
+
+function applyMaintenanceState(enabled) {
+  const lockEl = document.getElementById('maintenanceLock');
+  if (enabled) {
+    lockEl.classList.remove('hidden');
+    if (!['admin','owner'].includes(S.user?.role)) {
+      showMaintenancePage();
+    }
+  } else {
+    lockEl.classList.add('hidden');
+    if (!document.getElementById('maintenancePage').classList.contains('hidden')) {
+      document.getElementById('maintenancePage').classList.add('hidden');
+      if (S.user) document.getElementById('chatApp').classList.remove('hidden');
     }
   }
 }
@@ -874,22 +894,16 @@ async function checkMaintenanceStatus(showLock = true) {
       .select('maintenance_mode')
       .eq('id', 1)
       .single();
-    
-    if (error && error.code === 'PGRST116') {
-      return false;
-    }
-    
+
+    if (error && error.code === 'PGRST116') return false;
+
     S.maintenanceMode = data?.maintenance_mode || false;
-    
+
     if (showLock) {
       const lockEl = document.getElementById('maintenanceLock');
-      if (S.maintenanceMode) {
-        lockEl.classList.remove('hidden');
-      } else {
-        lockEl.classList.add('hidden');
-      }
+      S.maintenanceMode ? lockEl.classList.remove('hidden') : lockEl.classList.add('hidden');
     }
-    
+
     return S.maintenanceMode;
   } catch (e) {
     console.error('Error checking maintenance:', e);
@@ -899,14 +913,14 @@ async function checkMaintenanceStatus(showLock = true) {
 
 async function setMaintenanceMode(enabled) {
   if (!S.user || !['admin','owner'].includes(S.user.role)) return;
-  
+
   try {
     const { error } = await supabaseClient
       .from('admin_settings')
       .upsert({ id: 1, maintenance_mode: enabled, updated_by: S.user.id, updated_at: new Date().toISOString() });
-    
+
     if (error) throw error;
-    
+
     S.maintenanceMode = enabled;
     const lockEl = document.getElementById('maintenanceLock');
     if (enabled) {
@@ -916,7 +930,7 @@ async function setMaintenanceMode(enabled) {
       lockEl.classList.add('hidden');
       toast('🔓 Onderhoudsmodus uitgeschakeld', 'success');
     }
-    
+
     await supabaseClient
       .from('broadcasts')
       .insert([{
@@ -956,32 +970,32 @@ async function handleLogin() {
   const un=document.getElementById('loginUsername').value.trim().toLowerCase();
   const pw=document.getElementById('loginPassword').value;
   if(!un||!pw){authErr('Vul alle velden in');return;}
-  
+
   try {
     await checkMaintenanceStatus(false);
-    
+
     const { data: users, error } = await supabaseClient
       .from('users')
       .select('*')
       .eq('username', un);
-    
+
     if (error) throw error;
     if (!users || users.length === 0) { authErr('Account niet gevonden'); return; }
-    
+
     const user = users[0];
     if (user.password !== pw) { authErr('Verkeerd wachtwoord'); return; }
     if (user.is_banned) { authErr('Dit account is verbannen'); return; }
-    
+
     if (S.maintenanceMode && !['admin','owner'].includes(user.role)) {
       showMaintenancePage();
       return;
     }
-    
+
     await supabaseClient
       .from('users')
       .update({ last_login: new Date().toISOString() })
       .eq('id', user.id);
-    
+
     S.user = {
       id: user.id,
       username: user.username,
@@ -991,7 +1005,7 @@ async function handleLogin() {
       message_count: user.message_count || 0
     };
     S.isOwner = isOwnerUser(un);
-    
+
     sessionStorage.setItem('uc_sess', JSON.stringify(S.user));
     enterApp();
   } catch (error) {
@@ -1010,35 +1024,35 @@ async function handleRegister() {
   if(!/^[a-z0-9_]+$/.test(un)){authErr('Gebruikersnaam: alleen letters, cijfers, _');return;}
   if(pw.length<4){authErr('Wachtwoord: min 4 tekens');return;}
   if(pw!==cf){authErr("Wachtwoorden komen niet overeen");return;}
-  
+
   try {
     await checkMaintenanceStatus(false);
     if (S.maintenanceMode) {
       authErr('Registratie is tijdelijk uitgeschakeld vanwege onderhoud');
       return;
     }
-    
+
     const { data: existing } = await supabaseClient
       .from('users')
       .select('username')
       .eq('username', un);
-    
+
     if (existing && existing.length > 0) { authErr('Gebruikersnaam bestaat al'); return; }
-    
+
     const { error } = await supabaseClient
       .from('users')
-      .insert([{ 
-        username: un, 
-        display_name: dn, 
-        avatar: '😀', 
-        password: pw, 
+      .insert([{
+        username: un,
+        display_name: dn,
+        avatar: '😀',
+        password: pw,
         role: 'user',
         message_count: 0,
         created_at: new Date().toISOString()
       }]);
-    
+
     if (error) throw error;
-    
+
     toast('Account aangemaakt! Je kunt nu inloggen','success');
     document.getElementById('loginUsername').value = un;
     document.getElementById('loginPassword').value = pw;
@@ -1050,21 +1064,25 @@ async function handleRegister() {
 }
 
 function logout() {
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    pollingInterval = null;
-  }
-  
+  stopPolling();
   sessionStorage.removeItem('uc_sess');
-  S.user=null; 
+  S.user=null;
   S.replyTo=null;
   S.lastMessageId = 0;
   S.lastBroadcastId = 0;
+  S.isLoadingMessages = false;
+  chatListRendering = false;
   document.getElementById('chatApp').classList.add('hidden');
   document.getElementById('loginPage').classList.remove('hidden');
   document.getElementById('loginUsername').value='';
   document.getElementById('loginPassword').value='';
   toast('Uitgelogd','info');
+}
+
+function goBackToLogin() {
+  document.getElementById('maintenancePage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  toast('Terug naar inlogpagina', 'info');
 }
 
 function showMaintenancePage() {
@@ -1079,123 +1097,71 @@ let flappyGame = null;
 
 function startFlappyBird() {
   if (flappyGame) return;
-  
+
   const canvas = document.getElementById('gameCanvas');
   const ctx = canvas.getContext('2d');
   const scoreEl = document.getElementById('gameScore');
-  
+
   let bird = { y: 200, vy: 0, gravity: 0.5, jump: -8 };
   let pipes = [];
   let frame = 0;
   let score = 0;
   let gameOver = false;
-  
+
   function reset() {
-    bird.y = 200;
-    bird.vy = 0;
-    pipes = [];
-    score = 0;
-    gameOver = false;
+    bird.y = 200; bird.vy = 0; pipes = []; score = 0; gameOver = false;
     scoreEl.textContent = '0';
   }
-  
+
   function addPipe() {
     let gap = 150;
     let top = Math.random() * (canvas.height - gap - 100) + 50;
     pipes.push({ x: canvas.width, top: top, bottom: top + gap, passed: false });
   }
-  
+
   function update() {
     if (gameOver) return;
-    
     bird.vy += bird.gravity;
     bird.y += bird.vy;
-    
-    if (bird.y > canvas.height - 30) {
-      bird.y = canvas.height - 30;
-      bird.vy = 0;
-    }
-    if (bird.y < 0) {
-      bird.y = 0;
-      bird.vy = 0;
-    }
-    
+    if (bird.y > canvas.height - 30) { bird.y = canvas.height - 30; bird.vy = 0; }
+    if (bird.y < 0) { bird.y = 0; bird.vy = 0; }
     if (frame % 90 === 0) addPipe();
-    
     for (let i = pipes.length - 1; i >= 0; i--) {
       pipes[i].x -= 2;
-      
-      if (!pipes[i].passed && pipes[i].x < 50) {
-        pipes[i].passed = true;
-        score++;
-        scoreEl.textContent = score;
-      }
-      
-      if (pipes[i].x < -50) {
-        pipes.splice(i, 1);
-        continue;
-      }
-      
+      if (!pipes[i].passed && pipes[i].x < 50) { pipes[i].passed = true; score++; scoreEl.textContent = score; }
+      if (pipes[i].x < -50) { pipes.splice(i, 1); continue; }
       if (50 > pipes[i].x && 50 < pipes[i].x + 50) {
-        if (bird.y < pipes[i].top || bird.y + 20 > pipes[i].bottom) {
-          gameOver = true;
-        }
+        if (bird.y < pipes[i].top || bird.y + 20 > pipes[i].bottom) gameOver = true;
       }
     }
-    
     frame++;
   }
-  
+
   function draw() {
-    ctx.fillStyle = '#70c5ce';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.fillStyle = '#f1c40f';
-    ctx.beginPath();
-    ctx.arc(50, bird.y, 15, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#e67e22';
-    ctx.beginPath();
-    ctx.arc(60, bird.y - 5, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(62, bird.y - 5, 2, 0, Math.PI * 2);
-    ctx.fill();
-    
+    ctx.fillStyle = '#70c5ce'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(50, bird.y, 15, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#e67e22'; ctx.beginPath(); ctx.arc(60, bird.y-5, 5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'black'; ctx.beginPath(); ctx.arc(62, bird.y-5, 2, 0, Math.PI*2); ctx.fill();
     pipes.forEach(pipe => {
       ctx.fillStyle = '#27ae60';
       ctx.fillRect(pipe.x, 0, 50, pipe.top);
       ctx.fillRect(pipe.x, pipe.bottom, 50, canvas.height - pipe.bottom);
       ctx.fillStyle = '#2ecc71';
-      ctx.fillRect(pipe.x - 5, pipe.top - 20, 60, 20);
-      ctx.fillRect(pipe.x - 5, pipe.bottom, 60, 20);
+      ctx.fillRect(pipe.x-5, pipe.top-20, 60, 20);
+      ctx.fillRect(pipe.x-5, pipe.bottom, 60, 20);
     });
   }
-  
-  function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-  }
-  
+
+  function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
+
   canvas.addEventListener('click', () => { if (!gameOver) bird.vy = bird.jump; });
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && !gameOver) {
-      e.preventDefault();
-      bird.vy = bird.jump;
-    }
+    if (e.code === 'Space' && !gameOver) { e.preventDefault(); bird.vy = bird.jump; }
   });
-  
+
   reset();
   gameLoop();
   flappyGame = true;
-}
-
-function checkMaintenanceStatus() {
-  document.getElementById('maintenancePage').classList.add('hidden');
-  document.getElementById('loginPage').classList.remove('hidden');
-  toast('Terug naar inlogpagina', 'info');
 }
 
 // ==================== ENTER APP ====================
@@ -1203,32 +1169,31 @@ function enterApp() {
   document.getElementById('loginPage').classList.add('hidden');
   document.getElementById('maintenancePage').classList.add('hidden');
   document.getElementById('chatApp').classList.remove('hidden');
-  
+
   document.getElementById('currentUsername').textContent = S.user.display_name;
   document.getElementById('userAvatar').textContent = S.user.avatar;
-  
+
   const us = localStorage.getItem('us_'+S.user.username);
   if (us) { Object.assign(S.settings, JSON.parse(us)); applySettingsUI(); }
-  
+
   if (['admin','owner'].includes(S.user.role)) {
     document.getElementById('adminButton').classList.remove('hidden');
   }
   if (S.isOwner) {
     document.getElementById('ownerButton').classList.remove('hidden');
   }
-  
+
   initEmojiPicker();
   initGifGrid();
+
+  // FIX: renderChatList only once on startup, then switchChat does NOT call it again
   renderChatList();
-  
   switchChat('global');
-  
+
   document.getElementById('messagesContainer').addEventListener('scroll', onScroll);
   toast(`Welkom, ${S.user.display_name}! 👋`,'success');
-  
+
   requestNotificationPermission();
-  
-  // Start polling
   startPolling();
 }
 
@@ -1240,9 +1205,7 @@ function requestNotificationPermission() {
   if (Notification.permission === "granted") {
     notificationPermission = true;
   } else if (Notification.permission !== "denied") {
-    Notification.requestPermission().then(p => { 
-      notificationPermission = p === "granted";
-    });
+    Notification.requestPermission().then(p => { notificationPermission = p === "granted"; });
   }
 }
 
@@ -1252,63 +1215,96 @@ function showNotification(title, body, tag = null) {
     const options = { body, icon: '💬' };
     if (tag) options.tag = tag;
     new Notification(title, options);
-  } catch(e) {
-    console.error('Notification error:', e);
-  }
+  } catch(e) { console.error('Notification error:', e); }
 }
 
 // ==================== CHAT LIST ====================
+// FIX: renderChatList now has a guard to prevent concurrent/duplicate renders.
+//      It renders once and caches the user list. switchChat only updates active
+//      highlighting — it does NOT call renderChatList anymore.
+
 async function renderChatList(q='') {
-  const list=document.getElementById('chatList');
-  list.innerHTML='';
-  const ql=q.toLowerCase();
+  // FIX: prevent concurrent re-entrancy
+  if (chatListRendering) return;
+  chatListRendering = true;
 
-  addLabel(list,'Kanalen');
-  
-  const visibleChannels = CHANNELS.filter(ch => {
-    if (ch.adminOnly && !['admin','owner'].includes(S.user.role)) return false;
-    return ch.name.toLowerCase().includes(ql);
-  });
-  
-  visibleChannels.forEach(ch => {
-    const el=document.createElement('div');
-    el.className='chat-item'+(ch.id===S.chatId?' active':'');
-    el.setAttribute('data-channel', ch.id);
-    el.onclick=()=>switchChat(ch.id);
-    el.innerHTML=`<div class="chat-item-avatar">${ch.name.split(' ')[0]}</div>
-    <div class="chat-item-info"><div class="chat-item-name">${ch.name}</div>
-    <div class="chat-item-preview">${ch.desc}</div></div>
-    <div class="unread-badge hidden" id="unread-${ch.id}"></div>`;
-    list.appendChild(el);
-  });
+  try {
+    const list = document.getElementById('chatList');
+    list.innerHTML = '';
+    const ql = q.toLowerCase();
 
-  const { data: users, error } = await supabaseClient
-    .from('users')
-    .select('*')
-    .neq('username', S.user.username);
-  
-  if (users && users.length > 0) {
-    addLabel(list,'Directe Berichten');
-    users.forEach(user => {
-      const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
-      let badge = '';
-      if (isOwnerUser(user.username)) badge = '<span class="badge owner" style="font-size:0.6rem;margin-left:0.25rem;">⭐</span>';
-      else if (user.role === 'admin') badge = '<span class="badge admin" style="font-size:0.6rem;margin-left:0.25rem;">👑</span>';
-      
-      const el=document.createElement('div');
-      el.className='chat-item'+(dmId===S.chatId?' active':'');
-      el.onclick=()=>switchToDM(user);
-      el.innerHTML=`<div class="chat-item-avatar">${user.avatar}</div>
-      <div class="chat-item-info"><div class="chat-item-name">${esc(user.display_name || user.username)}${badge}</div>
-      <div class="chat-item-preview">Klik om te chatten</div></div>
-      <div class="unread-badge hidden" id="unread-${dmId}"></div>`;
-      list.appendChild(el);
-      
-      if (!unreadCounts[dmId]) unreadCounts[dmId] = 0;
+    addLabel(list, 'Kanalen');
+
+    const visibleChannels = CHANNELS.filter(ch => {
+      if (ch.adminOnly && !['admin','owner'].includes(S.user.role)) return false;
+      return ch.name.toLowerCase().includes(ql);
     });
+
+    visibleChannels.forEach(ch => {
+      const el = document.createElement('div');
+      el.className = 'chat-item' + (ch.id === S.chatId ? ' active' : '');
+      el.setAttribute('data-channel', ch.id);
+      el.onclick = () => switchChat(ch.id);
+      el.innerHTML = `<div class="chat-item-avatar">${ch.name.split(' ')[0]}</div>
+      <div class="chat-item-info"><div class="chat-item-name">${ch.name}</div>
+      <div class="chat-item-preview">${ch.desc}</div></div>
+      <div class="unread-badge hidden" id="unread-${ch.id}"></div>`;
+      list.appendChild(el);
+    });
+
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .neq('username', S.user.username);
+
+    if (users && users.length > 0) {
+      addLabel(list, 'Directe Berichten');
+
+      // FIX: deduplicate by user ID before rendering
+      const seenIds = new Set();
+      users.forEach(user => {
+        if (seenIds.has(user.id)) return;
+        seenIds.add(user.id);
+
+        if (user.username && !user.username.toLowerCase().includes(ql) &&
+            !(user.display_name || '').toLowerCase().includes(ql)) return;
+
+        const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
+        let badge = '';
+        if (isOwnerUser(user.username)) badge = '<span class="badge owner" style="font-size:0.6rem;margin-left:0.25rem;">⭐</span>';
+        else if (user.role === 'admin') badge = '<span class="badge admin" style="font-size:0.6rem;margin-left:0.25rem;">👑</span>';
+
+        const el = document.createElement('div');
+        el.className = 'chat-item' + (dmId === S.chatId ? ' active' : '');
+        el.setAttribute('data-channel', dmId);
+        el.onclick = () => switchToDM(user);
+        el.innerHTML = `<div class="chat-item-avatar">${user.avatar}</div>
+        <div class="chat-item-info"><div class="chat-item-name">${esc(user.display_name || user.username)}${badge}</div>
+        <div class="chat-item-preview">Klik om te chatten</div></div>
+        <div class="unread-badge hidden" id="unread-${dmId}"></div>`;
+        list.appendChild(el);
+
+        if (!unreadCounts[dmId]) unreadCounts[dmId] = 0;
+      });
+    }
+
+    updateUnreadBadges();
+  } finally {
+    chatListRendering = false;
   }
-  
-  updateUnreadBadges();
+}
+
+// FIX: update active highlight in sidebar without re-fetching from DB
+function updateSidebarActive(newChatId) {
+  document.querySelectorAll('.chat-item').forEach(el => {
+    const ch = el.getAttribute('data-channel');
+    if (ch === newChatId) {
+      el.classList.add('active');
+      el.querySelector('.chat-item-name')?.classList.add('active');
+    } else {
+      el.classList.remove('active');
+    }
+  });
 }
 
 function updateUnreadBadges() {
@@ -1327,21 +1323,23 @@ function updateUnreadBadges() {
 }
 
 function addLabel(parent, text) {
-  const d=document.createElement('div'); d.className='sidebar-section-label'; d.textContent=text;
+  const d = document.createElement('div');
+  d.className = 'sidebar-section-label';
+  d.textContent = text;
   parent.appendChild(d);
 }
 
-function filterChats(v){ renderChatList(v); }
+function filterChats(v) { renderChatList(v); }
 
 async function switchToDM(user) {
   const dmId = 'dm_' + [S.user.id, user.id].sort().join('_');
-  
+
   const { data } = await supabaseClient
     .from('messages')
     .select('id')
     .eq('channel_id', dmId)
     .limit(1);
-  
+
   if (!data || data.length === 0) {
     await supabaseClient
       .from('messages')
@@ -1356,46 +1354,56 @@ async function switchToDM(user) {
         created_at: new Date().toISOString()
       }]);
   }
-  
+
   switchChat(dmId, user.display_name || user.username, 'Direct bericht');
 }
 
+// FIX: switchChat no longer calls renderChatList() — it just updates active state
 async function switchChat(id, name, sub) {
   unreadCounts[id] = 0;
   updateUnreadBadges();
-  
-  S.chatId=id; 
+
+  S.chatId = id;
   cancelReply();
   S.lastMessageId = 0;
-  
-  const ch = CHANNELS.find(c=>c.id===id);
+
+  const ch = CHANNELS.find(c => c.id === id);
   const title = name || (ch ? ch.name : id);
   const subtitle = sub || (ch ? ch.desc : 'Direct bericht');
-  
+
   document.getElementById('chatTitle').textContent = title;
   document.getElementById('chatSubtitle').textContent = subtitle;
-  
+
   const adminIndicator = document.getElementById('adminChatIndicator');
   if (id === 'admin' && ['admin','owner'].includes(S.user.role)) {
     adminIndicator.classList.remove('hidden');
   } else {
     adminIndicator.classList.add('hidden');
   }
-  
-  const isRO = ch && ch.readOnly && !['admin','owner'].includes(S.user?.role||'user');
+
+  const isRO = ch && ch.readOnly && !['admin','owner'].includes(S.user?.role || 'user');
   const ic = document.querySelector('.input-container');
   let ro = document.getElementById('readonlyOverlay');
-  
-  if(isRO){
-    if(!ro){ro=document.createElement('div');ro.id='readonlyOverlay';ro.className='readonly-overlay';ro.innerHTML='<span style="font-size:1.2rem">📣</span><span>Aankondigingen zijn alleen-lezen</span>';ic.style.position='relative';ic.appendChild(ro);}
-    ro.style.display='flex';
-    document.getElementById('messageInput').disabled=true;
-  }else{
-    if(ro) ro.style.display='none';
-    document.getElementById('messageInput').disabled=false;
+
+  if (isRO) {
+    if (!ro) {
+      ro = document.createElement('div');
+      ro.id = 'readonlyOverlay';
+      ro.className = 'readonly-overlay';
+      ro.innerHTML = '<span style="font-size:1.2rem">📣</span><span>Aankondigingen zijn alleen-lezen</span>';
+      ic.style.position = 'relative';
+      ic.appendChild(ro);
+    }
+    ro.style.display = 'flex';
+    document.getElementById('messageInput').disabled = true;
+  } else {
+    if (ro) ro.style.display = 'none';
+    document.getElementById('messageInput').disabled = false;
   }
-  
-  renderChatList(); 
+
+  // FIX: only update the active highlight, don't re-render the whole list
+  updateSidebarActive(id);
+
   loadMessages(id);
 }
 
@@ -1403,7 +1411,11 @@ async function switchChat(id, name, sub) {
 async function loadMessages(id) {
   const c = document.getElementById('messagesContainer');
   c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:2rem;">Berichten laden...</div>';
-  
+
+  // FIX: set guard so pollNewMessages does not fire during initial load
+  S.isLoadingMessages = true;
+  S.lastMessageId = 0;
+
   try {
     const { data: messages, error } = await supabaseClient
       .from('messages')
@@ -1411,17 +1423,17 @@ async function loadMessages(id) {
       .eq('channel_id', id)
       .order('id', { ascending: true })
       .limit(100);
-    
+
     if (error) throw error;
-    
+
     c.innerHTML = '';
-    
+
     if (!messages || messages.length === 0) {
       c.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:3rem 1rem;font-size:.9rem">💬 Nog geen berichten. Wees de eerste!</div>';
     } else {
       messages.forEach(msg => {
         S.lastMessageId = Math.max(S.lastMessageId, msg.id);
-        
+
         const m = {
           id: msg.id,
           uid: msg.username,
@@ -1442,15 +1454,21 @@ async function loadMessages(id) {
         renderMsg(m, c);
       });
     }
-    
+
     scrollToBottom();
   } catch (error) {
     console.error('Fout bij laden berichten:', error);
     c.innerHTML = '<div style="text-align:center;color:var(--danger);padding:2rem;">Fout bij laden berichten</div>';
+  } finally {
+    // FIX: always release the guard
+    S.isLoadingMessages = false;
   }
 }
 
 function renderMsg(m, c) {
+  // FIX: never render a message that already has a DOM element
+  if (m.id && document.querySelector(`[data-id="${m.id}"]`)) return;
+
   const isOwn = m.uid === S.user.username;
   const w = document.createElement('div');
   w.className = 'message-wrapper ' + (isOwn ? 'own' : (m.sys ? '' : 'other'));
@@ -1460,8 +1478,8 @@ function renderMsg(m, c) {
   const isMentioned = mentionRegex.test(m.text);
   const isEveryoneMention = m.text && m.text.includes('@everyone');
 
-  if(m.sys){
-    if(m.sysCard){
+  if (m.sys) {
+    if (m.sysCard) {
       const sc=m.sysCard, bc='badge-'+(sc.badge||'info'), cc='sys-card type-'+(sc.type||'info');
       let body=esc(m.text);
       body=body.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
@@ -1483,7 +1501,7 @@ function renderMsg(m, c) {
     } else {
       w.innerHTML=`<div class="sys-divider"><div class="sys-divider-line"></div><span class="sys-divider-text">${esc(m.text)}</span><div class="sys-divider-line"></div></div>`;
     }
-    c.appendChild(w); 
+    c.appendChild(w);
     return;
   }
 
@@ -1491,12 +1509,12 @@ function renderMsg(m, c) {
   const body = formatMsg(m.text, m.img);
   const rxHtml = buildReactions(m);
   const rb = m.role==='owner' ? '<span class="msg-role-badge badge-owner">Owner</span>' : (m.role==='admin' ? '<span class="msg-role-badge badge-admin">Admin</span>' : '');
-  const mentionBadge = (isMentioned || isEveryoneMention) ? '<span class="msg-role-badge" style="background:var(--warning);color:var(--bg);">🔔</span>' : '';
+  const mentionBadge = (isMentioned||isEveryoneMention) ? '<span class="msg-role-badge" style="background:var(--warning);color:var(--bg);">🔔</span>' : '';
   const editedBadge = m.edited ? '<span class="edited-indicator" style="font-size:0.6rem;opacity:0.6;margin-left:0.3rem;">(bewerkt)</span>' : '';
   const ts = S.settings.timestamps ? `<span class="msg-time">${m.time}</span>` : `<span class="msg-time" style="display:none">${m.time}</span>`;
   const isAdm = ['admin','owner'].includes(S.user.role);
 
-  if(isOwn){
+  if (isOwn) {
     w.innerHTML=`
       <div class="msg-header" style="justify-content:flex-end">${ts}${editedBadge}</div>
       ${quot}<div class="message own-msg${(isMentioned||isEveryoneMention)?' mention':''}">${body}</div>${rxHtml}
@@ -1530,35 +1548,35 @@ function buildReactions(m) {
 function formatMsg(text, img) {
   if (!text) return '';
   let s = esc(text);
-  
+
   s = s.replace(/(https?:\/\/[^\s]+)/g, function(url) {
     if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?$/i)) {
       return `<br><img src="${url}" class="message-image" onclick="openLightbox('${url}')" onerror="this.replaceWith(Object.assign(document.createElement('a'),{href:'${url}',target:'_blank',textContent:'${url}'}))">`;
     }
     return `<a class="msg-link" href="${url}" target="_blank" rel="noopener">${url}</a>`;
   });
-  
+
   s = s.replace(/@(\w+)/g, '<span class="mention">@$1</span>');
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
   s = s.replace(/`(.+?)`/g, '<code style="background:var(--surface3);padding:.1em .3em;border-radius:4px;font-family:monospace;font-size:.85em">$1</code>');
-  
-  if(img && !text.includes(img)) {
+
+  if (img && !text.includes(img)) {
     s += `<br><img src="${img}" class="message-image" onclick="openLightbox('${img}')">`;
   }
-  
+
   return s;
 }
 
 async function sendMessage(overrideText=null, img=null) {
   const input = document.getElementById('messageInput');
   const text = overrideText || input.value.trim();
-  if(!text && !img) return;
-  if(text.length > 2000){ toast('Bericht te lang','error'); return; }
-  
+  if (!text && !img) return;
+  if (text.length > 2000) { toast('Bericht te lang','error'); return; }
+
   const ch = CHANNELS.find(ch=>ch.id===S.chatId);
-  if(ch && ch.readOnly && !['admin','owner'].includes(S.user.role)) {
-    toast('📣 Dit kanaal is alleen-lezen','error'); 
+  if (ch && ch.readOnly && !['admin','owner'].includes(S.user.role)) {
+    toast('📣 Dit kanaal is alleen-lezen','error');
     return;
   }
 
@@ -1568,9 +1586,9 @@ async function sendMessage(overrideText=null, img=null) {
         .from('messages')
         .update({ content: text, edited: true })
         .eq('id', editingMessageId);
-      
+
       if (error) throw error;
-      
+
       editingMessageId = null;
       input.value = '';
       input.style.height = 'auto';
@@ -1608,14 +1626,13 @@ async function sendMessage(overrideText=null, img=null) {
       .from('users')
       .update({ message_count: (S.user.message_count || 0) + 1 })
       .eq('id', S.user.id);
-    
+
     S.user.message_count = (S.user.message_count || 0) + 1;
 
-    input.value = ''; 
+    input.value = '';
     input.style.height = 'auto';
     document.getElementById('charCounter').textContent = '0/2000';
     cancelReply();
-
   } catch (error) {
     console.error('Fout bij versturen:', error);
     toast('Fout bij versturen','error');
@@ -1632,7 +1649,7 @@ function startReply(msgId) {
   if (!msgEl) return;
   const msgText = msgEl.innerText;
   const msgUser = msgEl.parentElement.querySelector('.msg-username')?.innerText || 'Gebruiker';
-  
+
   S.replyTo = { dn: msgUser, text: msgText };
   document.getElementById('replyBar').classList.remove('hidden');
   document.getElementById('replyBarText').textContent = `↩ Beantwoorden aan ${msgUser}: "${msgText.substring(0,50)}${msgText.length>50?'…':''}"`;
@@ -1645,12 +1662,12 @@ async function toggleRx(msgId, emoji) {
       .from('messages')
       .select('reactions')
       .eq('id', msgId);
-    
+
     if (error || !msgs || msgs.length === 0) return;
-    
+
     let reactions = msgs[0].reactions || {};
     if (!reactions[emoji]) reactions[emoji] = [];
-    
+
     const idx = reactions[emoji].indexOf(S.user.username);
     if (idx === -1) {
       reactions[emoji].push(S.user.username);
@@ -1658,12 +1675,11 @@ async function toggleRx(msgId, emoji) {
       reactions[emoji].splice(idx, 1);
       if (reactions[emoji].length === 0) delete reactions[emoji];
     }
-    
+
     await supabaseClient
       .from('messages')
       .update({ reactions })
       .eq('id', msgId);
-    
   } catch (error) {
     console.error('Fout bij reactie:', error);
   }
@@ -1672,28 +1688,31 @@ async function toggleRx(msgId, emoji) {
 function reactMenu(msgId, e) {
   e.stopPropagation();
   document.getElementById('ctxMenu')?.remove();
-  const menu = document.createElement('div'); 
-  menu.className = 'ctx-menu'; 
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
   menu.id = 'ctxMenu';
   const quick = ['❤️','😂','😮','👍','👎','🔥','💯','🎉'];
-  menu.innerHTML = `<div style="display:flex;gap:.3rem;padding:.4rem .75rem;flex-wrap:wrap">` + 
-    quick.map(em => `<button class="emoji-btn" onclick="toggleRx('${msgId}','${em}');document.getElementById('ctxMenu')?.remove()">${em}</button>`).join('') + 
+  menu.innerHTML = `<div style="display:flex;gap:.3rem;padding:.4rem .75rem;flex-wrap:wrap">` +
+    quick.map(em => `<button class="emoji-btn" onclick="toggleRx('${msgId}','${em}');document.getElementById('ctxMenu')?.remove()">${em}</button>`).join('') +
     '</div>';
   const r = e.target.getBoundingClientRect();
   menu.style.cssText = `top:${r.top-60}px;left:${r.left}px`;
   document.body.appendChild(menu);
-  setTimeout(() => document.addEventListener('click',() => document.getElementById('ctxMenu')?.remove(),{once:true}),50);
+  setTimeout(() => document.addEventListener('click',()=>document.getElementById('ctxMenu')?.remove(),{once:true}),50);
 }
 
 async function delMsg(id) {
   if (!confirm('Bericht verwijderen?')) return;
-  
+
   try {
     await supabaseClient
       .from('messages')
       .delete()
       .eq('id', id);
-    
+
+    // FIX: remove from DOM immediately without reload
+    const el = document.querySelector(`[data-id="${id}"]`);
+    if (el) el.remove();
     toast('Bericht verwijderd','success');
   } catch (error) {
     console.error('Fout bij verwijderen:', error);
@@ -1704,7 +1723,7 @@ async function delMsg(id) {
 function editMessage(msgId) {
   const msgEl = document.querySelector(`[data-id="${msgId}"] .message`);
   if (!msgEl) return;
-  
+
   const text = msgEl.innerText.replace(/\(bewerkt\)$/, '').trim();
   editingMessageId = msgId;
   document.getElementById('messageInput').value = text;
@@ -1714,13 +1733,14 @@ function editMessage(msgId) {
 
 async function clearAllMessages() {
   if (!confirm('Alle berichten in deze chat wissen? Dit kan niet ongedaan worden gemaakt.')) return;
-  
+
   try {
     await supabaseClient
       .from('messages')
       .delete()
       .eq('channel_id', S.chatId);
-    
+
+    S.lastMessageId = 0;
     loadMessages(S.chatId);
     toast('Alle berichten gewist','warning');
     closeModal('adminModal');
@@ -1733,23 +1753,20 @@ async function clearAllMessages() {
 // ==================== TYPING ====================
 function handleTyping() {
   if (!S.user) return;
-  
+
   const typingKey = `typing_${S.chatId}`;
-  
-  if (S.typingTimeouts[typingKey]) {
-    clearTimeout(S.typingTimeouts[typingKey]);
-  }
-  
+  if (S[typingKey]) clearTimeout(S[typingKey]);
+
   supabaseClient
     .from('typing_indicator')
-    .upsert({ 
-      channel_id: S.chatId, 
-      user_id: S.user.id, 
+    .upsert({
+      channel_id: S.chatId,
+      user_id: S.user.id,
       username: S.user.username,
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString()
     })
     .then(() => {
-      S.typingTimeouts[typingKey] = setTimeout(() => {
+      S[typingKey] = setTimeout(() => {
         supabaseClient
           .from('typing_indicator')
           .delete()
@@ -1759,13 +1776,13 @@ function handleTyping() {
     });
 }
 
-function showTyping(name) { 
-  document.getElementById('typingText').textContent = name + ' is aan het typen...'; 
-  document.getElementById('typingIndicator').classList.remove('hidden'); 
+function showTyping(name) {
+  document.getElementById('typingText').textContent = name + ' is aan het typen...';
+  document.getElementById('typingIndicator').classList.remove('hidden');
 }
 
-function hideTyping() { 
-  document.getElementById('typingIndicator').classList.add('hidden'); 
+function hideTyping() {
+  document.getElementById('typingIndicator').classList.add('hidden');
 }
 
 // ==================== MENTION AUTOCOMPLETE ====================
@@ -1774,32 +1791,28 @@ async function handleMentionAutocomplete(event) {
   const cursorPos = input.selectionStart;
   const text = input.value;
   const dropdown = document.getElementById('autocompleteDropdown');
-  
+
   let lastAtIndex = -1;
   for (let i = cursorPos - 1; i >= 0; i--) {
     if (text[i] === '@') {
-      if (i === 0 || text[i-1].match(/\s/)) {
-        lastAtIndex = i;
-        break;
-      } else {
-        break;
-      }
+      if (i === 0 || text[i-1].match(/\s/)) { lastAtIndex = i; break; }
+      else break;
     }
   }
-  
+
   if (lastAtIndex !== -1) {
     const searchTerm = text.substring(lastAtIndex + 1, cursorPos).toLowerCase();
     mentionStartPos = lastAtIndex;
-    
+
     const { data: users } = await supabaseClient
       .from('users')
       .select('username, avatar, role')
       .neq('username', S.user.username)
       .ilike('username', searchTerm + '%')
       .limit(5);
-    
+
     autocompleteUsers = users || [];
-    
+
     if (autocompleteUsers.length > 0) {
       renderAutocomplete(searchTerm);
       dropdown.classList.remove('hidden');
@@ -1816,26 +1829,22 @@ async function handleMentionAutocomplete(event) {
 function renderAutocomplete(searchTerm) {
   const dropdown = document.getElementById('autocompleteDropdown');
   dropdown.innerHTML = '';
-  
+
   autocompleteUsers.forEach((user, index) => {
     const item = document.createElement('div');
     item.className = 'autocomplete-item';
     item.style.cssText = 'padding:0.5rem;display:flex;align-items:center;gap:0.5rem;cursor:pointer;border-bottom:1px solid var(--border);';
     item.dataset.index = index;
     item.onclick = () => selectAutocompleteUser(user.username);
-    
+
     let badge = '';
     if (isOwnerUser(user.username)) {
       badge = '<span style="background:var(--owner);color:black;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.6rem;">⭐</span>';
     } else if (user.role === 'admin') {
       badge = '<span style="background:var(--primary);color:white;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.6rem;">👑</span>';
     }
-    
-    item.innerHTML = `
-      <span style="font-size:1.2rem;">${user.avatar}</span>
-      <span style="flex:1;">${user.username}</span>
-      ${badge}
-    `;
+
+    item.innerHTML = `<span style="font-size:1.2rem;">${user.avatar}</span><span style="flex:1;">${user.username}</span>${badge}`;
     dropdown.appendChild(item);
   });
 }
@@ -1843,20 +1852,15 @@ function renderAutocomplete(searchTerm) {
 function highlightAutocompleteItem() {
   const items = document.querySelectorAll('#autocompleteDropdown .autocomplete-item');
   items.forEach((item, index) => {
-    if (index === autocompleteIndex) {
-      item.style.background = 'var(--primary)';
-      item.style.color = 'white';
-    } else {
-      item.style.background = '';
-      item.style.color = '';
-    }
+    item.style.background = index === autocompleteIndex ? 'var(--primary)' : '';
+    item.style.color = index === autocompleteIndex ? 'white' : '';
   });
 }
 
 function handleAutocompleteKeydown(event) {
   const dropdown = document.getElementById('autocompleteDropdown');
   if (dropdown.classList.contains('hidden')) return;
-  
+
   if (event.key === 'ArrowDown') {
     event.preventDefault();
     autocompleteIndex = (autocompleteIndex + 1) % autocompleteUsers.length;
@@ -1880,11 +1884,11 @@ function selectAutocompleteUser(username) {
   const text = input.value;
   const beforeMention = text.substring(0, mentionStartPos + 1);
   const afterMention = text.substring(input.selectionStart);
-  
+
   input.value = beforeMention + username + ' ' + afterMention;
   input.focus();
   input.selectionStart = input.selectionEnd = mentionStartPos + 1 + username.length + 1;
-  
+
   hideAutocomplete();
 }
 
@@ -1906,107 +1910,103 @@ function handleKey(e) {
 }
 
 function handleInput(el) {
-  el.style.height = 'auto'; 
+  el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   const n = el.value.length;
-  const c = document.getElementById('charCounter'); 
-  c.textContent = n + '/2000'; 
+  const c = document.getElementById('charCounter');
+  c.textContent = n + '/2000';
   c.classList.toggle('over', n > 1900);
   handleTyping();
 }
 
 function handleImg(e) {
-  const f = e.target.files[0]; 
+  const f = e.target.files[0];
   if (!f) return;
   if (f.size > 5 * 1024 * 1024) { toast('Max 5MB','error'); return; }
-  const r = new FileReader(); 
-  r.onload = ev => sendMessage(null, ev.target.result); 
+  const r = new FileReader();
+  r.onload = ev => sendMessage(null, ev.target.result);
   r.readAsDataURL(f);
   e.target.value = '';
 }
 
 function openLightbox(src) {
-  const lb = document.createElement('div'); 
-  lb.className = 'lightbox'; 
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
   lb.onclick = () => lb.remove();
-  lb.innerHTML = `<img src="${src}" alt="img">`; 
+  lb.innerHTML = `<img src="${src}" alt="img">`;
   document.body.appendChild(lb);
 }
 
 function onScroll() {
-  const c = document.getElementById('messagesContainer'), 
+  const c = document.getElementById('messagesContainer'),
         btn = document.getElementById('scrollBottomBtn');
   btn.classList.toggle('hidden', c.scrollHeight - c.scrollTop - c.clientHeight < 100);
 }
 
-function scrollToBottom() { 
-  const c = document.getElementById('messagesContainer'); 
-  c.scrollTop = c.scrollHeight; 
+function scrollToBottom() {
+  const c = document.getElementById('messagesContainer');
+  c.scrollTop = c.scrollHeight;
 }
 
 // ==================== EMOJI PICKER ====================
 function initEmojiPicker() {
   renderEmojiGrid(EMOJIS);
-  document.addEventListener('click', e => { 
-    if (!e.target.closest('.input-wrapper')) closeEmoji(); 
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.input-wrapper')) closeEmoji();
   });
 }
 
 function renderEmojiGrid(list) {
-  const g = document.getElementById('emojiGrid'); 
+  const g = document.getElementById('emojiGrid');
   g.innerHTML = '';
-  list.forEach(em => { 
-    const b = document.createElement('button'); 
-    b.className = 'emoji-btn'; 
-    b.textContent = em; 
-    b.onclick = () => insertEmoji(em); 
-    g.appendChild(b); 
+  list.forEach(em => {
+    const b = document.createElement('button');
+    b.className = 'emoji-btn';
+    b.textContent = em;
+    b.onclick = () => insertEmoji(em);
+    g.appendChild(b);
   });
 }
 
-function filterEmoji(v) { 
-  renderEmojiGrid(v ? EMOJIS.filter(e => e.includes(v)) : EMOJIS); 
-}
+function filterEmoji(v) { renderEmojiGrid(v ? EMOJIS.filter(e => e.includes(v)) : EMOJIS); }
 
 function toggleEmoji(e) {
-  e.stopPropagation(); 
+  e.stopPropagation();
   S.emojiOpen = !S.emojiOpen;
   document.getElementById('emojiPicker').classList.toggle('open', S.emojiOpen);
 }
 
-function closeEmoji() { 
-  S.emojiOpen = false; 
-  document.getElementById('emojiPicker').classList.remove('open'); 
+function closeEmoji() {
+  S.emojiOpen = false;
+  document.getElementById('emojiPicker').classList.remove('open');
 }
 
 function insertEmoji(em) {
   const inp = document.getElementById('messageInput');
-  const pos = inp.selectionStart; 
+  const pos = inp.selectionStart;
   inp.value = inp.value.slice(0, pos) + em + inp.value.slice(pos);
-  inp.setSelectionRange(pos + em.length, pos + em.length); 
-  inp.focus(); 
+  inp.setSelectionRange(pos + em.length, pos + em.length);
+  inp.focus();
   handleInput(inp);
 }
 
 // ==================== GIF MODAL ====================
-function initGifGrid() { 
-  filterGifs(''); 
-}
+function initGifGrid() { filterGifs(''); }
 
 function filterGifs(v) {
-  const g = document.getElementById('gifGrid'), 
+  const g = document.getElementById('gifGrid'),
         items = v ? GIFS.filter(x => x.label.toLowerCase().includes(v.toLowerCase())) : GIFS;
   g.innerHTML = '';
   items.forEach(item => {
-    const d = document.createElement('div'); 
+    const d = document.createElement('div');
     d.className = 'gif-item';
     d.innerHTML = `<div style="font-size:1.8rem">${item.txt}</div><div style="font-size:.7rem;color:var(--text-muted);margin-top:.25rem">${item.label}</div>`;
-    d.onclick = () => { 
-      const inp = document.getElementById('messageInput'); 
-      inp.value += ' ' + item.txt + ' '; 
-      handleInput(inp); 
-      closeModal('gifModal'); 
-      inp.focus(); 
+    d.onclick = () => {
+      const inp = document.getElementById('messageInput');
+      inp.value += ' ' + item.txt + ' ';
+      handleInput(inp);
+      closeModal('gifModal');
+      inp.focus();
     };
     g.appendChild(d);
   });
@@ -2022,49 +2022,49 @@ function openSettings() {
 function applySettingsUI() {
   const s = S.settings;
   const ids = {compact:'compactToggle', timestamps:'timestampToggle', sound:'soundToggle', enterSend:'enterSendToggle'};
-  Object.entries(ids).forEach(([k,id]) => { 
-    const el = document.getElementById(id); 
-    if (el) el.checked = s[k]; 
+  Object.entries(ids).forEach(([k,id]) => {
+    const el = document.getElementById(id);
+    if (el) el.checked = s[k];
   });
-  const fs = document.getElementById('fontSizeSlider'); 
+  const fs = document.getElementById('fontSizeSlider');
   if (fs) fs.value = s.fontSize;
-  const fl = document.getElementById('fontSizeLabel'); 
+  const fl = document.getElementById('fontSizeLabel');
   if (fl) fl.textContent = s.fontSize + 'px';
-  
+
   const map = {dark:0, light:1, purple:2, green:3, red:4, blue:5, midnight:6, cyber:7, 'black-rgb':8};
   document.querySelectorAll('.theme-swatch').forEach(sw => sw.classList.remove('selected'));
-  const sw = document.querySelectorAll('.theme-swatch')[map[s.theme] || 0]; 
+  const sw = document.querySelectorAll('.theme-swatch')[map[s.theme] || 0];
   if (sw) sw.classList.add('selected');
 }
 
 function applyTheme(theme, el) {
   S.settings.theme = theme;
   document.body.className = 'theme-' + theme + (S.settings.compact ? ' compact-mode' : '');
-  if (el) { 
-    document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected')); 
-    el.classList.add('selected'); 
+  if (el) {
+    document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
   }
   saveSettings();
 }
 
 function applyFontSize(v) {
-  v = parseInt(v); 
+  v = parseInt(v);
   S.settings.fontSize = v;
   document.documentElement.style.setProperty('--msg-font', v + 'px');
-  const fl = document.getElementById('fontSizeLabel'); 
+  const fl = document.getElementById('fontSizeLabel');
   if (fl) fl.textContent = v + 'px';
   saveSettings();
 }
 
 function toggleCompact(v) {
-  S.settings.compact = v; 
-  document.body.classList.toggle('compact-mode', v); 
+  S.settings.compact = v;
+  document.body.classList.toggle('compact-mode', v);
   saveSettings();
 }
 
 function toggleTimestamps(v) {
-  S.settings.timestamps = v; 
-  document.querySelectorAll('.msg-time').forEach(t => t.style.display = v ? '' : 'none'); 
+  S.settings.timestamps = v;
+  document.querySelectorAll('.msg-time').forEach(t => t.style.display = v ? '' : 'none');
   saveSettings();
 }
 
@@ -2074,32 +2074,28 @@ function saveSettings() {
 }
 
 function buildAvatarPicker(gridId) {
-  const g = document.getElementById(gridId); 
-  if (!g) return; 
+  const g = document.getElementById(gridId);
+  if (!g) return;
   g.innerHTML = '';
   AVATARS.forEach(a => {
-    const d = document.createElement('div'); 
+    const d = document.createElement('div');
     d.className = 'avatar-option' + (a === S.user.avatar ? ' selected' : '');
     d.textContent = a;
     d.onclick = () => {
       document.querySelectorAll(`#${gridId} .avatar-option`).forEach(x => x.classList.remove('selected'));
-      d.classList.add('selected'); 
-      S.user.avatar = a; 
+      d.classList.add('selected');
+      S.user.avatar = a;
       S.tempAvatar = a;
       document.getElementById('userAvatar').textContent = a;
-      const pab = document.getElementById('profileAvatarBig'); 
+      const pab = document.getElementById('profileAvatarBig');
       if (pab) pab.textContent = a;
-      
+
       supabaseClient
         .from('users')
         .update({ avatar: a })
         .eq('id', S.user.id)
-        .then(() => {
-          toast('Avatar bijgewerkt','success');
-        })
-        .catch(err => {
-          console.error('Fout bij updaten avatar:', err);
-        });
+        .then(() => toast('Avatar bijgewerkt','success'))
+        .catch(err => console.error('Fout bij updaten avatar:', err));
     };
     g.appendChild(d);
   });
@@ -2119,22 +2115,16 @@ function saveProfile() {
   const dn = document.getElementById('displayNameInput').value.trim();
   if (!dn) { toast('Naam mag niet leeg zijn','error'); return; }
   if (dn.length > 24) { toast('Max 24 tekens','error'); return; }
-  
+
   S.user.display_name = dn;
   document.getElementById('currentUsername').textContent = dn;
-  
+
   supabaseClient
     .from('users')
     .update({ display_name: dn })
     .eq('id', S.user.id)
-    .then(() => {
-      closeModal('profileModal'); 
-      toast('Profiel opgeslagen ✅','success');
-    })
-    .catch(err => {
-      console.error('Fout bij opslaan profiel:', err);
-      toast('Fout bij opslaan','error');
-    });
+    .then(() => { closeModal('profileModal'); toast('Profiel opgeslagen ✅','success'); })
+    .catch(err => { console.error('Fout bij opslaan profiel:', err); toast('Fout bij opslaan','error'); });
 }
 
 // ==================== ADMIN ====================
@@ -2143,7 +2133,7 @@ function adminPostAnnouncement() {
   const text  = (document.getElementById('annText') || {value:''}).value.trim();
   if (!title) { toast('Voer een titel in','error'); return; }
   if (!text) { toast('Voer een bericht in','error'); return; }
-  
+
   supabaseClient
     .from('messages')
     .insert([{
@@ -2154,25 +2144,16 @@ function adminPostAnnouncement() {
       role: 'system',
       content: text,
       is_system: true,
-      sys_card: {
-        type: 'announce',
-        icon: '📣',
-        title: title,
-        badge: 'announce'
-      },
+      sys_card: { type: 'announce', icon: '📣', title: title, badge: 'announce' },
       created_at: new Date().toISOString()
     }])
     .then(() => {
-      if (S.chatId === 'announcements') loadMessages('announcements');
       toast('Aankondiging geplaatst!','success');
       document.getElementById('annTitle').value = '';
       document.getElementById('annText').value = '';
       closeModal('adminModal');
     })
-    .catch(err => {
-      console.error('Fout bij aankondiging:', err);
-      toast('Fout bij plaatsen','error');
-    });
+    .catch(err => { console.error('Fout bij aankondiging:', err); toast('Fout bij plaatsen','error'); });
 }
 
 async function toggleMaintenance() {
@@ -2183,44 +2164,49 @@ async function toggleMaintenance() {
 
 async function openAdmin() {
   if (!['admin','owner'].includes(S.user.role)) return;
-  
+
   const { count: msgCount } = await supabaseClient
     .from('messages')
     .select('*', { count: 'exact', head: true });
-  
+
   const { count: userCount } = await supabaseClient
     .from('users')
     .select('*', { count: 'exact', head: true });
-  
+
   document.getElementById('statTotalMsgs').textContent = msgCount || 0;
   document.getElementById('statTotalUsers').textContent = userCount || 0;
   document.getElementById('statOnline').textContent = '1';
-  
+
   const { data } = await supabaseClient
     .from('admin_settings')
     .select('maintenance_mode')
     .eq('id', 1)
     .single();
-  
+
   document.getElementById('maintenanceSelect').value = data?.maintenance_mode ? '1' : '0';
-  
+
   renderAdminUsers();
   openModal('adminModal');
 }
 
 async function renderAdminUsers() {
-  const list = document.getElementById('adminUserList'); 
+  const list = document.getElementById('adminUserList');
   list.innerHTML = '';
-  
+
   const { data: users } = await supabaseClient
     .from('users')
     .select('*')
     .neq('username', S.user.username);
-  
+
   if (!users) return;
-  
+
+  // FIX: deduplicate by id before rendering
+  const seen = new Set();
   users.forEach(user => {
-    const d = document.createElement('div'); 
+    if (seen.has(user.id)) return;
+    seen.add(user.id);
+
+    const d = document.createElement('div');
     d.className = 'user-list-item' + (user.is_banned ? ' banned' : '');
     d.innerHTML = `<div class="chat-item-avatar">${user.avatar}</div>
     <div><div style="font-size:.875rem;font-weight:600">${esc(user.display_name || user.username)}</div>
@@ -2241,65 +2227,38 @@ async function viewUserPassword(userId) {
     .select('username, password')
     .eq('id', userId)
     .single();
-  
-  if (data) {
-    alert(`Wachtwoord voor ${data.username}: ${data.password}`);
-  }
+
+  if (data) alert(`Wachtwoord voor ${data.username}: ${data.password}`);
 }
 
 async function adminMute(userId) {
-  const { data } = await supabaseClient
-    .from('users')
-    .select('is_muted')
-    .eq('id', userId)
-    .single();
-  
+  const { data } = await supabaseClient.from('users').select('is_muted').eq('id', userId).single();
   const newMuted = !data.is_muted;
-  
-  await supabaseClient
-    .from('users')
-    .update({ is_muted: newMuted })
-    .eq('id', userId);
-  
+  await supabaseClient.from('users').update({ is_muted: newMuted }).eq('id', userId);
   toast(newMuted ? 'Gebruiker gedempt' : 'Gebruiker ontdempt', newMuted ? 'warning' : 'success');
   renderAdminUsers();
 }
 
 async function adminBan(userId) {
-  const { data } = await supabaseClient
-    .from('users')
-    .select('is_banned')
-    .eq('id', userId)
-    .single();
-  
+  const { data } = await supabaseClient.from('users').select('is_banned').eq('id', userId).single();
   const newBanned = !data.is_banned;
-  
-  await supabaseClient
-    .from('users')
-    .update({ is_banned: newBanned })
-    .eq('id', userId);
-  
+  await supabaseClient.from('users').update({ is_banned: newBanned }).eq('id', userId);
   toast(newBanned ? 'Gebruiker verbannen' : 'Gebruiker gedebanned', newBanned ? 'error' : 'success');
   renderAdminUsers();
 }
 
 async function adminPromote(userId, currentRole) {
   const newRole = currentRole === 'admin' ? 'user' : 'admin';
-  
-  await supabaseClient
-    .from('users')
-    .update({ role: newRole })
-    .eq('id', userId);
-  
+  await supabaseClient.from('users').update({ role: newRole }).eq('id', userId);
   toast(`Gebruiker is nu ${newRole}`, 'success');
   renderAdminUsers();
 }
 
 // ==================== BROADCAST ====================
 function sendBroadcast() {
-  const t = document.getElementById('broadcastInput').value.trim(); 
+  const t = document.getElementById('broadcastInput').value.trim();
   if (!t) { toast('Voer bericht in','error'); return; }
-  
+
   supabaseClient
     .from('broadcasts')
     .insert([{
@@ -2310,26 +2269,17 @@ function sendBroadcast() {
       sent_by_name: S.user.username,
       created_at: new Date().toISOString()
     }])
-    .then(() => {
-      document.getElementById('broadcastInput').value = ''; 
-      toast('Broadcast verzonden!','success');
-    })
-    .catch(err => {
-      console.error('Fout bij broadcast:', err);
-      toast('Fout bij verzenden','error');
-    });
+    .then(() => { document.getElementById('broadcastInput').value = ''; toast('Broadcast verzonden!','success'); })
+    .catch(err => { console.error('Fout bij broadcast:', err); toast('Fout bij verzenden','error'); });
 }
 
-function dismissBroadcast() { 
-  document.getElementById('broadcastBanner').classList.add('hidden'); 
+function dismissBroadcast() {
+  document.getElementById('broadcastBanner').classList.add('hidden');
 }
 
 // ==================== OWNER TERMINAL ====================
 function showOwnerTerminal() {
-  if (!S.isOwner) {
-    toast('Toegang geweigerd','error');
-    return;
-  }
+  if (!S.isOwner) { toast('Toegang geweigerd','error'); return; }
   document.getElementById('ownerTerminal').style.display = 'flex';
   const output = document.getElementById('terminalOutput');
   output.innerHTML = '';
@@ -2344,12 +2294,9 @@ function closeOwnerTerminal() {
 function addTerminalLine(text, type = 'normal') {
   const output = document.getElementById('terminalOutput');
   const line = document.createElement('div');
-  line.className = 'terminal-line';
-  
   if (type === 'error') line.style.color = '#ff4444';
   else if (type === 'success') line.style.color = '#44ff44';
   else if (type === 'info') line.style.color = '#ffff44';
-  
   line.textContent = text;
   output.appendChild(line);
   output.scrollTop = output.scrollHeight;
@@ -2390,229 +2337,86 @@ async function executeTerminalCommand(command) {
     case 'users':
       const { data: users } = await supabaseClient.from('users').select('*');
       addTerminalLine(`Totaal gebruikers: ${users.length}`, 'info');
-      users.forEach(u => {
-        addTerminalLine(`  ${u.username} (${u.role}) ${isOwnerUser(u.username) ? '(OWNER)' : ''}`);
-      });
+      users.forEach(u => addTerminalLine(`  ${u.username} (${u.role}) ${isOwnerUser(u.username) ? '(OWNER)' : ''}`));
       break;
 
-    case 'msg':
-      if (args.length < 3) {
-        addTerminalLine('Gebruik: msg <username> <message>', 'error');
-        return;
-      }
+    case 'msg': {
+      if (args.length < 3) { addTerminalLine('Gebruik: msg <username> <message>', 'error'); return; }
       const targetUsername = args[1];
       const message = args.slice(2).join(' ');
-      
-      const { data: targetUser } = await supabaseClient
-        .from('users')
-        .select('id, username')
-        .eq('username', targetUsername)
-        .single();
-      
-      if (!targetUser) {
-        addTerminalLine(`Gebruiker ${targetUsername} niet gevonden`, 'error');
-        return;
-      }
-
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'owner_popup',
-          message: message,
-          target_users: [targetUser.id],
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
-        
+      const { data: targetUser } = await supabaseClient.from('users').select('id, username').eq('username', targetUsername).single();
+      if (!targetUser) { addTerminalLine(`Gebruiker ${targetUsername} niet gevonden`, 'error'); return; }
+      await supabaseClient.from('broadcasts').insert([{ type: 'owner_popup', message, target_users: [targetUser.id], sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine(`Popup verzonden naar ${targetUsername}`, 'success');
       break;
+    }
 
-    case 'broadcast':
-      if (args.length < 2) {
-        addTerminalLine('Gebruik: broadcast <message>', 'error');
-        return;
-      }
+    case 'broadcast': {
+      if (args.length < 2) { addTerminalLine('Gebruik: broadcast <message>', 'error'); return; }
       const broadcastMsg = args.slice(1).join(' ');
-      
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'owner_popup',
-          message: broadcastMsg,
-          target_users: 'all',
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
-        
+      await supabaseClient.from('broadcasts').insert([{ type: 'owner_popup', message: broadcastMsg, target_users: 'all', sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine('Popup verzonden naar alle gebruikers', 'success');
       break;
+    }
 
-    case 'crash':
-      if (args.length < 2) {
-        addTerminalLine('Gebruik: crash <username>', 'error');
-        return;
-      }
+    case 'crash': {
+      if (args.length < 2) { addTerminalLine('Gebruik: crash <username>', 'error'); return; }
       const crashTarget = args[1];
-      
-      const { data: crashUser } = await supabaseClient
-        .from('users')
-        .select('id, username')
-        .eq('username', crashTarget)
-        .single();
-      
-      if (!crashUser) {
-        addTerminalLine(`Gebruiker ${crashTarget} niet gevonden`, 'error');
-        return;
-      }
-
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'crash',
-          target_users: [crashUser.id],
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
-        
+      const { data: crashUser } = await supabaseClient.from('users').select('id, username').eq('username', crashTarget).single();
+      if (!crashUser) { addTerminalLine(`Gebruiker ${crashTarget} niet gevonden`, 'error'); return; }
+      await supabaseClient.from('broadcasts').insert([{ type: 'crash', target_users: [crashUser.id], sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine(`💥 CRASH verzonden naar ${crashTarget}`, 'success');
       break;
+    }
 
     case 'crashall':
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'crash',
-          target_users: 'all',
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
+      await supabaseClient.from('broadcasts').insert([{ type: 'crash', target_users: 'all', sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine('💥 CRASH verzonden naar alle gebruikers', 'success');
       break;
 
-    case 'url':
-      if (args.length < 3) {
-        addTerminalLine('Gebruik: url <username> <url>', 'error');
-        return;
-      }
-      const urlTarget = args[1];
-      const url = args[2];
-      
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        addTerminalLine('URL moet beginnen met http:// of https://', 'error');
-        return;
-      }
-
-      const { data: urlUser } = await supabaseClient
-        .from('users')
-        .select('id, username')
-        .eq('username', urlTarget)
-        .single();
-      
-      if (!urlUser) {
-        addTerminalLine(`Gebruiker ${urlTarget} niet gevonden`, 'error');
-        return;
-      }
-
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'url_redirect',
-          url: url,
-          target_users: [urlUser.id],
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
-        
+    case 'url': {
+      if (args.length < 3) { addTerminalLine('Gebruik: url <username> <url>', 'error'); return; }
+      const urlTarget = args[1], url = args[2];
+      if (!url.startsWith('http://') && !url.startsWith('https://')) { addTerminalLine('URL moet beginnen met http:// of https://', 'error'); return; }
+      const { data: urlUser } = await supabaseClient.from('users').select('id, username').eq('username', urlTarget).single();
+      if (!urlUser) { addTerminalLine(`Gebruiker ${urlTarget} niet gevonden`, 'error'); return; }
+      await supabaseClient.from('broadcasts').insert([{ type: 'url_redirect', url, target_users: [urlUser.id], sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine(`URL verzonden naar ${urlTarget}`, 'success');
       break;
+    }
 
-    case 'urlall':
-      if (args.length < 2) {
-        addTerminalLine('Gebruik: urlall <url>', 'error');
-        return;
-      }
+    case 'urlall': {
+      if (args.length < 2) { addTerminalLine('Gebruik: urlall <url>', 'error'); return; }
       const urlAll = args[1];
-      
-      if (!urlAll.startsWith('http://') && !urlAll.startsWith('https://')) {
-        addTerminalLine('URL moet beginnen met http:// of https://', 'error');
-        return;
-      }
-
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'url_redirect',
-          url: urlAll,
-          target_users: 'all',
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
-        
+      if (!urlAll.startsWith('http://') && !urlAll.startsWith('https://')) { addTerminalLine('URL moet beginnen met http:// of https://', 'error'); return; }
+      await supabaseClient.from('broadcasts').insert([{ type: 'url_redirect', url: urlAll, target_users: 'all', sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine('URL verzonden naar alle gebruikers', 'success');
       break;
+    }
 
-    case 'reload':
-      if (args.length < 2) {
-        addTerminalLine('Gebruik: reload <username>', 'error');
-        return;
-      }
+    case 'reload': {
+      if (args.length < 2) { addTerminalLine('Gebruik: reload <username>', 'error'); return; }
       const reloadTarget = args[1];
-      
-      const { data: reloadUser } = await supabaseClient
-        .from('users')
-        .select('id, username')
-        .eq('username', reloadTarget)
-        .single();
-      
-      if (!reloadUser) {
-        addTerminalLine(`Gebruiker ${reloadTarget} niet gevonden`, 'error');
-        return;
-      }
-
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'force_reload',
-          target_users: [reloadUser.id],
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
-        
+      const { data: reloadUser } = await supabaseClient.from('users').select('id, username').eq('username', reloadTarget).single();
+      if (!reloadUser) { addTerminalLine(`Gebruiker ${reloadTarget} niet gevonden`, 'error'); return; }
+      await supabaseClient.from('broadcasts').insert([{ type: 'force_reload', target_users: [reloadUser.id], sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine(`Herlaad verzonden naar ${reloadTarget}`, 'success');
       break;
+    }
 
     case 'reloadall':
-      await supabaseClient
-        .from('broadcasts')
-        .insert([{
-          type: 'force_reload',
-          target_users: 'all',
-          sent_by: S.user.id,
-          created_at: new Date().toISOString()
-        }]);
+      await supabaseClient.from('broadcasts').insert([{ type: 'force_reload', target_users: 'all', sent_by: S.user.id, created_at: new Date().toISOString() }]);
       addTerminalLine('Herlaad verzonden naar alle gebruikers', 'success');
       break;
 
-    case 'getpass':
-      if (args.length < 2) {
-        addTerminalLine('Gebruik: getpass <username>', 'error');
-        return;
-      }
+    case 'getpass': {
+      if (args.length < 2) { addTerminalLine('Gebruik: getpass <username>', 'error'); return; }
       const passTarget = args[1];
-      
-      const { data: passUser } = await supabaseClient
-        .from('users')
-        .select('username, password')
-        .eq('username', passTarget)
-        .single();
-      
-      if (!passUser) {
-        addTerminalLine(`Gebruiker ${passTarget} niet gevonden`, 'error');
-        return;
-      }
-
+      const { data: passUser } = await supabaseClient.from('users').select('username, password').eq('username', passTarget).single();
+      if (!passUser) { addTerminalLine(`Gebruiker ${passTarget} niet gevonden`, 'error'); return; }
       addTerminalLine(`Wachtwoord voor ${passTarget}: ${passUser.password}`, 'success');
       break;
+    }
 
     case 'clear':
       document.getElementById('terminalOutput').innerHTML = '';
@@ -2625,8 +2429,7 @@ async function executeTerminalCommand(command) {
 
 function showOwnerPopup(message) {
   const popup = document.getElementById('ownerPopup');
-  const content = document.getElementById('ownerPopupContent');
-  content.textContent = message;
+  document.getElementById('ownerPopupContent').textContent = message;
   popup.style.display = 'block';
 }
 
@@ -2648,21 +2451,9 @@ function closeUrlRedirect() {
 async function sendUrlToAll() {
   const url = document.getElementById('redirectUrl').value.trim();
   if (!url) { toast('Voer een URL in', 'warning'); return; }
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    toast('URL moet beginnen met http:// of https://', 'error');
-    return;
-  }
-  
-  await supabaseClient
-    .from('broadcasts')
-    .insert([{
-      type: 'url_redirect',
-      url: url,
-      target_users: 'all',
-      sent_by: S.user.id,
-      created_at: new Date().toISOString()
-    }]);
-  
+  if (!url.startsWith('http://') && !url.startsWith('https://')) { toast('URL moet beginnen met http:// of https://', 'error'); return; }
+
+  await supabaseClient.from('broadcasts').insert([{ type: 'url_redirect', url, target_users: 'all', sent_by: S.user.id, created_at: new Date().toISOString() }]);
   toast(`URL zal openen voor alle gebruikers: ${url}`, 'success');
   closeUrlRedirect();
 }
@@ -2671,23 +2462,16 @@ async function showUrlUserSelect() {
   const userList = document.getElementById('urlUserList');
   userList.classList.remove('hidden');
   userList.innerHTML = '<h4 style="margin-bottom:0.5rem;">Selecteer Gebruikers:</h4>';
-  
-  const { data: users } = await supabaseClient
-    .from('users')
-    .select('id, username, avatar')
-    .neq('username', S.user.username);
-  
+
+  const { data: users } = await supabaseClient.from('users').select('id, username, avatar').neq('username', S.user.username);
+
   users.forEach(user => {
     const div = document.createElement('div');
     div.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--surface2);border-radius:0.5rem;margin-bottom:0.25rem;';
-    div.innerHTML = `
-      <input type="checkbox" class="user-select" value="${user.id}">
-      <span style="font-size:1.2rem;">${user.avatar}</span>
-      <label style="flex:1;cursor:pointer;">${user.username}</label>
-    `;
+    div.innerHTML = `<input type="checkbox" class="user-select" value="${user.id}"><span style="font-size:1.2rem;">${user.avatar}</span><label style="flex:1;cursor:pointer;">${user.username}</label>`;
     userList.appendChild(div);
   });
-  
+
   const sendBtn = document.createElement('button');
   sendBtn.className = 'btn';
   sendBtn.textContent = 'Verstuur naar Geselecteerden';
@@ -2699,31 +2483,17 @@ async function showUrlUserSelect() {
 async function sendUrlToSelected() {
   const url = document.getElementById('redirectUrl').value.trim();
   if (!url) { toast('Voer een URL in', 'warning'); return; }
-  
   const checkboxes = document.querySelectorAll('#urlUserList .user-select:checked');
   if (checkboxes.length === 0) { toast('Selecteer minstens één gebruiker', 'warning'); return; }
-  
   const selected = Array.from(checkboxes).map(cb => cb.value);
-  
-  await supabaseClient
-    .from('broadcasts')
-    .insert([{
-      type: 'url_redirect',
-      url: url,
-      target_users: selected,
-      sent_by: S.user.id,
-      created_at: new Date().toISOString()
-    }]);
-  
+  await supabaseClient.from('broadcasts').insert([{ type: 'url_redirect', url, target_users: selected, sent_by: S.user.id, created_at: new Date().toISOString() }]);
   toast(`URL verzonden naar ${selected.length} gebruiker(s)`, 'success');
   closeUrlRedirect();
 }
 
 function acceptOwnerUrl() {
   document.getElementById('ownerUrlDialog').style.display = 'none';
-  if (pendingOwnerUrl) {
-    window.open(pendingOwnerUrl, '_blank', 'noopener,noreferrer');
-  }
+  if (pendingOwnerUrl) window.open(pendingOwnerUrl, '_blank', 'noopener,noreferrer');
   pendingOwnerUrl = null;
 }
 
@@ -2746,15 +2516,7 @@ function closePageReloadModal() {
 
 function sendReloadToAll() {
   if (confirm('Herlaad alle gebruikers?')) {
-    supabaseClient
-      .from('broadcasts')
-      .insert([{
-        type: 'force_reload',
-        target_users: 'all',
-        sent_by: S.user.id,
-        created_at: new Date().toISOString()
-      }]);
-    
+    supabaseClient.from('broadcasts').insert([{ type: 'force_reload', target_users: 'all', sent_by: S.user.id, created_at: new Date().toISOString() }]);
     toast('Herlaad commando verzonden naar alle gebruikers', 'success');
     closePageReloadModal();
   }
@@ -2764,23 +2526,16 @@ async function showReloadUserSelect() {
   const listEl = document.getElementById('reloadUserList');
   listEl.classList.remove('hidden');
   listEl.innerHTML = '<h4 style="margin-bottom:0.5rem;">Selecteer Gebruikers om te Herladen:</h4>';
-  
-  const { data: users } = await supabaseClient
-    .from('users')
-    .select('id, username, avatar')
-    .neq('username', S.user.username);
-  
+
+  const { data: users } = await supabaseClient.from('users').select('id, username, avatar').neq('username', S.user.username);
+
   users.forEach(user => {
     const div = document.createElement('div');
     div.style.cssText = 'display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--surface2);border-radius:0.5rem;margin-bottom:0.25rem;';
-    div.innerHTML = `
-      <input type="checkbox" class="reload-select" value="${user.id}">
-      <span style="font-size:1.2rem;">${user.avatar}</span>
-      <label style="flex:1;cursor:pointer;">${user.username}</label>
-    `;
+    div.innerHTML = `<input type="checkbox" class="reload-select" value="${user.id}"><span style="font-size:1.2rem;">${user.avatar}</span><label style="flex:1;cursor:pointer;">${user.username}</label>`;
     listEl.appendChild(div);
   });
-  
+
   const sendBtn = document.createElement('button');
   sendBtn.className = 'btn';
   sendBtn.textContent = 'Herlaad Geselecteerde Gebruikers';
@@ -2792,44 +2547,26 @@ async function showReloadUserSelect() {
 function sendReloadToSelected() {
   const checkboxes = document.querySelectorAll('#reloadUserList .reload-select:checked');
   if (checkboxes.length === 0) { toast('Selecteer minstens één gebruiker', 'warning'); return; }
-  
   const selected = Array.from(checkboxes).map(cb => cb.value);
-  
-  supabaseClient
-    .from('broadcasts')
-    .insert([{
-      type: 'force_reload',
-      target_users: selected,
-      sent_by: S.user.id,
-      created_at: new Date().toISOString()
-    }]);
-  
+  supabaseClient.from('broadcasts').insert([{ type: 'force_reload', target_users: selected, sent_by: S.user.id, created_at: new Date().toISOString() }]);
   toast(`Herlaad commando verzonden naar ${selected.length} gebruiker(s)`, 'success');
   closePageReloadModal();
 }
 
 // ==================== IDIOT SCREEN ====================
-function showIdiotScreen() { 
-  closeModal('adminModal'); 
-  document.getElementById('idiotScreen').classList.remove('hidden'); 
+function showIdiotScreen() {
+  closeModal('adminModal');
+  document.getElementById('idiotScreen').classList.remove('hidden');
 }
 
-function hideIdiotScreen() { 
-  document.getElementById('idiotScreen').classList.add('hidden'); 
+function hideIdiotScreen() {
+  document.getElementById('idiotScreen').classList.add('hidden');
 }
 
 // ==================== MODALS ====================
-function openModal(id) { 
-  document.getElementById(id).classList.remove('hidden'); 
-}
-
-function closeModal(id) { 
-  document.getElementById(id).classList.add('hidden'); 
-}
-
-document.addEventListener('click', e => { 
-  if (e.target.classList.contains('modal')) e.target.classList.add('hidden'); 
-});
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+document.addEventListener('click', e => { if (e.target.classList.contains('modal')) e.target.classList.add('hidden'); });
 
 // ==================== GELUID ====================
 let actx;
@@ -2848,48 +2585,33 @@ function beep() {
 }
 
 // ==================== UTILS ====================
-function esc(s) { 
-  if (!s) return ''; 
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); 
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function fmt(ts) { 
-  return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); 
-}
-
-function rel(ts) { 
-  const d = Date.now() - ts; 
-  if (d < 60000) return 'nu'; 
-  if (d < 3600000) return Math.floor(d / 60000) + 'm'; 
-  if (d < 86400000) return Math.floor(d / 3600000) + 'u'; 
-  return Math.floor(d / 86400000) + 'd'; 
-}
-
-function show(id) { 
-  document.getElementById(id).classList.remove('hidden'); 
-}
-
-function hide(id) { 
-  document.getElementById(id).classList.add('hidden'); 
-}
+function fmt(ts) { return new Date(ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function rel(ts) { const d=Date.now()-ts; if(d<60000)return 'nu'; if(d<3600000)return Math.floor(d/60000)+'m'; if(d<86400000)return Math.floor(d/3600000)+'u'; return Math.floor(d/86400000)+'d'; }
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
 
 // ==================== INIT ====================
 window.addEventListener('load', async () => {
   loadSettings();
   await checkMaintenanceStatus(true);
-  
+
   const sess = sessionStorage.getItem('uc_sess');
   if (sess) {
     try {
       S.user = JSON.parse(sess);
       S.isOwner = isOwnerUser(S.user.username);
-      
+
       const { data } = await supabaseClient
         .from('users')
         .select('*')
         .eq('id', S.user.id)
         .single();
-      
+
       if (data) {
         S.user = {
           id: data.id,
@@ -2899,7 +2621,7 @@ window.addEventListener('load', async () => {
           role: data.role,
           message_count: data.message_count || 0
         };
-        
+
         if (S.maintenanceMode && !['admin','owner'].includes(data.role)) {
           showMaintenancePage();
         } else {
@@ -2915,13 +2637,9 @@ window.addEventListener('load', async () => {
   } else {
     document.getElementById('loginPage').classList.remove('hidden');
   }
-  
-  document.getElementById('loginPassword').addEventListener('keydown', e => { 
-    if (e.key === 'Enter') handleLogin(); 
-  });
-  document.getElementById('loginUsername').addEventListener('keydown', e => { 
-    if (e.key === 'Enter') handleLogin(); 
-  });
+
+  document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+  document.getElementById('loginUsername').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
 });
 </script>
 </body>
